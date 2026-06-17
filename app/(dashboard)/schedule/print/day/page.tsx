@@ -286,8 +286,8 @@ function LessonPosterCard({ lesson }: { lesson: Lesson }) {
   const teacher = (lesson as { teacher?: { name: string } }).teacher
   const booth = (lesson as { booth?: { name: string } }).booth
   const students = (lesson.enrollments ?? [])
-    .map((e: { student?: { id: string; name: string } }) => e.student)
-    .filter(Boolean) as { id: string; name: string }[]
+    .map((e) => e.student)
+    .filter((s): s is NonNullable<typeof s> => s != null)
 
   return (
     <div className={[

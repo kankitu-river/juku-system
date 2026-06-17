@@ -264,7 +264,7 @@ function DailyViewPlaceholder({ date, lessons }: { date: Date; lessons: Lesson[]
         <div className="space-y-2">
           {dayLessons.sort((a, b) => a.slot_index - b.slot_index).map((lesson) => {
             const isGroup = lesson.type === 'group'
-            const students = lesson.enrollments?.map((e: { student?: { id: string; name: string } }) => e.student).filter(Boolean) ?? []
+            const students = lesson.enrollments?.map((e) => e.student).filter((s): s is NonNullable<typeof s> => s != null) ?? []
             const teacher = lesson.teacher as { name: string } | null | undefined
             return (
               <Link

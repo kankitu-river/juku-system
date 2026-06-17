@@ -289,8 +289,8 @@ function LessonCell({ lesson }: { lesson: Lesson }) {
   const teacher = (lesson as { teacher?: { name: string } }).teacher
   const booth = (lesson as { booth?: { name: string } }).booth
   const students = (lesson.enrollments ?? [])
-    .map((e: { student?: { name: string } }) => e.student)
-    .filter(Boolean) as { name: string }[]
+    .map((e) => e.student)
+    .filter((s): s is NonNullable<typeof s> => s != null)
   const displayStudents = students.slice(0, 2)
   const extra = students.length - 2
 
