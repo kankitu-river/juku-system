@@ -1,0 +1,132 @@
+import { createClient } from '@/lib/supabase/server'
+import { Header } from '@/components/layout/Header'
+import { LessonForm } from '@/components/schedule/LessonForm'
+import { updateLesson, deleteLesson } from '../actions'
+import type { Lesson, Teacher, Booth, Student, LessonEnrollment } from '@/types'
+import { notFound } from 'next/navigation'
+import { Badge } from '@/components/ui/Badge'
+import { getSlotLabel } from '@/lib/constants/timeSlots'
+import Link from 'next/link'
+
+interface PageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function LessonDetailPage({ params }: PageProps) {
+  const { id } = await params
+  const supabase = await createClient()
+
+  const [{ data: lesson }, { data: teachers }, { data: booths }, { data: students }, { data: enrollments }] =
+    await Promise.all([
+      supabase
+        .from('lessons')
+        .select('*, teacher:teachers(id, name), booth:booths(id, name)')
+        .eq('id', id)
+        .single(),
+      supabase.from('teachers').select('*').order('name'),
+      supabase.from('booths').select('*').eq('is_active', true).order('name'),
+      supabase.from('students').select('*').order('name'),
+      supabase
+        .from('lesson_enrollments')
+        .select('*, student:students(id, name, grade)')
+        .eq('lesson_id', id),
+    ])
+
+  if (!lesson) notFound()
+
+  const typedLesson = lesson as Lesson
+  const enrolledStudentIds = ((enrollments as LessonEnrollment[]) ?? []).map((e) => e.student_id)
+
+  return (
+    <div>
+      <Header
+        title={typedLesson.subject || 'コマ詳細'}
+        subtitle="コマの詳細・編集"
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant={typedLesson.type === 'group' ? 'group' : 'individual'}>
+              {typedLesson.type === 'group' ? '集団授業' : '個別指導'}
+            </Badge>
+            <Badge variant={typedLesson.term_type === 'intensive' ? 'intensive' : 'regular'}>
+              {typedLesson.term_type === 'intensive' ? '講習期間' : '通常期間'}
+            </Badge>
+            <Link
+              href={`/schedule/new?copy=${id}`}
+              className="ml-2 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+            >
+              コピーして新規作成
+            </Link>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 編集フォーム */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <LessonForm
+            lesson={typedLesson}
+            teachers={(teachers as Teacher[]) ?? []}
+            booths={(booths as Booth[]) ?? []}
+            students={(students as Student[]) ?? []}
+            enrolledStudentIds={enrolledStudentIds}
+            onSave={updateLesson.bind(null, id)}
+            onDelete={deleteLesson.bind(null, id)}
+          />
+        </div>
+
+        {/* コマ情報サマリー */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 h-fit">
+          <h3 className="font-semibold text-gray-700 mb-3 text-sm">コマ情報</h3>
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-gray-500">時間帯</dt>
+              <dd className="font-medium text-gray-800">
+                {getSlotLabel(typedLesson.slot_index, typedLesson.day_of_week, typedLesson.term_type)}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-500">科目</dt>
+              <dd className="font-medium text-gray-800">{typedLesson.subject}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-500">担当講師</dt>
+              <dd className="font-medium text-gray-800">
+                {typedLesson.teacher?.name ?? '未割り当て'}
+              </dd>
+            </div>
+            {typedLesson.type === 'individual' && (
+              <div className="flex justify-between">
+                <dt className="text-gray-500">ブース</dt>
+                <dd className="font-medium text-gray-800">
+                  {typedLesson.booth?.name ?? '未割り当て'}
+                </dd>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <dt className="text-gray-500">定員</dt>
+              <dd className="font-medium text-gray-800">{typedLesson.capacity}名</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-500">受講生徒数</dt>
+              <dd className="font-medium text-gray-800">{enrolledStudentIds.length}名</dd>
+            </div>
+          </dl>
+
+          {enrolledStudentIds.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs font-medium text-gray-500 mb-2">受講生徒</p>
+              <div className="space-y-1">
+                {((enrollments as LessonEnrollment[]) ?? []).map((e) => (
+                  <div key={e.id} className="text-xs text-gray-700 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
+                    {(e as any).student?.name ?? '—'}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

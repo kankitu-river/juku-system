@@ -1,0 +1,330 @@
+import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
+import { REGULAR_SLOTS, INTENSIVE_SLOTS, GROUP_SATURDAY_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
+import type { Lesson, TermPeriod } from '@/types'
+import { WeekPrintClient } from './WeekPrintClient'
+
+interface PageProps {
+  searchParams: Promise<{ date?: string }>
+}
+
+function getWeekRange(date: Date): { start: Date; end: Date } {
+  const d = new Date(date)
+  const day = d.getDay() // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day
+  const start = new Date(d)
+  start.setDate(d.getDate() + diff)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 5) // Mon-Sat
+  return { start, end }
+}
+
+const DAY_NAMES = ['', '月', '火', '水', '木', '金', '土']
+
+export default async function WeekPrintPage({ searchParams }: PageProps) {
+  const { date } = await searchParams
+  const refDate = date ? new Date(date) : new Date()
+  const { start, end } = getWeekRange(refDate)
+
+  const supabase = await createClient()
+  const [{ data: lessons }, { data: termPeriods }] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student:students(id, name))')
+      .order('day_of_week')
+      .order('slot_index'),
+    supabase.from('term_periods').select('*').order('start_date'),
+  ])
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const dateStr = toLocalDate(start)
+  const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
+    (t) => t.start_date <= dateStr && t.end_date >= dateStr
+  )
+  const currentTermType = activeTerm?.type ?? 'regular'
+
+  const typedLessons = (lessons as Lesson[]) ?? []
+
+  // Group lessons by day and slot key
+  // Map: dayOfWeek -> slot_index -> lesson[]
+  type LessonMap = Map<string, Lesson[]>
+  const lessonMap: LessonMap = new Map()
+
+  for (const lesson of typedLessons) {
+    // Skip lessons not matching current term type
+    if (lesson.term_type !== currentTermType) continue
+    const key = `${lesson.day_of_week}-${lesson.slot_index}-${lesson.type}`
+    const existing = lessonMap.get(key) ?? []
+    lessonMap.set(key, [...existing, lesson])
+  }
+
+  // Build slot rows for weekdays (Mon-Fri = 1-5)
+  const slots = currentTermType === 'intensive' ? INTENSIVE_SLOTS : REGULAR_SLOTS
+
+  // Build dates array for Mon-Sat
+  const weekDates: Date[] = []
+  for (let i = 0; i <= 5; i++) {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    weekDates.push(d)
+  }
+
+  const prevWeek = new Date(start)
+  prevWeek.setDate(start.getDate() - 7)
+  const nextWeek = new Date(start)
+  nextWeek.setDate(start.getDate() + 7)
+
+  const startLabel = start.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
+  const endLabel = end.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
+  const yearLabel = start.getFullYear()
+
+  return (
+    <div className="bg-white min-h-screen">
+      <style>{`
+        @media print {
+          @page { size: A4 landscape; margin: 5mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .wpl-wrap { display: flex; align-items: flex-start; gap: 5mm; }
+          .wpl-days { flex: 13; min-width: 0; }
+          .wpl-sat  { flex: 4;  min-width: 0; }
+          .wpl-table { font-size: 7.5px !important; }
+          .wpl-table th, .wpl-table td { padding: 2px 4px !important; }
+          .wpl-cell { padding: 2px 4px !important; margin-bottom: 1px !important; }
+          .wpl-cell p { margin: 0 !important; line-height: 1.2 !important; }
+          .wpl-pill { font-size: 7px !important; padding: 0 3px !important; margin-bottom: 1px !important; }
+          .wpl-h2 { font-size: 8px !important; margin-bottom: 2px !important; }
+          .wpl-h3 { font-size: 7px !important; margin-bottom: 1px !important; }
+        }
+      `}</style>
+      {/* Controls (hidden on print) */}
+      <div className="no-print bg-gray-50 border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <Link href="/schedule" className="text-sm text-gray-500 hover:text-gray-700">← 戻る</Link>
+          <Link
+            href={`/schedule/print/week?date=${toLocalDate(prevWeek)}`}
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100"
+          >
+            ‹ 前週
+          </Link>
+          <span className="text-sm font-medium text-gray-700">
+            {yearLabel}年 {startLabel} 〜 {endLabel}
+          </span>
+          <Link
+            href={`/schedule/print/week?date=${toLocalDate(nextWeek)}`}
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100"
+          >
+            次週 ›
+          </Link>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={[
+            'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
+            currentTermType === 'intensive'
+              ? 'bg-amber-100 text-amber-800'
+              : 'bg-blue-100 text-blue-800',
+          ].join(' ')}>
+            {activeTerm ? activeTerm.name : '通常期間'}
+          </span>
+          <WeekPrintClient />
+        </div>
+      </div>
+
+      {/* Print content */}
+      <div className="p-6 print:p-0">
+        {/* Header */}
+        <div className="mb-4 print:mb-3">
+          <h1 className="text-xl font-bold text-[#1E3A5F]">週間スケジュール</h1>
+          <p className="text-sm text-gray-500">
+            {yearLabel}年 {startLabel} 〜 {endLabel}
+            {activeTerm && <span className="ml-2 text-amber-600">（{activeTerm.name}）</span>}
+          </p>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 mb-4 text-xs no-print">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded bg-purple-100 border border-purple-300" />
+            集団授業
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded bg-teal-100 border border-teal-300" />
+            個別指導
+          </span>
+        </div>
+
+        {/* Weekday + Saturday: side-by-side on print */}
+        <div className="wpl-wrap">
+        <section className="mb-6 print:mb-0 wpl-days">
+          <h2 className="text-sm font-semibold text-gray-600 mb-2 wpl-h2">月〜金（個別指導）</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-xs wpl-table">
+              <thead>
+                <tr>
+                  <th className="border border-gray-300 bg-[#1E3A5F] text-white px-2 py-1.5 text-left w-28">時間帯</th>
+                  {weekDates.slice(0, 5).map((d, i) => {
+                    const dow = i + 1
+                    const day = d.getDate()
+                    const month = d.getMonth() + 1
+                    return (
+                      <th key={dow} className="border border-gray-300 bg-[#1E3A5F] text-white px-2 py-1.5 text-center">
+                        {DAY_NAMES[dow]}（{month}/{day}）
+                      </th>
+                    )
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {slots.map((slot) => (
+                  <tr key={slot.index}>
+                    <td className="border border-gray-300 bg-gray-50 px-2 py-2 text-center font-medium whitespace-nowrap">
+                      <div className="font-bold">第{slot.index}コマ</div>
+                      <div className="text-gray-500">{slot.start}〜{slot.end}</div>
+                    </td>
+                    {[1, 2, 3, 4, 5].map((dow) => {
+                      const key = `${dow}-${slot.index}-individual`
+                      const cellLessons = lessonMap.get(key) ?? []
+                      return (
+                        <td key={dow} className="border border-gray-300 px-1 py-1 align-top">
+                          {cellLessons.map((lesson) => (
+                            <LessonCell key={lesson.id} lesson={lesson} />
+                          ))}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Saturday table */}
+        <section className="wpl-sat">
+          <h2 className="text-sm font-semibold text-gray-600 mb-2 wpl-h2">
+            土曜日（{weekDates[5].getMonth() + 1}/{weekDates[5].getDate()}）
+          </h2>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Saturday individual */}
+            <div>
+              <h3 className="text-xs font-medium text-teal-700 mb-1 wpl-h3">個別指導</h3>
+              <table className="w-full border-collapse text-xs wpl-table">
+                <thead>
+                  <tr>
+                    <th className="border border-gray-300 bg-teal-700 text-white px-2 py-1 text-left">時間帯</th>
+                    <th className="border border-gray-300 bg-teal-700 text-white px-2 py-1 text-center">コマ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SATURDAY_INDIVIDUAL_SLOTS.map((slot) => {
+                    const key = `6-${slot.index}-individual`
+                    const cellLessons = lessonMap.get(key) ?? []
+                    return (
+                      <tr key={slot.index}>
+                        <td className="border border-gray-300 bg-gray-50 px-2 py-1 text-center whitespace-nowrap">
+                          <div className="font-bold">第{slot.index}コマ</div>
+                          <div className="text-gray-500 text-[10px]">{slot.start}〜{slot.end}</div>
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 align-top">
+                          {cellLessons.map((lesson) => (
+                            <LessonCell key={lesson.id} lesson={lesson} />
+                          ))}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Saturday group */}
+            <div>
+              <h3 className="text-xs font-medium text-purple-700 mb-1 wpl-h3">集団授業</h3>
+              <table className="w-full border-collapse text-xs wpl-table">
+                <thead>
+                  <tr>
+                    <th className="border border-gray-300 bg-purple-700 text-white px-2 py-1 text-left">時間帯</th>
+                    <th className="border border-gray-300 bg-purple-700 text-white px-2 py-1 text-center">コマ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {GROUP_SATURDAY_SLOTS.map((slot) => {
+                    const key = `6-${slot.index}-group`
+                    const cellLessons = lessonMap.get(key) ?? []
+                    return (
+                      <tr key={slot.index}>
+                        <td className="border border-gray-300 bg-gray-50 px-2 py-1 text-center whitespace-nowrap">
+                          <div className="font-bold">第{slot.index}コマ</div>
+                          <div className="text-gray-500 text-[10px]">{slot.start}〜{slot.end}</div>
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 align-top">
+                          {cellLessons.map((lesson) => (
+                            <LessonCell key={lesson.id} lesson={lesson} />
+                          ))}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        </div>{/* /wpl-wrap */}
+
+        {/* Print footer */}
+        <div className="hidden print:block mt-4 pt-3 border-t border-gray-300 text-[10px] text-gray-400 flex justify-between">
+          <span>塾スケジュール管理システム</span>
+          <span>印刷日: {new Date().toLocaleDateString('ja-JP')}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LessonCell({ lesson }: { lesson: Lesson }) {
+  const isGroup = lesson.type === 'group'
+  const teacher = (lesson as { teacher?: { name: string } }).teacher
+  const booth = (lesson as { booth?: { name: string } }).booth
+  const students = (lesson.enrollments ?? [])
+    .map((e: { student?: { name: string } }) => e.student)
+    .filter(Boolean) as { name: string }[]
+  const displayStudents = students.slice(0, 2)
+  const extra = students.length - 2
+
+  return (
+    <div className={[
+      'rounded-md px-2 py-2 mb-1.5 leading-snug border-l-4 wpl-cell',
+      isGroup
+        ? 'bg-purple-50 border-l-purple-500 border border-purple-200'
+        : 'bg-teal-50 border-l-teal-500 border border-teal-200',
+    ].join(' ')}>
+      {/* 先生名 */}
+      {teacher?.name && (
+        <p className={[
+          'text-xs font-bold mb-1 inline-block px-1.5 py-0.5 rounded-full wpl-pill',
+          isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
+        ].join(' ')}>
+          {teacher.name}
+        </p>
+      )}
+      {/* 生徒一覧 */}
+      {displayStudents.length > 0 ? (
+        <div className="text-xs text-gray-800 leading-relaxed">
+          {displayStudents.map((s, i) => (
+            <p key={i}>{s.name}（{lesson.subject}）</p>
+          ))}
+          {extra > 0 && <p className="text-gray-400 text-[10px]">+{extra}名</p>}
+        </div>
+      ) : (
+        <p className="text-[10px] text-gray-400">生徒未登録</p>
+      )}
+      {/* ブース */}
+      {booth?.name && (
+        <p className="text-[10px] text-gray-400 mt-0.5">{booth.name}</p>
+      )}
+    </div>
+  )
+}

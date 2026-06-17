@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-navy: #1E3A5F;
+  --color-navy-light: #2d5487;
+  --color-amber: #F59E0B;
+  --color-amber-light: #FCD34D;
+}
+
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+@media print {
+  nav,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body {
+    background: white !important;
+    font-size: 11px;
+  }
+}
+
+@page {
+  margin: 12mm;
+}
+
+@page landscape {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+.print-landscape {
+  /* applied via JS before print */
+}
