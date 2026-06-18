@@ -424,7 +424,7 @@ function CellLessons({ lessons }: { lessons: Lesson[] }) {
             key={group[0].teacher_id}
             href={`/schedule/${group[0].id}`}
             className={[
-              'block rounded-md px-2.5 py-2 text-xs leading-snug transition-opacity hover:opacity-80 space-y-1.5',
+              'block rounded-md px-2.5 py-2 text-xs leading-snug transition-opacity hover:opacity-80 space-y-1.5 overflow-hidden h-[84px]',
               isGroup
                 ? 'bg-purple-100 text-purple-900 border border-purple-200'
                 : 'bg-teal-100 text-teal-900 border border-teal-200',

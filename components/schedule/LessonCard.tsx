@@ -56,7 +56,8 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
     <Link
       href={`/schedule/${lesson.id}`}
       className={[
-        'block rounded-md px-2.5 py-2.5 text-xs leading-snug transition-opacity hover:opacity-80 space-y-2',
+        'block rounded-md px-2.5 py-2.5 text-xs leading-snug transition-opacity hover:opacity-80 space-y-1.5 overflow-hidden',
+        'h-[84px]',
         isGroup
           ? 'bg-purple-100 text-purple-900 border border-purple-200'
           : 'bg-teal-100 text-teal-900 border border-teal-200',
@@ -96,7 +97,7 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
       {displayStudents.length > 0 ? (
         <div className="text-xs leading-relaxed text-gray-800">
           {displayStudents.map((s, i) => (
-            <p key={i}>{s!.name}（{subject}）</p>
+            <p key={i} className="truncate">{s!.name}（{subject}）</p>
           ))}
           {extraCount > 0 && <p className="text-gray-400 text-[11px]">+{extraCount}名</p>}
         </div>
