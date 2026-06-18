@@ -53,6 +53,7 @@ export async function createLesson(data: LessonFormData): Promise<{ error?: stri
     const enrollments = data.student_ids.map((sid) => ({
       lesson_id: lesson.id,
       student_id: sid,
+      subject: data.student_subjects?.[sid] || data.subject || null,
     }))
     const { error: enrollError } = await supabase.from('lesson_enrollments').insert(enrollments)
     if (enrollError) return { error: enrollError.message }
@@ -95,6 +96,7 @@ export async function updateLesson(
     const enrollments = data.student_ids.map((sid) => ({
       lesson_id: id,
       student_id: sid,
+      subject: data.student_subjects?.[sid] || data.subject || null,
     }))
     const { error: enrollError } = await supabase.from('lesson_enrollments').insert(enrollments)
     if (enrollError) return { error: enrollError.message }

@@ -18,6 +18,7 @@ interface LessonFormProps {
   booths: Booth[]
   students: Student[]
   enrolledStudentIds?: string[]
+  enrolledStudentSubjects?: Record<string, string>
   intensiveSlotLimits?: IntensiveSlotLimits | null
   onSave: (data: LessonFormData) => Promise<{ error?: string }>
   onSaveRepeating?: (data: LessonFormData, until: string) => Promise<{ count?: number; error?: string }>
@@ -38,6 +39,7 @@ export interface LessonFormData {
   is_ps1: boolean
   notes: string
   student_ids: string[]
+  student_subjects: Record<string, string>  // student_id -> subject
 }
 
 const DAY_NAMES: Record<number, string> = { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土' }
@@ -49,7 +51,7 @@ function dowFromDate(dateStr: string): number {
   return js === 0 ? 7 : js
 }
 
-export function LessonForm({ lesson, teachers, booths, students, enrolledStudentIds = [], intensiveSlotLimits, onSave, onSaveRepeating, onDelete }: LessonFormProps) {
+export function LessonForm({ lesson, teachers, booths, students, enrolledStudentIds = [], enrolledStudentSubjects = {}, intensiveSlotLimits, onSave, onSaveRepeating, onDelete }: LessonFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isDeleting, startDeleting] = useTransition()
@@ -72,6 +74,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
     is_ps1: lesson?.is_ps1 ?? false,
     notes: lesson?.notes ?? '',
     student_ids: enrolledStudentIds,
+    student_subjects: enrolledStudentSubjects,
   })
 
   const isTemporary = formData.lesson_kind === 'temporary'
@@ -109,11 +112,22 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
   }, [filteredStudents, formData.subject, formData.student_ids, studentSort])
 
   function toggleStudent(id: string) {
+    setFormData((prev) => {
+      const isSelected = prev.student_ids.includes(id)
+      const newIds = isSelected ? prev.student_ids.filter((s) => s !== id) : [...prev.student_ids, id]
+      const newSubjects = { ...prev.student_subjects }
+      if (!isSelected && !newSubjects[id]) {
+        newSubjects[id] = prev.subject  // 新規追加時はコマのデフォルト科目をセット
+      }
+      if (isSelected) delete newSubjects[id]
+      return { ...prev, student_ids: newIds, student_subjects: newSubjects }
+    })
+  }
+
+  function setStudentSubject(studentId: string, subject: string) {
     setFormData((prev) => ({
       ...prev,
-      student_ids: prev.student_ids.includes(id)
-        ? prev.student_ids.filter((s) => s !== id)
-        : [...prev.student_ids, id],
+      student_subjects: { ...prev.student_subjects, [studentId]: subject },
     }))
   }
 
@@ -438,30 +452,47 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
               const subjectMatch = formData.subject && student.subjects.includes(formData.subject)
               const isOver = !isSelected && selectedCount >= formData.capacity
               return (
-                <label
+                <div
                   key={student.id}
                   className={[
-                    'flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors',
-                    isSelected ? 'bg-blue-50' : isOver ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50',
+                    'px-4 py-2 transition-colors',
+                    isSelected ? 'bg-blue-50' : isOver ? 'opacity-40' : 'hover:bg-gray-50',
                   ].join(' ')}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    disabled={isOver}
-                    onChange={() => toggleStudent(student.id)}
-                    className="rounded text-[#1E3A5F]"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-gray-900">{student.name}</span>
-                    <span className="text-xs text-gray-400 ml-2">{getDisplayGrade(student.grade)}</span>
-                  </div>
-                  {subjectMatch && (
-                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                      科目一致
-                    </span>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      disabled={isOver}
+                      onChange={() => toggleStudent(student.id)}
+                      className="rounded text-[#1E3A5F]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-gray-900">{student.name}</span>
+                      <span className="text-xs text-gray-400 ml-2">{getDisplayGrade(student.grade)}</span>
+                    </div>
+                    {!isSelected && subjectMatch && (
+                      <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                        科目一致
+                      </span>
+                    )}
+                  </label>
+                  {isSelected && (
+                    <div className="mt-1.5 ml-7 flex items-center gap-2">
+                      <span className="text-[11px] text-gray-500">科目:</span>
+                      <select
+                        value={formData.student_subjects[student.id] ?? formData.subject}
+                        onChange={(e) => setStudentSubject(student.id, e.target.value)}
+                        className="text-xs border border-gray-300 rounded px-2 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                      >
+                        <option value="">未設定</option>
+                        {SUBJECTS.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
                   )}
-                </label>
+                </div>
               )
             })}
           </div>

@@ -35,7 +35,11 @@ export default async function LessonDetailPage({ params }: PageProps) {
   if (!lesson) notFound()
 
   const typedLesson = lesson as Lesson
-  const enrolledStudentIds = ((enrollments as LessonEnrollment[]) ?? []).map((e) => e.student_id)
+  const typedEnrollments = (enrollments as LessonEnrollment[]) ?? []
+  const enrolledStudentIds = typedEnrollments.map((e) => e.student_id)
+  const enrolledStudentSubjects = Object.fromEntries(
+    typedEnrollments.map((e) => [e.student_id, (e as { student_id: string; subject?: string }).subject ?? ''])
+  )
 
   return (
     <div>
@@ -69,6 +73,7 @@ export default async function LessonDetailPage({ params }: PageProps) {
             booths={(booths as Booth[]) ?? []}
             students={(students as Student[]) ?? []}
             enrolledStudentIds={enrolledStudentIds}
+            enrolledStudentSubjects={enrolledStudentSubjects}
             onSave={updateLesson.bind(null, id)}
             onDelete={deleteLesson.bind(null, id)}
           />
