@@ -78,6 +78,8 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
   const effectiveDow = isTemporary ? dowFromDate(formData.specific_date) : formData.day_of_week
   const slots = getSlotsForLesson(formData.type, effectiveDow, formData.term_type, intensiveSlotLimits)
 
+  const [studentSort, setStudentSort] = useState<'name' | 'grade' | 'subject' | 'selected'>('name')
+
   // フィルター済み生徒リスト
   const filteredStudents = useMemo(() => {
     const q = studentSearch.trim().toLowerCase()
@@ -86,15 +88,25 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
     )
   }, [students, studentSearch])
 
-  // 科目が一致する生徒を上に
+  // 並び替え
   const sortedStudents = useMemo(() => {
-    if (!formData.subject) return filteredStudents
     return [...filteredStudents].sort((a, b) => {
-      const aMatch = a.subjects.includes(formData.subject)
-      const bMatch = b.subjects.includes(formData.subject)
-      return (bMatch ? 1 : 0) - (aMatch ? 1 : 0)
+      if (studentSort === 'selected') {
+        const aS = formData.student_ids.includes(a.id) ? 0 : 1
+        const bS = formData.student_ids.includes(b.id) ? 0 : 1
+        return aS - bS || a.name.localeCompare(b.name, 'ja')
+      }
+      if (studentSort === 'subject') {
+        const aM = formData.subject && a.subjects.includes(formData.subject) ? 0 : 1
+        const bM = formData.subject && b.subjects.includes(formData.subject) ? 0 : 1
+        return aM - bM || a.name.localeCompare(b.name, 'ja')
+      }
+      if (studentSort === 'grade') {
+        return a.grade.localeCompare(b.grade, 'ja') || a.name.localeCompare(b.name, 'ja')
+      }
+      return a.name.localeCompare(b.name, 'ja')
     })
-  }, [filteredStudents, formData.subject])
+  }, [filteredStudents, formData.subject, formData.student_ids, studentSort])
 
   function toggleStudent(id: string) {
     setFormData((prev) => ({
@@ -390,6 +402,23 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                 {selectedCount}/{formData.capacity}名
               </span>
             )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            {(['name', 'grade', 'subject', 'selected'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStudentSort(s)}
+                className={[
+                  'px-2 py-1 text-[10px] rounded border transition-colors',
+                  studentSort === s
+                    ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
+                    : 'border-gray-300 text-gray-500 hover:bg-gray-50',
+                ].join(' ')}
+              >
+                {s === 'name' ? '名前' : s === 'grade' ? '学年' : s === 'subject' ? '科目一致' : '選択済み'}
+              </button>
+            ))}
           </div>
           <input
             type="text"
