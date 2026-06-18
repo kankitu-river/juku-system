@@ -132,6 +132,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             display: flex !important;
             flex-direction: column !important;
             overflow: hidden !important;
+            zoom: 0.85;
           }
 
           /* ヘッダー */

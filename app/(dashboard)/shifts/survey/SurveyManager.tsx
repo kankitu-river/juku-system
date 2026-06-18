@@ -39,7 +39,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
   const defaultDeadline = new Date(today.getFullYear(), today.getMonth() + 1, 10)
     .toISOString().split('T')[0]
 
-  const [form, setForm] = useState({ target_month: defaultMonth, deadline: defaultDeadline })
+  const [form, setForm] = useState({ target_month: defaultMonth, deadline: defaultDeadline, term_type: 'regular' as 'regular' | 'intensive' })
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -105,6 +105,35 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
                 onChange={(e) => setForm({ ...form, deadline: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
               />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-2">期間種別</label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, term_type: 'regular' })}
+                className={[
+                  'flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors',
+                  form.term_type === 'regular'
+                    ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50',
+                ].join(' ')}
+              >
+                通常期間（3コマ）
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, term_type: 'intensive' })}
+                className={[
+                  'flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors',
+                  form.term_type === 'intensive'
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50',
+                ].join(' ')}
+              >
+                講習期間（7コマ）
+              </button>
             </div>
           </div>
           <p className="text-xs text-gray-400">

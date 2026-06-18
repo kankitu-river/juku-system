@@ -13,7 +13,6 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   let preselectedTeacherId: string | null = null
 
   if (token) {
-    // 個別トークンリンク（メールから）
     const { data: tokenRecord } = await supabase
       .from('shift_survey_tokens')
       .select('id, survey_id, teacher_id, expires_at')
@@ -53,7 +52,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   const tokenIds = (tokens ?? []).map((t) => t.id)
   const [{ data: responses }, { data: closures }] = await Promise.all([
     tokenIds.length > 0
-      ? supabase.from('shift_survey_responses').select('teacher_id, available_dates').in('token_id', tokenIds)
+      ? supabase.from('shift_survey_responses').select('teacher_id, available_slots').in('token_id', tokenIds)
       : Promise.resolve({ data: [] }),
     supabase.from('school_closures')
       .select('date')
@@ -61,12 +60,13 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
       .lte('date', `${survey.target_month}-31`),
   ])
 
-  const datesMap: Record<string, string[]> = {}
+  const slotsMap: Record<string, Record<string, number[]>> = {}
   for (const r of responses ?? []) {
-    datesMap[r.teacher_id] = r.available_dates as string[]
+    slotsMap[r.teacher_id] = (r.available_slots ?? {}) as Record<string, number[]>
   }
 
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
+  const termType = (survey.term_type ?? 'regular') as 'regular' | 'intensive'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -75,7 +75,9 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
           <p className="text-sm opacity-70 mb-1">塾スケジュール管理システム</p>
           <h1 className="text-xl font-bold">出勤可能日アンケート</h1>
           <p className="text-sm opacity-80 mt-1">
-            {survey.target_month.replace('-', '年')}月分 · 回答期限: {new Date(survey.deadline).toLocaleDateString('ja-JP')}
+            {survey.target_month.replace('-', '年')}月分
+            {termType === 'intensive' && ' 【講習期間】'}
+            {' · '}回答期限: {new Date(survey.deadline).toLocaleDateString('ja-JP')}
           </p>
         </div>
 
@@ -83,8 +85,9 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
           surveyId={surveyId}
           targetMonth={survey.target_month}
           deadline={survey.deadline}
+          termType={termType}
           tokens={(tokens ?? []) as any}
-          datesMap={datesMap}
+          slotsMap={slotsMap}
           closureDates={closureDates}
           preselectedTeacherId={preselectedTeacherId}
         />

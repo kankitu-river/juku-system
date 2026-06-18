@@ -87,7 +87,7 @@ const navItems = [
   },
   {
     href: '/events',
-    label: 'イベント・講習会',
+    label: 'イベント',
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

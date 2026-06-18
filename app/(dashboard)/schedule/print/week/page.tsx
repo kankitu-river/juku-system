@@ -112,14 +112,15 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     <div className="bg-white min-h-screen">
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 5mm; }
+          @page { size: A4 landscape; margin: 3mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .wpl-wrap { display: flex; align-items: flex-start; gap: 5mm; }
+          .wpl-printbody { zoom: 0.8; }
+          .wpl-wrap { display: flex; align-items: flex-start; gap: 4mm; }
           .wpl-days { flex: 13; min-width: 0; }
           .wpl-sat  { flex: 4;  min-width: 0; }
-          .wpl-table { font-size: 7.5px !important; }
-          .wpl-table th, .wpl-table td { padding: 2px 4px !important; }
-          .wpl-cell { padding: 2px 4px !important; margin-bottom: 1px !important; }
+          .wpl-table { font-size: 7px !important; }
+          .wpl-table th, .wpl-table td { padding: 1px 3px !important; }
+          .wpl-cell { padding: 1px 3px !important; margin-bottom: 0 !important; height: 40px !important; }
           .wpl-cell p { margin: 0 !important; line-height: 1.2 !important; }
           .wpl-pill { font-size: 7px !important; padding: 0 3px !important; margin-bottom: 1px !important; }
           .wpl-h2 { font-size: 8px !important; margin-bottom: 2px !important; }
@@ -160,7 +161,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
       </div>
 
       {/* Print content */}
-      <div className="p-6 print:p-0">
+      <div className="p-6 print:p-0 wpl-printbody">
         {/* Header */}
         <div className="mb-4 print:mb-3">
           <h1 className="text-xl font-bold text-[#1E3A5F]">週間スケジュール</h1>
@@ -249,7 +250,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
           <h2 className="text-sm font-semibold text-gray-600 mb-2 wpl-h2">
             土曜日（{weekDates[5].getMonth() + 1}/{weekDates[5].getDate()}）
           </h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3 print:space-y-1">
             {/* Saturday individual */}
             <div>
               <h3 className="text-xs font-medium text-teal-700 mb-1 wpl-h3">個別指導</h3>
@@ -340,12 +341,11 @@ function LessonCell({ lesson }: { lesson: Lesson }) {
 
   return (
     <div className={[
-      'rounded-md px-2 py-2 mb-1.5 leading-snug border-l-4 wpl-cell overflow-hidden',
+      'rounded-md px-2 py-2 mb-1.5 leading-snug border-l-4 wpl-cell overflow-hidden h-[56px]',
       isGroup
         ? 'bg-purple-50 border-l-purple-500 border border-purple-200'
         : 'bg-teal-50 border-l-teal-500 border border-teal-200',
-    ].join(' ')}
-    style={{ height: '60px' }}>
+    ].join(' ')}>
       {/* 先生名 */}
       {teacher?.name && (
         <p className={[

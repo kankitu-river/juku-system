@@ -13,8 +13,8 @@ export default async function EventsPage() {
   return (
     <div>
       <Header
-        title="イベント・講習会"
-        subtitle="特別イベントや講習会の管理"
+        title="イベント"
+        subtitle="特別イベントの管理"
         actions={
           <Link href="/events/new">
             <Button>+ イベントを追加</Button>
