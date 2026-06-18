@@ -105,8 +105,17 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* @page設定 */}
-      <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } }`}</style>
+      {/* @page設定・印刷縮小 */}
+      <style>{`
+        @media print {
+          @page { size: A4 landscape; margin: 0; }
+          .no-print { display: none !important; }
+          #monthly-print-area {
+            zoom: 0.68;
+            padding: 6mm;
+          }
+        }
+      `}</style>
 
       {/* Controls */}
       <div className="no-print bg-gray-50 border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
@@ -118,7 +127,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
       </div>
 
       {/* Print content */}
-      <div className="p-6 print:p-0">
+      <div id="monthly-print-area" className="p-6">
         {/* Header */}
         <div className="flex items-end justify-between mb-4 pb-3 border-b-2 border-[#1E3A5F] print:mb-3">
           <div>
