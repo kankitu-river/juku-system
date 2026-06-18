@@ -111,8 +111,8 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
           @page { size: A4 landscape; margin: 0; }
           .no-print { display: none !important; }
           #monthly-print-area {
-            zoom: 0.68;
-            padding: 6mm;
+            zoom: 0.58;
+            padding: 5mm;
           }
         }
       `}</style>
@@ -168,7 +168,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                   return (
                     <td key={di} className={[
                       'border border-gray-300 align-top p-1',
-                      'h-24 print:h-20',
+                      'h-24 print:h-16',
                       !day ? 'bg-gray-50' : '',
                       isSun && day ? 'bg-red-50/30' : '',
                       isSat && day ? 'bg-blue-50/30' : '',
