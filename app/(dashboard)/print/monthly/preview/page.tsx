@@ -220,7 +220,8 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                   }))
                                 return (
                                   <div key={ei} className="bg-teal-50 border border-teal-200 rounded px-1 py-0.5">
-                                    <p className="text-[9px] text-teal-600 font-bold leading-none">{startTime}</p>
+                                    <p className="text-[9px] text-teal-600 font-bold leading-tight">第{lesson.slot_index}コマ</p>
+                                    <p className="text-[8px] text-teal-500 leading-none mb-0.5">{timeLabel}</p>
                                     {enrolledStudents.length > 0 ? (
                                       enrolledStudents.map((s, si) => (
                                         <p key={si} className="text-[9px] text-gray-800 leading-tight truncate">
@@ -244,9 +245,13 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                     isGroup ? 'bg-purple-50 border-purple-200' : 'bg-teal-50 border-teal-200',
                                   ].join(' ')}>
                                     <p className={[
-                                      'text-[9px] font-bold leading-none',
+                                      'text-[9px] font-bold leading-tight',
                                       isGroup ? 'text-purple-600' : 'text-teal-600',
-                                    ].join(' ')}>{startTime}</p>
+                                    ].join(' ')}>第{lesson.slot_index}コマ</p>
+                                    <p className={[
+                                      'text-[8px] leading-none mb-0.5',
+                                      isGroup ? 'text-purple-400' : 'text-teal-400',
+                                    ].join(' ')}>{timeLabel}</p>
                                     {teacherName && showTeacher && (
                                       <p className="text-[9px] text-gray-800 leading-tight truncate">{teacherName}先生</p>
                                     )}
