@@ -100,9 +100,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         return aS - bS || a.name.localeCompare(b.name, 'ja')
       }
       if (studentSort === 'subject') {
-        const aM = formData.subject && a.subjects.includes(formData.subject) ? 0 : 1
-        const bM = formData.subject && b.subjects.includes(formData.subject) ? 0 : 1
-        return aM - bM || a.name.localeCompare(b.name, 'ja')
+        return a.name.localeCompare(b.name, 'ja')
       }
       if (studentSort === 'grade') {
         return a.grade.localeCompare(b.grade, 'ja') || a.name.localeCompare(b.name, 'ja')
@@ -117,7 +115,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
       const newIds = isSelected ? prev.student_ids.filter((s) => s !== id) : [...prev.student_ids, id]
       const newSubjects = { ...prev.student_subjects }
       if (!isSelected && !newSubjects[id]) {
-        newSubjects[id] = prev.subject  // 新規追加時はコマのデフォルト科目をセット
+        newSubjects[id] = ''
       }
       if (isSelected) delete newSubjects[id]
       return { ...prev, student_ids: newIds, student_subjects: newSubjects }
@@ -165,7 +163,6 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!formData.subject) { setError('科目を選択してください'); return }
     if (isTemporary && !formData.specific_date) { setError('日付を入力してください'); return }
     if (isTemporary && repeat && !repeatUntil) { setError('繰り返しの終了日を入力してください'); return }
     if (formData.student_ids.length > formData.capacity) {
@@ -238,22 +235,6 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
             <option value="individual">個別指導</option>
             <option value="group">集団授業</option>
           </select>
-        </div>
-
-        {/* 科目 */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">科目 <span className="text-red-500">*</span></label>
-          <div className="flex flex-wrap gap-2">
-            {SUBJECTS.map((s) => (
-              <button key={s} type="button" onClick={() => setFormData({ ...formData, subject: s })}
-                className={[
-                  'px-3 py-1.5 rounded-full text-sm border transition-colors',
-                  formData.subject === s ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#1E3A5F]',
-                ].join(' ')}>
-                {s}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* 日付 or 曜日 */}

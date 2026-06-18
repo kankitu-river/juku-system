@@ -30,11 +30,11 @@ export async function createLesson(data: LessonFormData): Promise<{ error?: stri
   const { data: lesson, error } = await supabase
     .from('lessons')
     .insert({
-      title: data.subject,
+      title: data.subject || '',
       type: data.type,
       lesson_kind: data.lesson_kind,
       specific_date: data.lesson_kind === 'temporary' ? data.specific_date : null,
-      subject: data.subject,
+      subject: data.subject || null,
       teacher_id: data.teacher_id || null,
       day_of_week: data.day_of_week,
       slot_index: data.slot_index,
@@ -72,11 +72,11 @@ export async function updateLesson(
   const { error } = await supabase
     .from('lessons')
     .update({
-      title: data.subject,
+      title: data.subject || '',
       type: data.type,
       lesson_kind: data.lesson_kind,
       specific_date: data.lesson_kind === 'temporary' ? data.specific_date : null,
-      subject: data.subject,
+      subject: data.subject || null,
       teacher_id: data.teacher_id || null,
       day_of_week: data.day_of_week,
       slot_index: data.slot_index,
