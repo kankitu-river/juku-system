@@ -175,7 +175,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                       style={{ width: '14.28%' }}
                     >
                       {/* 高さ固定・はみ出し非表示のコンテナ */}
-                      <div className="h-28 print:h-20 overflow-hidden p-1 flex flex-col">
+                      <div className="h-52 print:h-40 overflow-hidden p-1 flex flex-col">
                       {day && (
                         <>
                           {/* 日付 */}
