@@ -20,6 +20,7 @@ interface SurveyRespondProps {
   tokens: Token[]
   slotsMap: Record<string, Record<string, number[]>>
   closureDates?: string[]
+  intensivePeriodDates?: string[] | null
   preselectedTeacherId?: string | null
 }
 
@@ -53,8 +54,23 @@ function formatDate(dateStr: string): string {
   return `${d.getMonth() + 1}月${d.getDate()}日（${DAY_NAMES[d.getDay()]}）`
 }
 
+// 月ごとにグループ化 (YYYY-MM → dateStr[])
+function groupByMonth(dates: string[]): { ym: string; dates: string[] }[] {
+  const map = new Map<string, string[]>()
+  for (const d of dates) {
+    const ym = d.slice(0, 7)
+    const list = map.get(ym) ?? []
+    list.push(d)
+    map.set(ym, list)
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([ym, dates]) => ({ ym, dates }))
+}
+
 export function SurveyRespond({
-  surveyId, targetMonth, termType, tokens, slotsMap, closureDates = [], preselectedTeacherId,
+  surveyId, targetMonth, termType, tokens, slotsMap, closureDates = [],
+  intensivePeriodDates, preselectedTeacherId,
 }: SurveyRespondProps) {
   const preselected = preselectedTeacherId
     ? tokens.find((t) => t.teacher_id === preselectedTeacherId) ?? null
@@ -69,9 +85,13 @@ export function SurveyRespond({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
 
+  // 通常期間: 単月表示
   const days = getDaysInMonth(targetMonth)
   const [year, month] = targetMonth.split('-').map(Number)
   const firstDow = days[0].getDay()
+
+  // 講習期間: 月別グループ
+  const intensiveMonthGroups = intensivePeriodDates ? groupByMonth(intensivePeriodDates) : []
 
   function handleSelectTeacher(token: Token) {
     setSelectedTeacher(token)
@@ -83,13 +103,8 @@ export function SurveyRespond({
   function handleDateClick(dateStr: string) {
     const slots = getSlotsForDate(dateStr, termType)
     if (slots.length === 0) return
-
     if (selectedSlots[dateStr] !== undefined) {
-      if (activeDate === dateStr) {
-        setActiveDate(null)
-      } else {
-        setActiveDate(dateStr)
-      }
+      setActiveDate(activeDate === dateStr ? null : dateStr)
     } else {
       setSelectedSlots((prev) => ({ ...prev, [dateStr]: slots.map((s) => s.index) }))
       setActiveDate(dateStr)
@@ -97,20 +112,14 @@ export function SurveyRespond({
   }
 
   function removeDate(dateStr: string) {
-    setSelectedSlots((prev) => {
-      const next = { ...prev }
-      delete next[dateStr]
-      return next
-    })
+    setSelectedSlots((prev) => { const n = { ...prev }; delete n[dateStr]; return n })
     if (activeDate === dateStr) setActiveDate(null)
   }
 
   function toggleSlot(dateStr: string, slotIndex: number) {
     setSelectedSlots((prev) => {
-      const current = prev[dateStr] ?? []
-      const next = current.includes(slotIndex)
-        ? current.filter((i) => i !== slotIndex)
-        : [...current, slotIndex].sort((a, b) => a - b)
+      const cur = prev[dateStr] ?? []
+      const next = cur.includes(slotIndex) ? cur.filter((i) => i !== slotIndex) : [...cur, slotIndex].sort((a, b) => a - b)
       return { ...prev, [dateStr]: next }
     })
   }
@@ -137,7 +146,7 @@ export function SurveyRespond({
   const selectedDateCount = Object.keys(selectedSlots).length
   const totalSlotCount = Object.values(selectedSlots).reduce((sum, s) => sum + s.length, 0)
 
-  // 完了画面
+  // ===== 完了 =====
   if (step === 'done') {
     return (
       <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
@@ -154,25 +163,65 @@ export function SurveyRespond({
     )
   }
 
-  // カレンダー画面
+  // ===== カレンダー =====
   if (step === 'calendar' && selectedTeacher) {
     const activeDateSlots = activeDate ? getSlotsForDate(activeDate, termType) : []
     const activeDateSelected = activeDate ? (selectedSlots[activeDate] ?? []) : []
+
+    // 日付セルのレンダリング（通常・講習共通）
+    const renderDateCell = (dateStr: string, d: Date, allowedDates?: string[]) => {
+      const dow = d.getDay()
+      const isClosed = closureDates.includes(dateStr)
+      const isAllowed = allowedDates ? allowedDates.includes(dateStr) : true
+      const hasSlots = getSlotsForDate(dateStr, termType).length > 0
+      const isSelectable = !isClosed && hasSlots && isAllowed
+      const isSelected = selectedSlots[dateStr] !== undefined
+      const isActive = activeDate === dateStr
+      const slotCount = selectedSlots[dateStr]?.length ?? 0
+      const isToday = dateStr === toDateStr(new Date())
+
+      return (
+        <button
+          key={dateStr}
+          type="button"
+          disabled={!isSelectable}
+          onClick={() => isSelectable && handleDateClick(dateStr)}
+          className={[
+            'rounded-xl text-xs font-medium transition-all flex flex-col items-center justify-center py-1.5 gap-0.5 min-h-[44px]',
+            isClosed
+              ? 'bg-red-100 text-red-400 cursor-not-allowed'
+              : !isSelectable
+                ? 'text-gray-200 cursor-not-allowed'
+                : isActive
+                  ? 'bg-amber-400 text-white shadow-sm ring-2 ring-amber-500 ring-offset-1'
+                  : isSelected
+                    ? 'bg-[#1E3A5F] text-white shadow-sm'
+                    : dow === 0 ? 'text-red-400 hover:bg-red-50'
+                    : dow === 6 ? 'text-blue-400 hover:bg-blue-50'
+                    : 'text-gray-700 hover:bg-gray-100',
+            isToday && !isSelected && !isActive && isSelectable ? 'ring-2 ring-[#1E3A5F] ring-offset-1' : '',
+          ].join(' ')}
+        >
+          <span>{d.getDate()}</span>
+          {isSelected && <span className="text-[9px] leading-none font-bold text-white opacity-90">{slotCount}コマ</span>}
+          {isClosed && <span className="text-[8px] font-bold leading-none">休</span>}
+        </button>
+      )
+    }
 
     return (
       <div className="space-y-4">
         {/* ヘッダー */}
         <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={() => setStep('select')} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
-            ← 戻る
-          </button>
+          <button onClick={() => setStep('select')} className="text-sm text-gray-500 hover:text-gray-700">← 戻る</button>
           <div className="bg-[#1E3A5F] text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
             {selectedTeacher.teacher?.name} 先生
           </div>
+          {termType === 'intensive' && (
+            <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-1 rounded-full font-medium">講習期間</span>
+          )}
           {slotsMap[selectedTeacher.teacher_id] && (
-            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
-              回答を更新中
-            </span>
+            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">回答を更新中</span>
           )}
         </div>
 
@@ -181,69 +230,54 @@ export function SurveyRespond({
         )}
 
         {/* カレンダー */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <p className="text-sm font-semibold text-gray-700 mb-0.5">{year}年{month}月</p>
-          <p className="text-xs text-gray-400 mb-3">出勤できる日をタップ → コマを選択してください</p>
-
-          <div className="grid grid-cols-7 mb-1">
-            {DAY_NAMES.map((d, i) => (
-              <div key={d} className={['text-center text-xs font-medium py-1',
-                i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500'].join(' ')}>
-                {d}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {Array.from({ length: firstDow }).map((_, i) => <div key={`e-${i}`} />)}
-            {days.map((d) => {
-              const dateStr = toDateStr(d)
-              const dow = d.getDay()
-              const isClosed = closureDates.includes(dateStr)
-              const hasSlots = getSlotsForDate(dateStr, termType).length > 0
-              const isSelected = selectedSlots[dateStr] !== undefined
-              const isActive = activeDate === dateStr
-              const slotCount = selectedSlots[dateStr]?.length ?? 0
-              const isToday = dateStr === toDateStr(new Date())
-
+        {termType === 'intensive' && intensiveMonthGroups.length > 0 ? (
+          // 講習期間: 複数月カレンダー
+          <div className="space-y-4">
+            {intensiveMonthGroups.map(({ ym, dates: monthDates }) => {
+              const [y, m] = ym.split('-').map(Number)
+              const monthDays = getDaysInMonth(ym)
+              const fd = monthDays[0].getDay()
               return (
-                <button
-                  key={dateStr}
-                  type="button"
-                  disabled={isClosed || !hasSlots}
-                  onClick={() => !isClosed && hasSlots && handleDateClick(dateStr)}
-                  className={[
-                    'rounded-xl text-xs font-medium transition-all flex flex-col items-center justify-center py-1.5 gap-0.5 min-h-[44px]',
-                    isClosed
-                      ? 'bg-red-100 text-red-400 cursor-not-allowed'
-                      : !hasSlots
-                        ? 'text-gray-200 cursor-not-allowed'
-                        : isActive
-                          ? 'bg-amber-400 text-white shadow-sm ring-2 ring-amber-500 ring-offset-1'
-                          : isSelected
-                            ? 'bg-[#1E3A5F] text-white shadow-sm'
-                            : dow === 0 ? 'text-red-400 hover:bg-red-50'
-                            : dow === 6 ? 'text-blue-400 hover:bg-blue-50'
-                            : 'text-gray-700 hover:bg-gray-100',
-                    isToday && !isSelected && !isActive && !isClosed && hasSlots ? 'ring-2 ring-[#1E3A5F] ring-offset-1' : '',
-                  ].join(' ')}
-                >
-                  <span>{d.getDate()}</span>
-                  {isSelected && (
-                    <span className="text-[9px] leading-none font-bold text-white opacity-90">
-                      {slotCount}コマ
-                    </span>
-                  )}
-                  {isClosed && <span className="text-[8px] font-bold leading-none">休</span>}
-                </button>
+                <div key={ym} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">{y}年{m}月</p>
+                  <div className="grid grid-cols-7 mb-1">
+                    {DAY_NAMES.map((d, i) => (
+                      <div key={d} className={['text-center text-xs font-medium py-1',
+                        i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500'].join(' ')}>
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: fd }).map((_, i) => <div key={`e-${i}`} />)}
+                    {monthDays.map((d) => renderDateCell(toDateStr(d), d, monthDates))}
+                  </div>
+                </div>
               )
             })}
           </div>
-
-          {closureDates.length > 0 && (
-            <p className="mt-2 text-xs text-red-400 text-center">赤い日は休校日のため選択できません</p>
-          )}
-        </div>
+        ) : (
+          // 通常期間: 単月カレンダー
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <p className="text-sm font-semibold text-gray-700 mb-0.5">{year}年{month}月</p>
+            <p className="text-xs text-gray-400 mb-3">出勤できる日をタップ → コマを選択してください</p>
+            <div className="grid grid-cols-7 mb-1">
+              {DAY_NAMES.map((d, i) => (
+                <div key={d} className={['text-center text-xs font-medium py-1',
+                  i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500'].join(' ')}>
+                  {d}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: firstDow }).map((_, i) => <div key={`e-${i}`} />)}
+              {days.map((d) => renderDateCell(toDateStr(d), d))}
+            </div>
+            {closureDates.length > 0 && (
+              <p className="mt-2 text-xs text-red-400 text-center">赤い日は休校日のため選択できません</p>
+            )}
+          </div>
+        )}
 
         {/* コマ選択パネル */}
         {activeDate && (
@@ -268,15 +302,11 @@ export function SurveyRespond({
                     onClick={() => toggleSlot(activeDate, slot.index)}
                     className={[
                       'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left',
-                      isSlotSelected
-                        ? 'bg-[#1E3A5F] text-white'
-                        : 'bg-white border border-blue-200 text-blue-800 hover:bg-blue-100',
+                      isSlotSelected ? 'bg-[#1E3A5F] text-white' : 'bg-white border border-blue-200 text-blue-800 hover:bg-blue-100',
                     ].join(' ')}
                   >
-                    <span className={[
-                      'text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0',
-                      isSlotSelected ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600',
-                    ].join(' ')}>
+                    <span className={['text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0',
+                      isSlotSelected ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600'].join(' ')}>
                       第{slot.index}コマ
                     </span>
                     <span>{slot.start}〜{slot.end}</span>
@@ -296,52 +326,37 @@ export function SurveyRespond({
           </p>
           {selectedDateCount > 0 && (
             <button type="button" onClick={() => { setSelectedSlots({}); setActiveDate(null) }}
-              className="text-xs text-blue-500 hover:text-blue-700">
-              全解除
-            </button>
+              className="text-xs text-blue-500 hover:text-blue-700">全解除</button>
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isPending}
-          className="w-full bg-[#1E3A5F] text-white font-semibold py-4 rounded-xl hover:bg-[#2d5487] transition-colors disabled:opacity-50 text-base"
-        >
+        <button type="button" onClick={handleSubmit} disabled={isPending}
+          className="w-full bg-[#1E3A5F] text-white font-semibold py-4 rounded-xl hover:bg-[#2d5487] transition-colors disabled:opacity-50 text-base">
           {isPending ? '送信中...' : '回答を送信する'}
         </button>
       </div>
     )
   }
 
-  // 先生選択画面
+  // ===== 先生選択 =====
   return (
     <div className="space-y-3">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <p className="text-sm font-semibold text-gray-700 mb-4">あなたの名前を選んでください</p>
         <div className="space-y-2">
-          {tokens.map((token) => {
-            const hasResponded = !!token.responded_at
-            return (
-              <button
-                key={token.id}
-                type="button"
-                onClick={() => handleSelectTeacher(token)}
-                className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-gray-200 hover:border-[#1E3A5F] hover:bg-blue-50 transition-colors text-left group"
-              >
-                <span className="font-medium text-gray-800 group-hover:text-[#1E3A5F]">
-                  {token.teacher?.name ?? '—'} 先生
-                </span>
-                {hasResponded ? (
-                  <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium flex-shrink-0">
-                    ✓ 回答済み（修正可）
-                  </span>
-                ) : (
-                  <span className="text-xs text-gray-400 flex-shrink-0">未回答 →</span>
-                )}
-              </button>
-            )
-          })}
+          {tokens.map((token) => (
+            <button key={token.id} type="button" onClick={() => handleSelectTeacher(token)}
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-gray-200 hover:border-[#1E3A5F] hover:bg-blue-50 transition-colors text-left group">
+              <span className="font-medium text-gray-800 group-hover:text-[#1E3A5F]">
+                {token.teacher?.name ?? '—'} 先生
+              </span>
+              {token.responded_at ? (
+                <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium flex-shrink-0">✓ 回答済み（修正可）</span>
+              ) : (
+                <span className="text-xs text-gray-400 flex-shrink-0">未回答 →</span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
       <p className="text-xs text-center text-gray-400">回答済みの先生も選択すると内容を更新できます</p>

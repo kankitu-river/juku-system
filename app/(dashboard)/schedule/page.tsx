@@ -144,7 +144,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           <MonthlyViewPlaceholder date={referenceDate} />
         )}
         {view === 'day' && (
-          <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} makeupAssignments={(makeupAssignments ?? []) as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]} />
+          <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={(makeupAssignments ?? []) as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]} />
         )}
       </div>
     </div>
@@ -233,11 +233,11 @@ function MonthlyViewPlaceholder({ date }: { date: Date }) {
   )
 }
 
-function DailyViewPlaceholder({ date, lessons, makeupAssignments }: { date: Date; lessons: Lesson[]; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[] }) {
+function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[] }) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dayOfWeek = date.getDay()
-  const dayLessons = lessons.filter((l) => l.day_of_week === dayOfWeek)
+  const dayLessons = lessons.filter((l) => l.day_of_week === dayOfWeek && l.term_type === currentTermType)
   const dateStr = date.toLocaleDateString('ja-JP', {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
   })

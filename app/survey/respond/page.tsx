@@ -68,6 +68,31 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
   const termType = (survey.term_type ?? 'regular') as 'regular' | 'intensive'
 
+  // 講習期間の場合: term_periods から全日付を取得
+  let intensivePeriodDates: string[] | null = null
+  if (termType === 'intensive') {
+    const { data: termPeriods } = await supabase
+      .from('term_periods')
+      .select('start_date, end_date, name')
+      .eq('type', 'intensive')
+      .order('start_date')
+
+    if (termPeriods && termPeriods.length > 0) {
+      const allDates: string[] = []
+      for (const period of termPeriods) {
+        const start = new Date(period.start_date + 'T12:00:00')
+        const end = new Date(period.end_date + 'T12:00:00')
+        const d = new Date(start)
+        while (d <= end) {
+          const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          allDates.push(dStr)
+          d.setDate(d.getDate() + 1)
+        }
+      }
+      intensivePeriodDates = allDates.filter((d) => !closureDates.includes(d))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-8">
@@ -89,6 +114,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
           tokens={(tokens ?? []) as any}
           slotsMap={slotsMap}
           closureDates={closureDates}
+          intensivePeriodDates={intensivePeriodDates}
           preselectedTeacherId={preselectedTeacherId}
         />
       </div>
