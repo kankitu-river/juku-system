@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Link from 'next/link'
 import type { Lesson, TermPeriod, TimeSlot } from '@/types'
 import {
   REGULAR_SLOTS,
@@ -393,76 +392,13 @@ const lessonMap = useMemo(() => {
   )
 }
 
-// 同一コマ内で同じ先生のレッスンをまとめて1枚のカードに表示するコンポーネント
 function CellLessons({ lessons }: { lessons: Lesson[] }) {
-  // teacher_id でグループ化（teacher_id がない場合は個別扱い）
-  const groups = new Map<string, Lesson[]>()
-  for (const lesson of lessons) {
-    const key = lesson.teacher_id ?? `__none__${lesson.id}`
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(lesson)
-  }
-  const compact = groups.size >= 3
-
+  const compact = lessons.length >= 3
   return (
     <>
-      {Array.from(groups.values()).map((group) => {
-        if (group.length === 1) {
-          return <LessonCard key={group[0].id} lesson={group[0]} compact={compact} />
-        }
-        // 同じ先生の複数レッスンを1枚にまとめる
-        const isGroup = group[0].type === 'group'
-        const teacherName = (group[0] as { teacher?: { name: string } }).teacher?.name
-        const allStudents = group.flatMap(l =>
-          (l.enrollments ?? [])
-            .map(e => e.student ? { ...e.student, subject: l.subject, lessonId: l.id } : null)
-            .filter((s): s is NonNullable<typeof s> => s != null)
-        )
-        const totalCapacity = group.reduce((sum, l) => sum + (l.capacity ?? 0), 0)
-        return (
-          <Link
-            key={group[0].teacher_id}
-            href={`/schedule/${group[0].id}`}
-            className={[
-              'block rounded-md px-2 py-2 text-xs transition-opacity hover:opacity-80 overflow-hidden h-[72px]',
-              isGroup
-                ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                : 'bg-teal-100 text-teal-900 border border-teal-200',
-            ].join(' ')}
-          >
-            <div className="flex items-center justify-between gap-1 mb-1.5">
-              <div className="flex items-center gap-1">
-                {teacherName && (
-                  <span className={[
-                    'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-                    isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
-                  ].join(' ')}>
-                    {teacherName}
-                  </span>
-                )}
-              </div>
-              <span className={[
-                'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-                isGroup ? 'bg-purple-200 text-purple-800' : 'bg-teal-200 text-teal-800',
-              ].join(' ')}>
-                {allStudents.length}/{group[0].capacity}名
-              </span>
-            </div>
-            {allStudents.length > 0 ? (
-              <div className="leading-snug">
-                {allStudents.slice(0, 2).map((s, i) => (
-                  <p key={i} className="truncate text-[11px] text-gray-800">{s.name}（{s.subject}）</p>
-                ))}
-                {allStudents.length > 2 && (
-                  <p className="text-gray-400 text-[10px]">+{allStudents.length - 2}名</p>
-                )}
-              </div>
-            ) : (
-              <p className="text-[10px] opacity-40">生徒未登録</p>
-            )}
-          </Link>
-        )
-      })}
+      {lessons.map(lesson => (
+        <LessonCard key={lesson.id} lesson={lesson} compact={compact} />
+      ))}
     </>
   )
 }
