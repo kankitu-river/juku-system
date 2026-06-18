@@ -11,6 +11,7 @@ interface PageProps {
     month?: string
     type?: string
     id?: string
+    showTeacher?: string
   }>
 }
 
@@ -28,7 +29,8 @@ function shortSubject(s: string | null | undefined): string {
 }
 
 export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
-  const { year: yearStr, month: monthStr, type, id } = await searchParams
+  const { year: yearStr, month: monthStr, type, id, showTeacher: showTeacherStr } = await searchParams
+  const showTeacher = showTeacherStr !== 'false'  // デフォルトは表示
   const year = Number(yearStr ?? new Date().getFullYear())
   const month = Number(monthStr ?? new Date().getMonth() + 1)
   const monthLabel = `${year}年${month}月`
@@ -123,7 +125,22 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
           <Link href="/print/monthly" className="text-sm text-gray-500 hover:text-gray-700">← 月次印刷に戻る</Link>
           <span className="text-sm font-medium text-gray-700">{monthLabel} · {personName}</span>
         </div>
-        <PrintButton label="印刷（PDF保存）" />
+        <div className="flex items-center gap-3">
+          {type === 'student' && (
+            <Link
+              href={`?year=${year}&month=${month}&type=${type}&id=${id}&showTeacher=${!showTeacher}`}
+              className={[
+                'text-sm px-3 py-1.5 rounded-lg border transition-colors',
+                showTeacher
+                  ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
+              ].join(' ')}
+            >
+              先生名を{showTeacher ? '表示中' : '非表示'}
+            </Link>
+          )}
+          <PrintButton label="印刷（PDF保存）" />
+        </div>
       </div>
 
       {/* Print content */}
@@ -230,7 +247,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                       'text-[9px] font-bold leading-none',
                                       isGroup ? 'text-purple-600' : 'text-teal-600',
                                     ].join(' ')}>{startTime}</p>
-                                    {teacherName && (
+                                    {teacherName && showTeacher && (
                                       <p className="text-[9px] text-gray-800 leading-tight truncate">{teacherName}先生</p>
                                     )}
                                     {mySubject && (
