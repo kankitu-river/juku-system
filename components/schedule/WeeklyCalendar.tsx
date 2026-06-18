@@ -424,39 +424,41 @@ function CellLessons({ lessons }: { lessons: Lesson[] }) {
             key={group[0].teacher_id}
             href={`/schedule/${group[0].id}`}
             className={[
-              'block rounded-md px-2.5 py-2 text-xs leading-snug transition-opacity hover:opacity-80 space-y-1.5 overflow-hidden h-[84px]',
+              'block rounded-md px-2 py-2 text-xs transition-opacity hover:opacity-80 overflow-hidden h-[72px]',
               isGroup
                 ? 'bg-purple-100 text-purple-900 border border-purple-200'
                 : 'bg-teal-100 text-teal-900 border border-teal-200',
             ].join(' ')}
           >
-            <div className="flex items-center justify-end gap-1">
+            <div className="flex items-center justify-between gap-1 mb-1.5">
+              <div className="flex items-center gap-1">
+                {teacherName && (
+                  <span className={[
+                    'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
+                    isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
+                  ].join(' ')}>
+                    {teacherName}
+                  </span>
+                )}
+              </div>
               <span className={[
-                'text-[10px] font-bold px-1.5 py-0.5 rounded-full',
+                'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
                 isGroup ? 'bg-purple-200 text-purple-800' : 'bg-teal-200 text-teal-800',
               ].join(' ')}>
-                {allStudents.length}/{totalCapacity}名
+                {allStudents.length}/{group[0].capacity}名
               </span>
             </div>
-            {teacherName && (
-              <span className={[
-                'inline-block text-xs font-bold px-2 py-0.5 rounded-full',
-                isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
-              ].join(' ')}>
-                {teacherName}
-              </span>
-            )}
             {allStudents.length > 0 ? (
-              <div className="text-xs leading-relaxed text-gray-800">
-                {allStudents.slice(0, 3).map((s, i) => (
-                  <p key={i}>{s.name}（{s.subject}）</p>
+              <div className="leading-snug">
+                {allStudents.slice(0, 2).map((s, i) => (
+                  <p key={i} className="truncate text-[11px] text-gray-800">{s.name}（{s.subject}）</p>
                 ))}
-                {allStudents.length > 3 && (
-                  <p className="text-gray-400 text-[11px]">+{allStudents.length - 3}名</p>
+                {allStudents.length > 2 && (
+                  <p className="text-gray-400 text-[10px]">+{allStudents.length - 2}名</p>
                 )}
               </div>
             ) : (
-              <p className="text-[11px] opacity-40">生徒未登録</p>
+              <p className="text-[10px] opacity-40">生徒未登録</p>
             )}
           </Link>
         )

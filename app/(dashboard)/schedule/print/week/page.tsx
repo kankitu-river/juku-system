@@ -345,7 +345,7 @@ function LessonCell({ lesson }: { lesson: Lesson }) {
         ? 'bg-purple-50 border-l-purple-500 border border-purple-200'
         : 'bg-teal-50 border-l-teal-500 border border-teal-200',
     ].join(' ')}
-    style={{ height: '72px' }}>
+    style={{ height: '60px' }}>
       {/* 先生名 */}
       {teacher?.name && (
         <p className={[
