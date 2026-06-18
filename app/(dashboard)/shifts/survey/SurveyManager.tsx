@@ -17,16 +17,26 @@ interface Survey {
   id: string
   target_month: string
   deadline: string
+  term_type?: string
+  term_period_id?: string | null
   created_at: string
   tokens: Token[]
+}
+
+interface IntensivePeriod {
+  id: string
+  name: string
+  start_date: string
+  end_date: string
 }
 
 interface SurveyManagerProps {
   surveys: Survey[]
   teacherCount: number
+  intensivePeriods: IntensivePeriod[]
 }
 
-export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyManagerProps) {
+export function SurveyManager({ surveys: initialSurveys, teacherCount, intensivePeriods }: SurveyManagerProps) {
   const router = useRouter()
   const [surveys, setSurveys] = useState(initialSurveys)
   const [showForm, setShowForm] = useState(false)
@@ -39,15 +49,49 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
   const defaultDeadline = new Date(today.getFullYear(), today.getMonth() + 1, 10)
     .toISOString().split('T')[0]
 
-  const [form, setForm] = useState({ target_month: defaultMonth, deadline: defaultDeadline, term_type: 'regular' as 'regular' | 'intensive' })
+  const [form, setForm] = useState({
+    target_month: defaultMonth,
+    deadline: defaultDeadline,
+    term_type: 'regular' as 'regular' | 'intensive',
+    term_period_id: '',
+  })
+
+  function handlePeriodSelect(periodId: string) {
+    const period = intensivePeriods.find((p) => p.id === periodId)
+    if (!period) {
+      setForm((f) => ({ ...f, term_period_id: periodId }))
+      return
+    }
+    const startDate = new Date(period.start_date + 'T12:00:00')
+    const targetMonth = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`
+    const deadlineDate = new Date(startDate)
+    deadlineDate.setDate(deadlineDate.getDate() - 7)
+    const deadline = deadlineDate.toISOString().split('T')[0]
+    setForm((f) => ({ ...f, term_period_id: periodId, target_month: targetMonth, deadline }))
+  }
+
+  function handleTermTypeToggle(termType: 'regular' | 'intensive') {
+    setForm((f) => ({ ...f, term_type: termType, term_period_id: '' }))
+  }
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault()
+    if (form.term_type === 'intensive' && !form.term_period_id) {
+      setError('講習期間を選択してください')
+      return
+    }
     setError(undefined)
     startTransition(async () => {
-      const result = await createSurvey(form)
+      const payload = {
+        target_month: form.target_month,
+        deadline: form.deadline,
+        term_type: form.term_type,
+        ...(form.term_period_id ? { term_period_id: form.term_period_id } : {}),
+      }
+      const result = await createSurvey(payload)
       if (result.error) { setError(result.error); return }
       setShowForm(false)
+      setForm({ target_month: defaultMonth, deadline: defaultDeadline, term_type: 'regular', term_period_id: '' })
       router.refresh()
     })
   }
@@ -92,6 +136,8 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
 
+  const selectedPeriod = intensivePeriods.find((p) => p.id === form.term_period_id)
+
   return (
     <div className="space-y-6 max-w-2xl">
       {error && (
@@ -102,34 +148,14 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
       {showForm ? (
         <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
           <h3 className="font-semibold text-gray-800">新しいアンケートを作成</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">対象月</label>
-              <input
-                type="month"
-                required
-                value={form.target_month}
-                onChange={(e) => setForm({ ...form, target_month: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">回答期限</label>
-              <input
-                type="date"
-                required
-                value={form.deadline}
-                onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
-              />
-            </div>
-          </div>
+
+          {/* 期間種別 */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-2">期間種別</label>
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setForm({ ...form, term_type: 'regular' })}
+                onClick={() => handleTermTypeToggle('regular')}
                 className={[
                   'flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors',
                   form.term_type === 'regular'
@@ -141,7 +167,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
               </button>
               <button
                 type="button"
-                onClick={() => setForm({ ...form, term_type: 'intensive' })}
+                onClick={() => handleTermTypeToggle('intensive')}
                 className={[
                   'flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors',
                   form.term_type === 'intensive'
@@ -153,12 +179,72 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
               </button>
             </div>
           </div>
+
+          {/* 講習期間選択（講習期間の場合のみ） */}
+          {form.term_type === 'intensive' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">対象の講習期間</label>
+              {intensivePeriods.length === 0 ? (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  先に「設定」から講習期間を登録してください
+                </p>
+              ) : (
+                <select
+                  value={form.term_period_id}
+                  onChange={(e) => handlePeriodSelect(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="">期間を選択してください...</option>
+                  {intensivePeriods.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}（{p.start_date} 〜 {p.end_date}）
+                    </option>
+                  ))}
+                </select>
+              )}
+              {selectedPeriod && (
+                <p className="mt-1.5 text-xs text-amber-700">
+                  {selectedPeriod.start_date} 〜 {selectedPeriod.end_date} の全日程がアンケート対象になります
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* 対象月・回答期限 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                対象月{form.term_type === 'intensive' && '（自動設定）'}
+              </label>
+              <input
+                type="month"
+                required
+                value={form.target_month}
+                onChange={(e) => setForm((f) => ({ ...f, target_month: e.target.value }))}
+                disabled={form.term_type === 'intensive' && !!form.term_period_id}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] disabled:bg-gray-50 disabled:text-gray-400"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                回答期限{form.term_type === 'intensive' && '（自動設定）'}
+              </label>
+              <input
+                type="date"
+                required
+                value={form.deadline}
+                onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              />
+            </div>
+          </div>
+
           <p className="text-xs text-gray-400">
             作成すると全先生（{teacherCount}名）分のアンケートリンクが生成されます
           </p>
           <div className="flex gap-2">
             <Button type="submit" size="sm" loading={isPending}>作成する</Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setShowForm(false)}>キャンセル</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => { setShowForm(false); setError(undefined) }}>キャンセル</Button>
           </div>
         </form>
       ) : (
@@ -177,6 +263,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
             const total = survey.tokens.length
             const isExpanded = expandedId === survey.id
             const isExpired = new Date(survey.deadline) < new Date()
+            const termType = survey.term_type ?? 'regular'
 
             return (
               <div key={survey.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -186,9 +273,14 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
                 >
                   <div className="flex items-center gap-4">
                     <div>
-                      <p className="font-semibold text-gray-800">
-                        {survey.target_month.replace('-', '年')}月 出勤アンケート
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-800">
+                          {survey.target_month.replace('-', '年')}月 出勤アンケート
+                        </p>
+                        {termType === 'intensive' && (
+                          <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">講習</span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-400 mt-0.5">
                         期限：{survey.deadline}
                         {isExpired && <span className="ml-2 text-red-400">（締切済み）</span>}

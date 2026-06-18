@@ -22,6 +22,7 @@ interface SurveyRespondProps {
   closureDates?: string[]
   intensivePeriodDates?: string[] | null
   preselectedTeacherId?: string | null
+  previousDayPattern?: Record<number, number[]> | null
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
@@ -54,7 +55,6 @@ function formatDate(dateStr: string): string {
   return `${d.getMonth() + 1}月${d.getDate()}日（${DAY_NAMES[d.getDay()]}）`
 }
 
-// 月ごとにグループ化 (YYYY-MM → dateStr[])
 function groupByMonth(dates: string[]): { ym: string; dates: string[] }[] {
   const map = new Map<string, string[]>()
   for (const d of dates) {
@@ -68,9 +68,41 @@ function groupByMonth(dates: string[]): { ym: string; dates: string[] }[] {
     .map(([ym, dates]) => ({ ym, dates }))
 }
 
+// slotsMap (date → slotIndices) → dayOfWeek → sorted slotIndices
+function toDayPattern(slotsMap: Record<string, number[]>): Record<number, number[]> {
+  const pattern: Record<number, Set<number>> = {}
+  for (const [dateStr, slots] of Object.entries(slotsMap)) {
+    if (!slots || slots.length === 0) continue
+    const dow = new Date(dateStr + 'T12:00:00').getDay()
+    if (!pattern[dow]) pattern[dow] = new Set()
+    slots.forEach((s) => pattern[dow].add(s))
+  }
+  return Object.fromEntries(
+    Object.entries(pattern).map(([dow, set]) => [Number(dow), [...set].sort((a, b) => a - b)])
+  )
+}
+
+function computeChanges(
+  current: Record<number, number[]>,
+  previous: Record<number, number[]>
+): string[] {
+  const allDows = [...new Set([...Object.keys(current), ...Object.keys(previous)].map(Number))].sort()
+  const changes: string[] = []
+  for (const dow of allDows) {
+    const prev = (previous[dow] ?? []).join(',')
+    const cur = (current[dow] ?? []).join(',')
+    if (prev !== cur) {
+      const prevLabel = prev ? `第${(previous[dow] ?? []).map((i) => i).join('・')}コマ` : 'なし'
+      const curLabel = cur ? `第${(current[dow] ?? []).map((i) => i).join('・')}コマ` : 'なし'
+      changes.push(`${DAY_NAMES[dow]}曜日：${prevLabel} → ${curLabel}`)
+    }
+  }
+  return changes
+}
+
 export function SurveyRespond({
   surveyId, targetMonth, termType, tokens, slotsMap, closureDates = [],
-  intensivePeriodDates, preselectedTeacherId,
+  intensivePeriodDates, preselectedTeacherId, previousDayPattern,
 }: SurveyRespondProps) {
   const preselected = preselectedTeacherId
     ? tokens.find((t) => t.teacher_id === preselectedTeacherId) ?? null
@@ -84,13 +116,12 @@ export function SurveyRespond({
   const [activeDate, setActiveDate] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
+  const [changeWarning, setChangeWarning] = useState<string[] | null>(null)
 
-  // 通常期間: 単月表示
   const days = getDaysInMonth(targetMonth)
   const [year, month] = targetMonth.split('-').map(Number)
   const firstDow = days[0].getDay()
 
-  // 講習期間: 月別グループ
   const intensiveMonthGroups = intensivePeriodDates ? groupByMonth(intensivePeriodDates) : []
 
   function handleSelectTeacher(token: Token) {
@@ -133,9 +164,10 @@ export function SurveyRespond({
     setSelectedSlots((prev) => ({ ...prev, [dateStr]: [] }))
   }
 
-  function handleSubmit() {
+  function doSubmit() {
     if (!selectedTeacher) return
     setError(undefined)
+    setChangeWarning(null)
     startTransition(async () => {
       const result = await submitSurveyResponse(surveyId, selectedTeacher.teacher_id, selectedSlots)
       if (result.error) { setError(result.error); return }
@@ -143,10 +175,25 @@ export function SurveyRespond({
     })
   }
 
+  function handleSubmit() {
+    if (!selectedTeacher) return
+
+    // 前回回答との差分チェック
+    if (previousDayPattern && Object.keys(previousDayPattern).length > 0) {
+      const currentPattern = toDayPattern(selectedSlots)
+      const changes = computeChanges(currentPattern, previousDayPattern)
+      if (changes.length > 0) {
+        setChangeWarning(changes)
+        return
+      }
+    }
+
+    doSubmit()
+  }
+
   const selectedDateCount = Object.keys(selectedSlots).length
   const totalSlotCount = Object.values(selectedSlots).reduce((sum, s) => sum + s.length, 0)
 
-  // ===== 完了 =====
   if (step === 'done') {
     return (
       <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
@@ -163,12 +210,10 @@ export function SurveyRespond({
     )
   }
 
-  // ===== カレンダー =====
   if (step === 'calendar' && selectedTeacher) {
     const activeDateSlots = activeDate ? getSlotsForDate(activeDate, termType) : []
     const activeDateSelected = activeDate ? (selectedSlots[activeDate] ?? []) : []
 
-    // 日付セルのレンダリング（通常・講習共通）
     const renderDateCell = (dateStr: string, d: Date, allowedDates?: string[]) => {
       const dow = d.getDay()
       const isClosed = closureDates.includes(dateStr)
@@ -211,6 +256,44 @@ export function SurveyRespond({
 
     return (
       <div className="space-y-4">
+        {/* 差分警告モーダル */}
+        {changeWarning && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="font-semibold text-gray-800">前回の回答と異なります</p>
+                  <p className="text-xs text-gray-500 mt-1">以下の曜日・コマが変わっています</p>
+                </div>
+              </div>
+              <ul className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-1">
+                {changeWarning.map((c, i) => (
+                  <li key={i} className="text-sm text-amber-800">{c}</li>
+                ))}
+              </ul>
+              <p className="text-xs text-gray-500">このまま送信しますか？</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={doSubmit}
+                  disabled={isPending}
+                  className="flex-1 bg-[#1E3A5F] text-white font-semibold py-2.5 rounded-lg hover:bg-[#2d5487] transition-colors disabled:opacity-50 text-sm"
+                >
+                  {isPending ? '送信中...' : 'このまま送信'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChangeWarning(null)}
+                  className="flex-1 border border-gray-300 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                >
+                  見直す
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ヘッダー */}
         <div className="flex items-center gap-3 flex-wrap">
           <button onClick={() => setStep('select')} className="text-sm text-gray-500 hover:text-gray-700">← 戻る</button>
@@ -231,7 +314,6 @@ export function SurveyRespond({
 
         {/* カレンダー */}
         {termType === 'intensive' && intensiveMonthGroups.length > 0 ? (
-          // 講習期間: 複数月カレンダー
           <div className="space-y-4">
             {intensiveMonthGroups.map(({ ym, dates: monthDates }) => {
               const [y, m] = ym.split('-').map(Number)
@@ -257,7 +339,6 @@ export function SurveyRespond({
             })}
           </div>
         ) : (
-          // 通常期間: 単月カレンダー
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <p className="text-sm font-semibold text-gray-700 mb-0.5">{year}年{month}月</p>
             <p className="text-xs text-gray-400 mb-3">出勤できる日をタップ → コマを選択してください</p>
@@ -338,7 +419,6 @@ export function SurveyRespond({
     )
   }
 
-  // ===== 先生選択 =====
   return (
     <div className="space-y-3">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">

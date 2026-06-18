@@ -5,6 +5,24 @@ interface PageProps {
   searchParams: Promise<{ id?: string; token?: string }>
 }
 
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Convert date→slots map to day-of-week→slots pattern for comparison
+function toDayPattern(slotsMap: Record<string, number[]>): Record<number, number[]> {
+  const pattern: Record<number, Set<number>> = {}
+  for (const [dateStr, slots] of Object.entries(slotsMap)) {
+    if (!slots || slots.length === 0) continue
+    const dow = new Date(dateStr + 'T12:00:00').getDay()
+    if (!pattern[dow]) pattern[dow] = new Set()
+    slots.forEach((s) => pattern[dow].add(s))
+  }
+  return Object.fromEntries(
+    Object.entries(pattern).map(([dow, set]) => [Number(dow), [...set].sort((a, b) => a - b)])
+  )
+}
+
 export default async function SurveyRespondPage({ searchParams }: PageProps) {
   const { id, token } = await searchParams
   const supabase = await createClient()
@@ -68,14 +86,16 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
   const termType = (survey.term_type ?? 'regular') as 'regular' | 'intensive'
 
-  // 講習期間の場合: term_periods から全日付を取得
+  // 講習期間の場合: term_period_id があればその期間のみ、なければ全講習期間
   let intensivePeriodDates: string[] | null = null
   if (termType === 'intensive') {
-    const { data: termPeriods } = await supabase
-      .from('term_periods')
-      .select('start_date, end_date, name')
-      .eq('type', 'intensive')
-      .order('start_date')
+    let query = supabase.from('term_periods').select('start_date, end_date').order('start_date')
+    if (survey.term_period_id) {
+      query = query.eq('id', survey.term_period_id) as typeof query
+    } else {
+      query = query.eq('type', 'intensive') as typeof query
+    }
+    const { data: termPeriods } = await query
 
     if (termPeriods && termPeriods.length > 0) {
       const allDates: string[] = []
@@ -84,12 +104,49 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
         const end = new Date(period.end_date + 'T12:00:00')
         const d = new Date(start)
         while (d <= end) {
-          const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-          allDates.push(dStr)
+          allDates.push(toDateStr(d))
           d.setDate(d.getDate() + 1)
         }
       }
       intensivePeriodDates = allDates.filter((d) => !closureDates.includes(d))
+    }
+  }
+
+  // 前回の回答パターンを取得（差分警告用）
+  let previousDayPattern: Record<number, number[]> | null = null
+  if (preselectedTeacherId) {
+    const { data: prevTokens } = await supabase
+      .from('shift_survey_tokens')
+      .select('id, survey_id')
+      .eq('teacher_id', preselectedTeacherId)
+      .not('responded_at', 'is', null)
+      .neq('survey_id', surveyId)
+
+    if (prevTokens && prevTokens.length > 0) {
+      const prevSurveyIds = prevTokens.map((t) => t.survey_id)
+      const { data: prevSurveys } = await supabase
+        .from('shift_surveys')
+        .select('id, term_type')
+        .in('id', prevSurveyIds)
+        .eq('term_type', termType)
+
+      const matchingTokenIds = prevTokens
+        .filter((t) => prevSurveys?.some((s) => s.id === t.survey_id))
+        .map((t) => t.id)
+
+      if (matchingTokenIds.length > 0) {
+        const { data: prevResponse } = await supabase
+          .from('shift_survey_responses')
+          .select('available_slots, submitted_at')
+          .in('token_id', matchingTokenIds)
+          .order('submitted_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (prevResponse?.available_slots) {
+          previousDayPattern = toDayPattern(prevResponse.available_slots as Record<string, number[]>)
+        }
+      }
     }
   }
 
@@ -116,6 +173,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
           closureDates={closureDates}
           intensivePeriodDates={intensivePeriodDates}
           preselectedTeacherId={preselectedTeacherId}
+          previousDayPattern={previousDayPattern}
         />
       </div>
     </div>

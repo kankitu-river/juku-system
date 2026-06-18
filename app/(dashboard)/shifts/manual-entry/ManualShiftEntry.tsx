@@ -1,0 +1,333 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { saveManualShifts } from './actions'
+
+interface Teacher {
+  id: string
+  name: string
+}
+
+interface ManualShiftEntryProps {
+  teachers: Teacher[]
+}
+
+const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
+
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function getDaysInMonth(yearMonth: string): Date[] {
+  const [y, m] = yearMonth.split('-').map(Number)
+  const days: Date[] = []
+  const d = new Date(y, m - 1, 1)
+  while (d.getMonth() === m - 1) {
+    days.push(new Date(d))
+    d.setDate(d.getDate() + 1)
+  }
+  return days
+}
+
+export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string>()
+  const [savedMsg, setSavedMsg] = useState<string>()
+
+  const today = new Date()
+  const [teacherId, setTeacherId] = useState('')
+  const [ym, setYm] = useState(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+  )
+  const [defaultStart, setDefaultStart] = useState('16:00')
+  const [defaultEnd, setDefaultEnd] = useState('21:30')
+
+  // dateStr → {start, end} (selected dates)
+  const [selectedDates, setSelectedDates] = useState<Record<string, { start: string; end: string }>>({})
+  const [editingDate, setEditingDate] = useState<string | null>(null)
+
+  const days = getDaysInMonth(ym)
+  const firstDow = days[0].getDay()
+  const [y, m] = ym.split('-').map(Number)
+
+  function toggleDate(dateStr: string, dow: number) {
+    if (dow === 0) return // 日曜は選択不可
+    if (selectedDates[dateStr]) {
+      setSelectedDates((prev) => { const n = { ...prev }; delete n[dateStr]; return n })
+      if (editingDate === dateStr) setEditingDate(null)
+    } else {
+      setSelectedDates((prev) => ({ ...prev, [dateStr]: { start: defaultStart, end: defaultEnd } }))
+      setEditingDate(dateStr)
+    }
+  }
+
+  function applyDefaultToAll() {
+    setSelectedDates((prev) =>
+      Object.fromEntries(Object.keys(prev).map((d) => [d, { start: defaultStart, end: defaultEnd }]))
+    )
+  }
+
+  function updateTime(dateStr: string, field: 'start' | 'end', value: string) {
+    setSelectedDates((prev) => ({
+      ...prev,
+      [dateStr]: { ...prev[dateStr], [field]: value },
+    }))
+  }
+
+  function handleSubmit() {
+    if (!teacherId) { setError('先生を選択してください'); return }
+    const shifts = Object.entries(selectedDates)
+      .filter(([, v]) => v.start < v.end)
+      .map(([date, v]) => ({ date, start_time: v.start, end_time: v.end }))
+    if (shifts.length === 0) { setError('出勤日を1日以上選択してください'); return }
+
+    setError(undefined)
+    setSavedMsg(undefined)
+    startTransition(async () => {
+      const result = await saveManualShifts(teacherId, shifts)
+      if (result.error) { setError(result.error); return }
+      setSavedMsg(`${result.saved}日分のシフトを登録しました`)
+      setSelectedDates({})
+      setEditingDate(null)
+      router.refresh()
+    })
+  }
+
+  const teacherName = teachers.find((t) => t.id === teacherId)?.name ?? ''
+  const selectedCount = Object.keys(selectedDates).length
+
+  const editingSlot = editingDate ? selectedDates[editingDate] : null
+
+  return (
+    <div className="max-w-xl mx-auto space-y-5">
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
+      {savedMsg && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">{savedMsg}</div>
+      )}
+
+      {/* 先生・月の選択 */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
+        <h2 className="font-semibold text-gray-800">シフト情報の入力</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">先生</label>
+            <select
+              value={teacherId}
+              onChange={(e) => { setTeacherId(e.target.value); setSelectedDates({}); setEditingDate(null) }}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            >
+              <option value="">選択してください</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">対象月</label>
+            <input
+              type="month"
+              value={ym}
+              onChange={(e) => { setYm(e.target.value); setSelectedDates({}); setEditingDate(null) }}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            />
+          </div>
+        </div>
+
+        {/* デフォルト時間 */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">デフォルト時間</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="time"
+              value={defaultStart}
+              onChange={(e) => setDefaultStart(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            />
+            <span className="text-gray-400 text-sm">〜</span>
+            <input
+              type="time"
+              value={defaultEnd}
+              onChange={(e) => setDefaultEnd(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            />
+            {selectedCount > 0 && (
+              <button
+                type="button"
+                onClick={applyDefaultToAll}
+                className="text-xs text-[#1E3A5F] hover:underline whitespace-nowrap"
+              >
+                全日に適用
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">日付を選ぶとこの時間が自動入力されます</p>
+        </div>
+      </div>
+
+      {/* カレンダー */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-semibold text-gray-800">{y}年{m}月</p>
+          {teacherId && (
+            <span className="text-xs text-gray-500">
+              {teacherName} · <span className="font-bold text-[#1E3A5F]">{selectedCount}</span>日選択中
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-7 mb-1">
+          {DAY_NAMES.map((d, i) => (
+            <div key={d} className={[
+              'text-center text-xs font-medium py-1',
+              i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-500' : 'text-gray-500',
+            ].join(' ')}>{d}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: firstDow }).map((_, i) => <div key={`e-${i}`} />)}
+          {days.map((d) => {
+            const ds = toDateStr(d)
+            const dow = d.getDay()
+            const isSunday = dow === 0
+            const isSelected = !!selectedDates[ds]
+            const isEditing = editingDate === ds
+            const isToday = ds === toDateStr(new Date())
+            const disabled = !teacherId || isSunday
+
+            return (
+              <button
+                key={ds}
+                type="button"
+                disabled={disabled}
+                onClick={() => !disabled && toggleDate(ds, dow)}
+                className={[
+                  'rounded-xl text-xs font-medium transition-all flex flex-col items-center justify-center py-2 gap-0.5 min-h-[44px]',
+                  isSunday
+                    ? 'text-red-200 cursor-not-allowed'
+                    : disabled
+                      ? 'text-gray-200 cursor-not-allowed'
+                      : isEditing
+                        ? 'bg-amber-400 text-white shadow-sm ring-2 ring-amber-500 ring-offset-1'
+                        : isSelected
+                          ? 'bg-[#1E3A5F] text-white shadow-sm'
+                          : dow === 6
+                            ? 'text-blue-500 hover:bg-blue-50'
+                            : 'text-gray-700 hover:bg-gray-100',
+                  isToday && !isSelected && !isEditing && !disabled ? 'ring-2 ring-[#1E3A5F] ring-offset-1' : '',
+                ].join(' ')}
+              >
+                <span>{d.getDate()}</span>
+                {isSelected && (
+                  <span className="text-[8px] leading-none font-bold text-white opacity-90">
+                    {selectedDates[ds].start.slice(0, 5)}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {!teacherId && (
+          <p className="text-center text-xs text-gray-400 mt-3">先生を選択すると日付を選べます</p>
+        )}
+      </div>
+
+      {/* 選択日の時間調整 */}
+      {editingDate && editingSlot && (
+        <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-blue-800">
+              {new Date(editingDate + 'T12:00:00').toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })}の時間
+            </p>
+            <button onClick={() => setEditingDate(null)} className="text-xs text-gray-400 hover:text-gray-600">閉じる</button>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="time"
+              value={editingSlot.start}
+              onChange={(e) => updateTime(editingDate, 'start', e.target.value)}
+              className="border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            />
+            <span className="text-gray-400">〜</span>
+            <input
+              type="time"
+              value={editingSlot.end}
+              onChange={(e) => updateTime(editingDate, 'end', e.target.value)}
+              className="border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 選択リスト */}
+      {selectedCount > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-gray-700">選択した出勤日（{selectedCount}日）</p>
+            <button
+              type="button"
+              onClick={() => { setSelectedDates({}); setEditingDate(null) }}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              全解除
+            </button>
+          </div>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {Object.entries(selectedDates)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([ds, times]) => {
+                const d = new Date(ds + 'T12:00:00')
+                const dow = d.getDay()
+                const isEditing = editingDate === ds
+                return (
+                  <div
+                    key={ds}
+                    className={[
+                      'flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-colors',
+                      isEditing ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 hover:bg-gray-100',
+                    ].join(' ')}
+                    onClick={() => setEditingDate(isEditing ? null : ds)}
+                  >
+                    <span className="text-sm text-gray-700">
+                      {d.getMonth() + 1}/{d.getDate()}（{DAY_NAMES[dow]}）
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 font-medium">
+                        {times.start}〜{times.end}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedDates((prev) => { const n = { ...prev }; delete n[ds]; return n })
+                          if (editingDate === ds) setEditingDate(null)
+                        }}
+                        className="text-gray-300 hover:text-red-400 text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* 登録ボタン */}
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={isPending || selectedCount === 0 || !teacherId}
+        className="w-full bg-[#1E3A5F] text-white font-semibold py-4 rounded-xl hover:bg-[#2d5487] transition-colors disabled:opacity-40 text-base"
+      >
+        {isPending ? '登録中...' : `${teacherName ? `${teacherName}先生の` : ''}${selectedCount}日分のシフトを登録する`}
+      </button>
+    </div>
+  )
+}

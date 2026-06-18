@@ -144,7 +144,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           <MonthlyViewPlaceholder date={referenceDate} />
         )}
         {view === 'day' && (
-          <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={(makeupAssignments ?? []) as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]} />
+          <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={(makeupAssignments ?? []) as unknown as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]} />
         )}
       </div>
     </div>
@@ -237,7 +237,11 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dayOfWeek = date.getDay()
-  const dayLessons = lessons.filter((l) => l.day_of_week === dayOfWeek && l.term_type === currentTermType)
+  const dayLessons = lessons.filter((l) => {
+    if (l.day_of_week !== dayOfWeek) return false
+    const lt = (l.term_type as string) || 'regular'
+    return lt === currentTermType
+  })
   const dateStr = date.toLocaleDateString('ja-JP', {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
   })

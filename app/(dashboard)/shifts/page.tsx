@@ -40,16 +40,11 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
 
   const supabase = await createClient()
 
-  const [{ data: teachers }, { data: shifts }, { data: lessons }] = await Promise.all([
+  const [{ data: teachers }, { data: shifts }, { data: lessons }, { data: termPeriods }] = await Promise.all([
     supabase.from('teachers').select('*').order('name'),
-    supabase
-      .from('shifts')
-      .select('*')
-      .in('date', weekDates),
-    supabase
-      .from('lessons')
-      .select('*, teacher:teachers(id, name)')
-      .not('teacher_id', 'is', null),
+    supabase.from('shifts').select('*').in('date', weekDates),
+    supabase.from('lessons').select('*, teacher:teachers(id, name)').not('teacher_id', 'is', null),
+    supabase.from('term_periods').select('start_date, end_date, type').order('start_date'),
   ])
 
   const prevWeek = addWeeks(weekDates[0], -1)
@@ -61,12 +56,20 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
         title="シフト管理"
         subtitle="週次シフト表"
         actions={
-          <Link
-            href="/shifts/survey"
-            className="text-sm text-[#1E3A5F] font-medium hover:underline"
-          >
-            出勤アンケート →
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/shifts/manual-entry"
+              className="text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+            >
+              手動シフト入力
+            </Link>
+            <Link
+              href="/shifts/survey"
+              className="text-sm text-[#1E3A5F] font-medium hover:underline"
+            >
+              出勤アンケート →
+            </Link>
+          </div>
         }
       />
 
@@ -116,6 +119,7 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
           shifts={(shifts as { id: string; teacher_id: string; date: string; start_time: string; end_time: string }[]) ?? []}
           weekDates={weekDates}
           lessons={(lessons as Lesson[]) ?? []}
+          termPeriods={(termPeriods ?? []) as { start_date: string; end_date: string; type: 'regular' | 'intensive' }[]}
         />
       </div>
     </div>

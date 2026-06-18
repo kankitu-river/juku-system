@@ -9,6 +9,7 @@ export async function createSurvey(data: {
   target_month: string
   deadline: string
   term_type: 'regular' | 'intensive'
+  term_period_id?: string
 }): Promise<{ error?: string }> {
   const supabase = await createClient()
 
