@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { TermPeriodManager } from './TermPeriodManager'
 import { ClosureCalendar } from './ClosureCalendar'
@@ -73,6 +74,20 @@ export default async function SettingsPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">一括進級処理</h2>
           <GradeAdvancement />
+        </div>
+
+        {/* 重複コマの統合 */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">重複コマの統合</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            同じ先生・同じ時間帯に複数のコマが登録されている場合、1つにまとめます。生徒の科目情報は保持されます。
+          </p>
+          <Link
+            href="/settings/merge-lessons"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#1E3A5F] text-white rounded-lg text-sm hover:bg-[#162d4a] transition-colors"
+          >
+            重複コマを確認・統合する
+          </Link>
         </div>
 
         {/* バックアップ */}
