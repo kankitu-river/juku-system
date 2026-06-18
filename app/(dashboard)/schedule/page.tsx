@@ -28,7 +28,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     const d = new Date(mondayRef); d.setDate(mondayRef.getDate() + i); return toLD(d)
   })
 
-  const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }, { data: makeupAssignments }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student_id, student:students(id, name))')
@@ -39,6 +39,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     supabase.from('teachers').select('id, name').order('name'),
     supabase.from('students').select('id, name, grade').order('name'),
     supabase.from('shifts').select('id, teacher_id, date, start_time, end_time').in('date', weekDates),
+    supabase.from('makeup_assignments').select('id, lesson_id, assigned_date, student:students(id, name)').eq('assigned_date', toLD(referenceDate)),
   ])
 
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
@@ -143,7 +144,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           <MonthlyViewPlaceholder date={referenceDate} />
         )}
         {view === 'day' && (
-          <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} />
+          <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} makeupAssignments={(makeupAssignments ?? []) as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]} />
         )}
       </div>
     </div>
@@ -232,7 +233,7 @@ function MonthlyViewPlaceholder({ date }: { date: Date }) {
   )
 }
 
-function DailyViewPlaceholder({ date, lessons }: { date: Date; lessons: Lesson[] }) {
+function DailyViewPlaceholder({ date, lessons, makeupAssignments }: { date: Date; lessons: Lesson[]; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[] }) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dayOfWeek = date.getDay()
@@ -264,8 +265,10 @@ function DailyViewPlaceholder({ date, lessons }: { date: Date; lessons: Lesson[]
         <div className="space-y-2">
           {dayLessons.sort((a, b) => a.slot_index - b.slot_index).map((lesson) => {
             const isGroup = lesson.type === 'group'
-            const students = lesson.enrollments?.map((e) => e.student).filter((s): s is NonNullable<typeof s> => s != null) ?? []
+            const regularStudents = lesson.enrollments?.map((e) => e.student).filter((s): s is NonNullable<typeof s> => s != null) ?? []
+            const makeupStudents = makeupAssignments.filter(m => m.lesson_id === lesson.id && m.student).map(m => m.student!)
             const teacher = lesson.teacher as { name: string } | null | undefined
+            const totalCount = regularStudents.length + makeupStudents.length
             return (
               <Link
                 key={lesson.id}
@@ -289,12 +292,16 @@ function DailyViewPlaceholder({ date, lessons }: { date: Date; lessons: Lesson[]
                         {teacher.name}
                       </span>
                     )}
-                    {students.length > 0 ? (
-                      <span className="text-sm text-gray-700">
-                        {(students as { name: string }[]).slice(0, 2).map((s) => `${s.name}（${lesson.subject}）`).join('　')}
-                        {students.length > 2 && <span className="text-gray-400"> +{students.length - 2}名</span>}
+                    {regularStudents.map((s) => (
+                      <span key={s.id} className="text-sm text-gray-700">{s.name}</span>
+                    ))}
+                    {makeupStudents.map((s) => (
+                      <span key={s.id} className="inline-flex items-center gap-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                        {s.name}
+                        <span className="text-[10px] font-bold text-amber-600">振替</span>
                       </span>
-                    ) : (
+                    ))}
+                    {totalCount === 0 && (
                       <span className="text-xs text-gray-400">生徒未登録</span>
                     )}
                   </div>
@@ -303,7 +310,7 @@ function DailyViewPlaceholder({ date, lessons }: { date: Date; lessons: Lesson[]
                   )}
                 </div>
                 <span className="text-xs text-gray-400 shrink-0">
-                  {students.length}/{lesson.capacity}名
+                  {totalCount}/{lesson.capacity}名
                 </span>
               </Link>
             )
