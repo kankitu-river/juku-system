@@ -242,6 +242,51 @@ function DailyViewPlaceholder({ date, lessons, makeupAssignments }: { date: Date
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
   })
 
+  // 同じスロット・同じ先生のコマをまとめる
+  type MergedLesson = {
+    key: string
+    slotIndex: number
+    type: string
+    teacher: { id: string; name: string } | null
+    lessons: Lesson[]
+    allStudents: { id: string; name: string }[]
+    allMakeupStudents: { id: string; name: string }[]
+    capacity: number
+    subject: string
+  }
+
+  const sorted = [...dayLessons].sort((a, b) => a.slot_index - b.slot_index)
+  const groupMap = new Map<string, Lesson[]>()
+  for (const lesson of sorted) {
+    const k = `${lesson.slot_index}-${lesson.teacher_id ?? 'none'}-${lesson.type}`
+    const list = groupMap.get(k) ?? []
+    list.push(lesson)
+    groupMap.set(k, list)
+  }
+
+  const mergedGroups: MergedLesson[] = []
+  for (const [key, group] of groupMap) {
+    const rep = group[0]
+    const teacher = rep.teacher as { id: string; name: string } | null | undefined
+    const allStudents = group.flatMap((l) =>
+      (l.enrollments ?? []).map((e) => e.student).filter((s): s is NonNullable<typeof s> => s != null)
+    )
+    const allMakeupStudents = group.flatMap((l) =>
+      makeupAssignments.filter((m) => m.lesson_id === l.id && m.student).map((m) => m.student!)
+    )
+    mergedGroups.push({
+      key,
+      slotIndex: rep.slot_index,
+      type: rep.type,
+      teacher: teacher ?? null,
+      lessons: group,
+      allStudents,
+      allMakeupStudents,
+      capacity: rep.capacity,
+      subject: rep.subject ?? '',
+    })
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -259,43 +304,40 @@ function DailyViewPlaceholder({ date, lessons, makeupAssignments }: { date: Date
           翌日 ›
         </Link>
       </div>
-      {dayLessons.length === 0 ? (
+      {mergedGroups.length === 0 ? (
         <p className="text-center text-gray-400 py-10 text-sm">この日のコマはありません</p>
       ) : (
         <div className="space-y-2">
-          {dayLessons.sort((a, b) => a.slot_index - b.slot_index).map((lesson) => {
-            const isGroup = lesson.type === 'group'
-            const regularStudents = lesson.enrollments?.map((e) => e.student).filter((s): s is NonNullable<typeof s> => s != null) ?? []
-            const makeupStudents = makeupAssignments.filter(m => m.lesson_id === lesson.id && m.student).map(m => m.student!)
-            const teacher = lesson.teacher as { name: string } | null | undefined
-            const totalCount = regularStudents.length + makeupStudents.length
+          {mergedGroups.map((group) => {
+            const isGroup = group.type === 'group'
+            const totalCount = group.allStudents.length + group.allMakeupStudents.length
             return (
               <Link
-                key={lesson.id}
-                href={`/schedule/${lesson.id}`}
+                key={group.key}
+                href={`/schedule/${group.lessons[0].id}`}
                 className={[
                   'flex items-start gap-4 rounded-xl p-3 border transition-opacity hover:opacity-80',
                   isGroup ? 'bg-purple-50 border-purple-200' : 'bg-teal-50 border-teal-200',
                 ].join(' ')}
               >
                 <div className="text-center shrink-0 min-w-[48px]">
-                  <p className="text-xs font-bold text-gray-600">第{lesson.slot_index}コマ</p>
-                  <p className="text-[10px] text-gray-400">{lesson.subject}</p>
+                  <p className="text-xs font-bold text-gray-600">第{group.slotIndex}コマ</p>
+                  <p className="text-[10px] text-gray-400">{group.subject}</p>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {teacher?.name && (
+                    {group.teacher?.name && (
                       <span className={[
                         'text-xs font-bold px-2 py-0.5 rounded-full',
                         isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
                       ].join(' ')}>
-                        {teacher.name}
+                        {group.teacher.name}
                       </span>
                     )}
-                    {regularStudents.map((s) => (
+                    {group.allStudents.map((s) => (
                       <span key={s.id} className="text-sm text-gray-700">{s.name}</span>
                     ))}
-                    {makeupStudents.map((s) => (
+                    {group.allMakeupStudents.map((s) => (
                       <span key={s.id} className="inline-flex items-center gap-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
                         {s.name}
                         <span className="text-[10px] font-bold text-amber-600">振替</span>
@@ -305,12 +347,9 @@ function DailyViewPlaceholder({ date, lessons, makeupAssignments }: { date: Date
                       <span className="text-xs text-gray-400">生徒未登録</span>
                     )}
                   </div>
-                  {lesson.booth && (
-                    <p className="text-[11px] text-gray-400 mt-0.5">{(lesson as { booth?: { name: string } }).booth?.name}</p>
-                  )}
                 </div>
                 <span className="text-xs text-gray-400 shrink-0">
-                  {totalCount}/{lesson.capacity}名
+                  {totalCount}/{group.capacity}名
                 </span>
               </Link>
             )

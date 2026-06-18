@@ -123,27 +123,26 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
     <div className="bg-white min-h-screen">
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 7mm; }
+          @page { size: A4 portrait; margin: 5mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
           /* ページ全体: A4縦の印刷領域をちょうど埋める */
           .dpp-page {
-            height: calc(297mm - 14mm);
+            height: calc(297mm - 10mm);
             display: flex !important;
             flex-direction: column !important;
             overflow: hidden !important;
-            zoom: 0.85;
           }
 
           /* ヘッダー */
           .dpp-header {
             flex-shrink: 0 !important;
-            padding-bottom: 1.5mm !important;
-            margin-bottom: 1.5mm !important;
+            padding-bottom: 1mm !important;
+            margin-bottom: 1mm !important;
             border-bottom: 1.5px solid #1E3A5F !important;
           }
-          .dpp-header h1 { font-size: 13px !important; line-height: 1.2 !important; margin: 0 !important; }
-          .dpp-header p  { font-size: 8px !important;  margin: 0 !important; }
+          .dpp-header h1 { font-size: 14px !important; line-height: 1.2 !important; margin: 0 !important; }
+          .dpp-header p  { font-size: 9px !important;  margin: 0 !important; }
 
           /* コマ一覧: 均等分割 */
           .dpp-slots {
@@ -176,8 +175,8 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             display: flex !important;
             align-items: center !important;
           }
-          .dpp-slot-hdr .slot-num  { font-size: 9px  !important; font-weight: 700 !important; }
-          .dpp-slot-hdr .slot-time { font-size: 12px !important; font-weight: 700 !important; font-family: monospace !important; letter-spacing: 0 !important; }
+          .dpp-slot-hdr .slot-num  { font-size: 10px !important; font-weight: 700 !important; }
+          .dpp-slot-hdr .slot-time { font-size: 13px !important; font-weight: 700 !important; font-family: monospace !important; letter-spacing: 0 !important; }
 
           /* 授業カード行 */
           .dpp-slot-body {
@@ -185,7 +184,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             min-height: 0 !important;
             display: flex !important;
             flex-wrap: wrap !important;
-            gap: 1mm !important;
+            gap: 1.5mm !important;
             padding: 1.5mm !important;
             overflow: hidden !important;
           }
@@ -193,8 +192,8 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
           /* 授業カード */
           .dpp-card {
             flex: 1 !important;
-            min-width: 22mm !important;
-            max-width: 50mm !important;
+            min-width: 25mm !important;
+            max-width: 55mm !important;
             display: flex !important;
             flex-direction: column !important;
             border-radius: 2px !important;
@@ -203,20 +202,20 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
           }
           .dpp-card-booth {
             flex-shrink: 0 !important;
-            font-size: 7px !important;
+            font-size: 8px !important;
             font-weight: 700 !important;
             padding: 0.5mm 2mm !important;
           }
           .dpp-card-body {
             flex: 1 !important;
-            padding: 1mm 1.5mm !important;
+            padding: 1.5mm 2mm !important;
             display: flex !important;
             flex-direction: column !important;
             gap: 0.5mm !important;
           }
-          .dpp-card-teacher { font-size: 11px !important; font-weight: 700 !important; line-height: 1.2 !important; margin: 0 !important; }
-          .dpp-card-student { font-size: 9px  !important; line-height: 1.3 !important; margin: 0 !important; }
-          .dpp-card-subject { font-size: 7px  !important; }
+          .dpp-card-teacher { font-size: 13px !important; font-weight: 700 !important; line-height: 1.2 !important; margin: 0 !important; }
+          .dpp-card-student { font-size: 11px !important; line-height: 1.3 !important; margin: 0 !important; }
+          .dpp-card-subject { font-size: 8px  !important; }
         }
       `}</style>
 
