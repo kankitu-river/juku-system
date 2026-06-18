@@ -121,10 +121,13 @@ export default async function LessonDetailPage({ params }: PageProps) {
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs font-medium text-gray-500 mb-2">受講生徒</p>
               <div className="space-y-1">
-                {((enrollments as LessonEnrollment[]) ?? []).map((e) => (
+                {typedEnrollments.map((e) => (
                   <div key={e.id} className="text-xs text-gray-700 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
-                    {(e as any).student?.name ?? '—'}
+                    <span>{e.student?.name ?? '—'}</span>
+                    {e.subject && (
+                      <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{e.subject}</span>
+                    )}
                   </div>
                 ))}
               </div>

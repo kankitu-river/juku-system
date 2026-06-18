@@ -72,6 +72,7 @@ export interface LessonEnrollment {
   id: string
   lesson_id: string
   student_id: string
+  subject?: string | null
   student?: Student | null
   created_at: string
 }

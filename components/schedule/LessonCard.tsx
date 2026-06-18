@@ -8,12 +8,16 @@ interface LessonCardProps {
 
 export function LessonCard({ lesson, compact = false }: LessonCardProps) {
   const isGroup = lesson.type === 'group'
-  const students = lesson.enrollments?.map((e) => e.student).filter(Boolean) ?? []
+  const enrollmentStudents = (lesson.enrollments ?? [])
+    .filter(e => e.student != null)
+    .map(e => ({ ...e.student!, enrollmentSubject: e.subject ?? null }))
   const teacherName = lesson.teacher?.name
   const subject = lesson.subject
 
+  const students = enrollmentStudents
   const displayStudents = students.slice(0, 2)
   const extraCount = students.length - 2
+  const hasPerStudentSubjects = enrollmentStudents.some(s => s.enrollmentSubject)
 
   if (compact) {
     return (
@@ -38,7 +42,7 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
           </span>
         )}
         <span className="truncate text-[10px] opacity-80">
-          {displayStudents.map((s) => s!.name).join('・')}
+          {displayStudents.map((s) => s.enrollmentSubject ? `${s.name}(${s.enrollmentSubject})` : s.name).join('・')}
           {extraCount > 0 && ` +${extraCount}`}
         </span>
         <span className={[
@@ -78,7 +82,7 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
               {teacherName}
             </span>
           ) : null}
-          {subject && (
+          {subject && (!hasPerStudentSubjects || isGroup) && (
             <span className="truncate text-[10px] text-gray-400">{subject}</span>
           )}
         </div>
@@ -90,11 +94,13 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
         </span>
       </div>
 
-      {/* 生徒（科目なし・先生名が主軸） */}
+      {/* 生徒（生徒ごとの科目を表示） */}
       {displayStudents.length > 0 ? (
         <div className="leading-snug">
           {displayStudents.map((s, i) => (
-            <p key={i} className="truncate text-[11px] text-gray-800">{s!.name}</p>
+            <p key={i} className="truncate text-[11px] text-gray-800">
+              {s.name}{s.enrollmentSubject ? `（${s.enrollmentSubject}）` : ''}
+            </p>
           ))}
           {extraCount > 0 && <p className="text-gray-400 text-[10px]">+{extraCount}名</p>}
         </div>

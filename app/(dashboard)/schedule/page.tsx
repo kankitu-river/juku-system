@@ -31,7 +31,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }, { data: makeupAssignments }] = await Promise.all([
     supabase
       .from('lessons')
-      .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student_id, student:students(id, name))')
+      .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student_id, subject, student:students(id, name))')
       .order('slot_index'),
     supabase.from('term_periods').select('*').order('start_date'),
     supabase.from('school_closures').select('date'),
