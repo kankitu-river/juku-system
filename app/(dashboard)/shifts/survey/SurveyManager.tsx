@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
-import { createSurvey, deleteSurvey, sendSurveyEmails } from './actions'
+import { createSurvey, deleteSurvey, sendSurveyEmails, importSurveyToShifts } from './actions'
 
 interface Token {
   id: string
@@ -57,6 +57,23 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
     startTransition(async () => {
       await deleteSurvey(id)
       setSurveys(surveys.filter((s) => s.id !== id))
+    })
+  }
+
+  function handleImportToShifts(surveyId: string, respondedCount: number) {
+    if (respondedCount === 0) {
+      alert('まだ誰も回答していません')
+      return
+    }
+    if (!confirm(`回答済み${respondedCount}名分のコマ選択をシフトに反映します。同じ日の既存シフトは上書きされます。続けますか？`)) return
+    setError(undefined)
+    startTransition(async () => {
+      const result = await importSurveyToShifts(surveyId)
+      if (result.error) {
+        setError(`反映エラー: ${result.error}`)
+      } else {
+        alert(`${result.imported}件のシフトを登録しました${result.skipped > 0 ? `（コマ未選択の日 ${result.skipped} 件はスキップ）` : ''}`)
+      }
     })
   }
 
@@ -218,6 +235,13 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount }: SurveyM
                       ))}
                     </div>
                     <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        loading={isPending}
+                        onClick={() => handleImportToShifts(survey.id, responded)}
+                      >
+                        📥 シフトに反映
+                      </Button>
                       <Button
                         size="sm"
                         loading={isPending}
