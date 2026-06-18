@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { WeeklyShiftTable } from '@/components/shifts/WeeklyShiftTable'
+import { CopyShiftsButton } from './CopyShiftsButton'
 import Link from 'next/link'
 import type { Teacher, Lesson } from '@/types'
 
@@ -49,6 +50,8 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
 
   const prevWeek = addWeeks(weekDates[0], -1)
   const nextWeek = addWeeks(weekDates[0], 1)
+  const nextWeekDates = getWeekDates(new Date(nextWeek))
+  const nextWeekLabel = formatWeekLabel(nextWeekDates)
 
   return (
     <div>
@@ -57,6 +60,11 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
         subtitle="週次シフト表"
         actions={
           <div className="flex items-center gap-3">
+            <CopyShiftsButton
+              currentWeekDates={weekDates}
+              nextWeekLabel={nextWeekLabel}
+              nextWeekDate={nextWeek}
+            />
             <Link
               href="/shifts/manual-entry"
               className="text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"

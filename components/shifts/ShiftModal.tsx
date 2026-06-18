@@ -95,7 +95,7 @@ export function ShiftModal({
                     href={`/schedule/${lesson.id}`}
                     className="text-gray-700 hover:text-[#1E3A5F] hover:underline"
                   >
-                    {lesson.subject} {label}
+                    第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}　{label}
                     <span className="ml-1 text-gray-400 text-[10px]">
                       {lesson.term_type === 'intensive' ? '（講習）' : '（通常）'}
                     </span>

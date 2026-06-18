@@ -161,13 +161,12 @@ export function ScheduleFilter({
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{lesson.title || lesson.subject}</p>
+                  <p className="text-sm font-medium text-gray-800 truncate">
+                    第{lesson.slot_index}コマ　{lesson.teacher ? (lesson.teacher as { name: string }).name + '先生' : '担当未設定'}
+                  </p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {getSlotLabel(lesson.slot_index, lesson.day_of_week, lesson.term_type, lesson.type)}
                   </p>
-                  {lesson.teacher && (
-                    <p className="text-[11px] text-gray-400">{(lesson.teacher as { name: string }).name}</p>
-                  )}
                 </div>
                 <span className="ml-auto text-[10px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full whitespace-nowrap self-start">
                   {otherTermType === 'intensive' ? '講習' : '通常'}

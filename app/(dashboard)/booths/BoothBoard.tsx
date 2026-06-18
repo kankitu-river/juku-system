@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Booth, Lesson } from '@/types'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS } from '@/lib/constants/timeSlots'
-import { updateBoothAssignment } from './actions'
+import { updateBoothAssignment, updateBoothName } from './actions'
 
 interface BoothBoardProps {
   booths: Booth[]
@@ -19,6 +19,9 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
   const [isPending, startTransition] = useTransition()
   const [editingLesson, setEditingLesson] = useState<string | null>(null)
   const [localAssignments, setLocalAssignments] = useState<Record<string, string | null>>({})
+  const [editingBooth, setEditingBooth] = useState<string | null>(null)
+  const [editingBoothName, setEditingBoothName] = useState('')
+  const [boothNamePending, startBoothNameTransition] = useTransition()
 
   const slots = currentTermType === 'intensive' ? INTENSIVE_SLOTS : REGULAR_SLOTS
   const activeBooths = booths.filter((b) => b.is_active)
@@ -44,6 +47,16 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
       if (ps1Lesson) return ps1Lesson
     }
     return null
+  }
+
+  function handleBoothNameSave(boothId: string) {
+    const name = editingBoothName.trim()
+    if (!name) return
+    setEditingBooth(null)
+    startBoothNameTransition(async () => {
+      await updateBoothName(boothId, name)
+      router.refresh()
+    })
   }
 
   function handleBoothChange(lessonId: string, newBoothId: string) {
@@ -96,7 +109,39 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
               {activeBooths.map((booth, rowIdx) => (
                 <tr key={booth.id} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                   <td className="border border-gray-200 px-3 py-2 font-semibold text-gray-700 whitespace-nowrap">
-                    {booth.name}
+                    {editingBooth === booth.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editingBoothName}
+                          onChange={(e) => setEditingBoothName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleBoothNameSave(booth.id)
+                            if (e.key === 'Escape') setEditingBooth(null)
+                          }}
+                          className="w-20 border border-teal-400 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        />
+                        <button
+                          onClick={() => handleBoothNameSave(booth.id)}
+                          disabled={boothNamePending}
+                          className="text-teal-600 hover:text-teal-800 text-xs font-bold"
+                        >✓</button>
+                        <button
+                          onClick={() => setEditingBooth(null)}
+                          className="text-gray-400 hover:text-gray-600 text-xs"
+                        >✕</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 group">
+                        <span>{booth.name}</span>
+                        <button
+                          onClick={() => { setEditingBooth(booth.id); setEditingBoothName(booth.name) }}
+                          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity text-[11px] ml-1"
+                          title="ブース名を変更"
+                        >✎</button>
+                      </div>
+                    )}
                   </td>
                   {slots.map((slot) => {
                     const cellLessons = getLessonsForBoothAndSlot(booth.id, slot.index)
@@ -123,7 +168,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                                   <p className={[
                                     'font-semibold truncate',
                                     lesson.is_ps1 ? 'text-purple-900' : 'text-teal-900',
-                                  ].join(' ')}>{lesson.subject}</p>
+                                  ].join(' ')}>{(lesson as any).teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
                                   {lesson.is_ps1 && (
                                     <span className="text-[9px] bg-purple-200 text-purple-800 px-1 py-0.5 rounded font-bold flex-shrink-0">PS1</span>
                                   )}
@@ -161,19 +206,11 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                                   <p className={[
                                     'font-semibold truncate',
                                     lesson.is_ps1 ? 'text-purple-900' : 'text-teal-900',
-                                  ].join(' ')}>{lesson.subject}</p>
+                                  ].join(' ')}>{(lesson as any).teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
                                   {lesson.is_ps1 && (
                                     <span className="text-[9px] bg-purple-300 text-purple-900 px-1 py-0.5 rounded font-bold flex-shrink-0">PS1</span>
                                   )}
                                 </div>
-                                {(lesson as any).teacher?.name && (
-                                  <p className={[
-                                    'text-[10px] truncate',
-                                    lesson.is_ps1 ? 'text-purple-700' : 'text-teal-700',
-                                  ].join(' ')}>
-                                    {(lesson as any).teacher.name}
-                                  </p>
-                                )}
                                 <p className={[
                                   'text-[10px]',
                                   lesson.is_ps1 ? 'text-purple-600' : 'text-teal-600',

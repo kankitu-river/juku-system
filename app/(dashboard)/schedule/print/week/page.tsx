@@ -37,7 +37,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }] = await Promise.all([
     supabase
       .from('lessons')
-      .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student:students(id, name))')
+      .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, subject, student:students(id, name))')
       .order('day_of_week')
       .order('slot_index'),
     supabase.from('term_periods').select('*').order('start_date'),
@@ -114,14 +114,14 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
         @media print {
           @page { size: A4 landscape; margin: 3mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .wpl-printbody { zoom: 0.8; }
+          .wpl-printbody { zoom: 1.2; }
           .wpl-wrap { display: flex; align-items: flex-start; gap: 4mm; }
           .wpl-days { flex: 13; min-width: 0; }
           .wpl-sat  { flex: 4;  min-width: 0; }
           .wpl-table { font-size: 7px !important; }
           .wpl-table th, .wpl-table td { padding: 1px 3px !important; }
-          .wpl-cell { padding: 1px 3px !important; margin-bottom: 0 !important; height: 40px !important; }
-          .wpl-cell p { margin: 0 !important; line-height: 1.2 !important; }
+          .wpl-cell { padding: 2px 4px !important; margin-bottom: 1px !important; height: auto !important; min-height: 55px !important; overflow: visible !important; }
+          .wpl-cell p { margin: 0 !important; line-height: 1.3 !important; }
           .wpl-pill { font-size: 7px !important; padding: 0 3px !important; margin-bottom: 1px !important; }
           .wpl-h2 { font-size: 8px !important; margin-bottom: 2px !important; }
           .wpl-h3 { font-size: 7px !important; margin-bottom: 1px !important; }
@@ -332,15 +332,14 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
 function LessonCell({ lesson }: { lesson: Lesson }) {
   const isGroup = lesson.type === 'group'
   const teacher = (lesson as { teacher?: { name: string } }).teacher
-  const students = (lesson.enrollments ?? [])
-    .map((e) => e.student)
-    .filter((s): s is NonNullable<typeof s> => s != null)
-  const displayStudents = students.slice(0, 2)
-  const extra = students.length - 2
+  const enrollments = lesson.enrollments ?? []
+  const students = enrollments
+    .map((e) => ({ student: e.student, subject: (e as { subject?: string | null }).subject ?? null }))
+    .filter((e): e is { student: NonNullable<typeof e.student>; subject: string | null } => e.student != null)
 
   return (
     <div className={[
-      'rounded-md px-2 py-2 mb-1.5 leading-snug border-l-4 wpl-cell overflow-hidden h-[56px]',
+      'rounded-md px-2 py-1.5 mb-1 leading-snug border-l-4 wpl-cell',
       isGroup
         ? 'bg-purple-50 border-l-purple-500 border border-purple-200'
         : 'bg-teal-50 border-l-teal-500 border border-teal-200',
@@ -365,13 +364,14 @@ function LessonCell({ lesson }: { lesson: Lesson }) {
           {students.length}/{lesson.capacity}名
         </span>
       </div>
-      {/* 生徒一覧 */}
-      {displayStudents.length > 0 ? (
-        <div className="text-xs text-gray-800 leading-relaxed">
-          {displayStudents.map((s, i) => (
-            <p key={i} className="truncate">{s.name}（{lesson.subject}）</p>
+      {/* 生徒一覧（全員表示、名前を切り捨てない） */}
+      {students.length > 0 ? (
+        <div className="text-[10px] text-gray-800">
+          {students.map(({ student: s, subject }, i) => (
+            <p key={i} className="whitespace-nowrap">
+              {s.name}{subject ? `（${subject}）` : ''}
+            </p>
           ))}
-          {extra > 0 && <p className="text-gray-400 text-[10px]">+{extra}名</p>}
         </div>
       ) : (
         <p className="text-[10px] text-gray-400">生徒未登録</p>

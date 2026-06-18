@@ -248,9 +248,14 @@ const lessonMap = useMemo(() => {
                             {availableTeachers.length > 0 && (
                               <div className={['flex flex-wrap gap-1', cellLessons.length > 0 ? 'pt-1 mt-1 border-t border-gray-200' : ''].join(' ')}>
                                 {availableTeachers.map(t => (
-                                  <span key={t.id} className="text-[10px] bg-blue-50 text-blue-600 border border-dashed border-blue-300 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                  <a
+                                    key={t.id}
+                                    href={`/schedule/new?teacher_id=${t.id}&date=${dateStr}&slot_index=${slot.index}&term_type=${termType}`}
+                                    title="クリックして臨時コマを追加"
+                                    className="text-[10px] bg-blue-50 text-blue-600 border border-dashed border-blue-300 px-1.5 py-0.5 rounded-full whitespace-nowrap hover:bg-blue-100 hover:border-blue-400 transition-colors cursor-pointer"
+                                  >
                                     {t.name}
-                                  </span>
+                                  </a>
                                 ))}
                               </div>
                             )}

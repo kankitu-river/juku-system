@@ -6,11 +6,25 @@ import type { Teacher, Booth, Student, Lesson } from '@/types'
 import type { IntensiveSlotLimits } from '@/lib/constants/timeSlots'
 
 interface PageProps {
-  searchParams: Promise<{ copy?: string; student?: string }>
+  searchParams: Promise<{
+    copy?: string
+    student?: string
+    teacher_id?: string
+    date?: string
+    slot_index?: string
+    term_type?: string
+  }>
+}
+
+function dowFromDate(dateStr: string): number {
+  if (!dateStr) return 1
+  const d = new Date(dateStr)
+  const js = d.getDay()
+  return js === 0 ? 7 : js
 }
 
 export default async function NewLessonPage({ searchParams }: PageProps) {
-  const { copy, student: studentId } = await searchParams
+  const { copy, student: studentId, teacher_id, date, slot_index, term_type } = await searchParams
   const supabase = await createClient()
 
   const [{ data: teachers }, { data: booths }, { data: students }, { data: slotLimitSetting }] = await Promise.all([
@@ -31,20 +45,60 @@ export default async function NewLessonPage({ searchParams }: PageProps) {
     copySource = data as Lesson | null
   }
 
+  // 待機先生クリックからの臨時コマ事前入力
+  let prefillLesson: Lesson | null = null
+  if (!copy && teacher_id && date && slot_index) {
+    prefillLesson = {
+      id: '',
+      title: '',
+      type: 'individual',
+      lesson_kind: 'temporary',
+      specific_date: date,
+      teacher_id,
+      day_of_week: dowFromDate(date),
+      slot_index: parseInt(slot_index),
+      term_type: (term_type as 'regular' | 'intensive') ?? 'regular',
+      booth_id: null,
+      subject: '',
+      capacity: 2,
+      is_ps1: false,
+      notes: null,
+      created_at: '',
+    }
+  }
+
   const preselectedStudent = studentId
     ? (students as Student[] ?? []).find((s) => s.id === studentId) ?? null
     : null
 
+  const prefillTeacherName = prefillLesson?.teacher_id
+    ? (teachers as Teacher[] ?? []).find((t) => t.id === prefillLesson!.teacher_id)?.name ?? null
+    : null
+
+  const sourceLesson = copySource ?? prefillLesson ?? undefined
+
   return (
     <div>
       <Header
-        title={copySource ? `${(copySource.teacher as { name?: string } | null)?.name ?? copySource.subject}先生のコマをコピー` : 'コマを作成'}
-        subtitle={preselectedStudent ? `${preselectedStudent.name} の受講コマを追加` : '新しいコマを追加します'}
+        title={
+          copySource
+            ? `${(copySource.teacher as { name?: string } | null)?.name ?? copySource.subject}先生のコマをコピー`
+            : prefillLesson
+              ? '臨時コマを作成'
+              : 'コマを作成'
+        }
+        subtitle={
+          preselectedStudent
+            ? `${preselectedStudent.name} の受講コマを追加`
+            : prefillTeacherName
+              ? `${prefillTeacherName}先生 — 臨時コマ`
+              : '新しいコマを追加します'
+        }
       />
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
         <LessonForm
-          lesson={copySource ?? undefined}
+          lesson={sourceLesson}
           teachers={(teachers as Teacher[]) ?? []}
           booths={(booths as Booth[]) ?? []}
           students={(students as Student[]) ?? []}

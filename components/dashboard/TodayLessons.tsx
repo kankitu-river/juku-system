@@ -121,11 +121,10 @@ export function TodayLessons({ lessons, todayStr }: TodayLessonsProps) {
                 ].join(' ')} />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900">
-                    第{lesson.slot_index}コマ　{lesson.subject}
+                    第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}
                   </p>
                   <p className="text-xs text-gray-500">
                     {lesson.type === 'group' ? '集団授業' : '個別指導'}
-                    {lesson.teacher && ` · ${lesson.teacher.name}`}
                   </p>
                   {lesson.notes && (
                     <p className="text-xs text-amber-700 mt-0.5">📝 {lesson.notes}</p>
