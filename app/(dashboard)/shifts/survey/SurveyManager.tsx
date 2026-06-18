@@ -30,13 +30,74 @@ interface IntensivePeriod {
   end_date: string
 }
 
+type ResponseEntry = { teacherId: string; availableSlots: Record<string, number[]> }
+
 interface SurveyManagerProps {
   surveys: Survey[]
   teacherCount: number
   intensivePeriods: IntensivePeriod[]
+  responsesBySurvey?: Record<string, ResponseEntry[]>
 }
 
-export function SurveyManager({ surveys: initialSurveys, teacherCount, intensivePeriods }: SurveyManagerProps) {
+const DOW_NAMES = ['日', '月', '火', '水', '木', '金', '土']
+
+function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: ResponseEntry[] }) {
+  if (tokens.length === 0) return null
+
+  return (
+    <div className="border-t border-gray-100 mt-4 pt-4">
+      <p className="text-xs font-medium text-gray-600 mb-3">回答内容（インポート前に確認できます）</p>
+      <div className="space-y-3">
+        {tokens.map((token) => {
+          const res = responses.find((r) => r.teacherId === token.teacher_id)
+          if (!res) {
+            return (
+              <div key={token.id} className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-600 w-20 shrink-0">{token.teacher?.name}</span>
+                <span className="text-xs text-gray-300">未回答</span>
+              </div>
+            )
+          }
+
+          // 曜日ごとにコマをまとめる
+          const dowSlots: Record<number, Set<number>> = {}
+          let totalDays = 0
+          for (const [dateStr, slots] of Object.entries(res.availableSlots)) {
+            if (!slots || slots.length === 0) continue
+            totalDays++
+            const dow = new Date(dateStr + 'T12:00:00').getDay()
+            if (!dowSlots[dow]) dowSlots[dow] = new Set()
+            slots.forEach((s) => dowSlots[dow].add(s))
+          }
+
+          const dowEntries = Object.entries(dowSlots)
+            .sort(([a], [b]) => Number(a) - Number(b))
+
+          return (
+            <div key={token.id}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-medium text-gray-700 w-20 shrink-0">{token.teacher?.name}</span>
+                <span className="text-xs text-green-600 font-medium">✓ {totalDays}日間</span>
+              </div>
+              {dowEntries.length > 0 && (
+                <div className="flex flex-wrap gap-1 ml-20">
+                  {dowEntries.map(([dow, slots]) => (
+                    <span key={dow} className="inline-flex items-center gap-1 bg-blue-50 border border-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full">
+                      <span className="font-bold">{DOW_NAMES[Number(dow)]}</span>
+                      第{[...slots].sort((a, b) => a - b).join('・')}コマ
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+export function SurveyManager({ surveys: initialSurveys, teacherCount, intensivePeriods, responsesBySurvey = {} }: SurveyManagerProps) {
   const router = useRouter()
   const [surveys, setSurveys] = useState(initialSurveys)
   const [showForm, setShowForm] = useState(false)
@@ -326,7 +387,9 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                         </div>
                       ))}
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <ResponseSummary tokens={survey.tokens} responses={responsesBySurvey[survey.id] ?? []} />
+
+                    <div className="flex gap-2 flex-wrap mt-4">
                       <Button
                         size="sm"
                         loading={isPending}

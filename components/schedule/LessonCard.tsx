@@ -61,22 +61,25 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
           : 'bg-teal-100 text-teal-900 border border-teal-200',
       ].join(' ')}
     >
-      {/* 先生 + バッジ + 定員 を1行に */}
+      {/* 先生 + 科目 + 定員 を1行に */}
       <div className="flex items-center justify-between gap-1 mb-1.5">
-        <div className="flex items-center gap-1 min-w-0">
+        <div className="flex items-center gap-1 min-w-0 overflow-hidden">
           {lesson.lesson_kind === 'temporary' && (
             <span className="flex-shrink-0 text-[9px] font-bold px-1 rounded bg-orange-400 text-white">臨時</span>
           )}
           {lesson.is_ps1 && (
             <span className="flex-shrink-0 text-[9px] font-bold px-1 rounded bg-purple-500 text-white">1対1</span>
           )}
-          {teacherName && (
+          {teacherName ? (
             <span className={[
               'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
               isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
             ].join(' ')}>
               {teacherName}
             </span>
+          ) : null}
+          {subject && (
+            <span className="truncate text-[10px] text-gray-400">{subject}</span>
           )}
         </div>
         <span className={[
@@ -87,11 +90,11 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
         </span>
       </div>
 
-      {/* 生徒 */}
+      {/* 生徒（科目なし・先生名が主軸） */}
       {displayStudents.length > 0 ? (
         <div className="leading-snug">
           {displayStudents.map((s, i) => (
-            <p key={i} className="truncate text-[11px] text-gray-800">{s!.name}（{subject}）</p>
+            <p key={i} className="truncate text-[11px] text-gray-800">{s!.name}</p>
           ))}
           {extraCount > 0 && <p className="text-gray-400 text-[10px]">+{extraCount}名</p>}
         </div>

@@ -23,7 +23,11 @@ export default async function NewLessonPage({ searchParams }: PageProps) {
 
   let copySource: Lesson | null = null
   if (copy) {
-    const { data } = await supabase.from('lessons').select('*').eq('id', copy).single()
+    const { data } = await supabase
+      .from('lessons')
+      .select('*, teacher:teachers(id, name)')
+      .eq('id', copy)
+      .single()
     copySource = data as Lesson | null
   }
 
@@ -34,7 +38,7 @@ export default async function NewLessonPage({ searchParams }: PageProps) {
   return (
     <div>
       <Header
-        title={copySource ? `「${copySource.subject}」をコピーして作成` : 'コマを作成'}
+        title={copySource ? `${(copySource.teacher as { name?: string } | null)?.name ?? copySource.subject}先生のコマをコピー` : 'コマを作成'}
         subtitle={preselectedStudent ? `${preselectedStudent.name} の受講コマを追加` : '新しいコマを追加します'}
       />
 
