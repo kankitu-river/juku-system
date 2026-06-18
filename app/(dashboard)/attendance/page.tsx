@@ -120,10 +120,11 @@ export default async function AttendancePage({ searchParams }: PageProps) {
                 ].join(' ')} />
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">{lesson.title}</p>
+                  <p className="font-semibold text-gray-900">
+                    {lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}
+                  </p>
                   <p className="text-sm text-gray-500">
-                    {slotLabel} · {lesson.subject}
-                    {lesson.teacher?.name ? ` · ${lesson.teacher.name}` : ''}
+                    {slotLabel} · {lesson.type === 'group' ? '集団授業' : '個別指導'}
                   </p>
                 </div>
 

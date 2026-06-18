@@ -76,7 +76,7 @@ export default async function LessonAttendancePage({ params, searchParams }: Pag
       </div>
 
       <Header
-        title={typedLesson.title}
+        title={typedLesson.teacher?.name ? `${typedLesson.teacher.name}先生` : '担当未設定'}
         subtitle={`${dateLabel} · ${slotLabel}`}
         actions={
           <div className="flex gap-2">
