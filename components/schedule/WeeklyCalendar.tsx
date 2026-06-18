@@ -430,8 +430,7 @@ function CellLessons({ lessons }: { lessons: Lesson[] }) {
                 : 'bg-teal-100 text-teal-900 border border-teal-200',
             ].join(' ')}
           >
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] opacity-60">{group.length}コマ統合</span>
+            <div className="flex items-center justify-end gap-1">
               <span className={[
                 'text-[10px] font-bold px-1.5 py-0.5 rounded-full',
                 isGroup ? 'bg-purple-200 text-purple-800' : 'bg-teal-200 text-teal-800',
