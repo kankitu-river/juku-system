@@ -14,8 +14,17 @@ interface PageProps {
   }>
 }
 
-const DAY_NAMES: Record<number, string> = {
-  0: '日', 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土',
+const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
+
+// 科目を短縮表示
+function shortSubject(s: string | null | undefined): string {
+  if (!s) return ''
+  const map: Record<string, string> = {
+    '国語': '国', '算数': '算', '数学': '数', '英語': '英',
+    '理科': '理', '社会': '社', '物理': '物', '化学': '化',
+    '生物': '生', '地理': '地', '歴史': '歴', '国算': '国算',
+  }
+  return map[s] ?? s.slice(0, 2)
 }
 
 export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
@@ -34,7 +43,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
     supabase.from('term_periods').select('*').order('start_date'),
     supabase
       .from('lessons')
-      .select('*, teacher:teachers(id, name), enrollments:lesson_enrollments(student_id)')
+      .select('*, teacher:teachers(id, name), enrollments:lesson_enrollments(student_id, subject, student:students(id, name))')
       .order('day_of_week')
       .order('slot_index'),
   ])
@@ -44,40 +53,61 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
   let personName = ''
   let personSub = ''
-  let titlePrefix = ''
   let filteredLessons: Lesson[] = []
 
   if (type === 'teacher') {
     const { data: teacher } = await supabase
-      .from('teachers')
-      .select('id, name, subjects')
-      .eq('id', id)
-      .single()
+      .from('teachers').select('id, name, subjects').eq('id', id).single()
     if (!teacher) return <div className="p-8 text-red-500">先生が見つかりません</div>
     personName = teacher.name
     personSub = (teacher.subjects as string[] | null)?.join('・') ?? ''
-    titlePrefix = '担当スケジュール'
     filteredLessons = typedLessons.filter((l) => l.teacher_id === teacher.id)
   } else {
     const { data: student } = await supabase
-      .from('students')
-      .select('id, name, grade')
-      .eq('id', id)
-      .single()
+      .from('students').select('id, name, grade').eq('id', id).single()
     if (!student) return <div className="p-8 text-red-500">生徒が見つかりません</div>
     personName = student.name
     personSub = student.grade ? getDisplayGrade(student.grade) : ''
-    titlePrefix = '受講スケジュール'
     filteredLessons = typedLessons.filter((l) =>
       (l.enrollments ?? []).some((e) => e.student_id === student.id)
     )
   }
 
   const entries = expandLessonsForMonth(filteredLessons, year, month, typedTermPeriods)
+
+  // 日付ごとにまとめる
+  const byDate = new Map<string, typeof entries>()
+  for (const entry of entries) {
+    if (!byDate.has(entry.dateStr)) byDate.set(entry.dateStr, [])
+    byDate.get(entry.dateStr)!.push(entry)
+  }
+
+  // カレンダー行列を構築
+  const firstDay = new Date(year, month - 1, 1)
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const startDow = firstDay.getDay() // 0=Sun
+
+  const totalCells = Math.ceil((daysInMonth + startDow) / 7) * 7
+  const cells: (number | null)[] = []
+  for (let i = 0; i < totalCells; i++) {
+    const dayNum = i - startDow + 1
+    cells.push(dayNum >= 1 && dayNum <= daysInMonth ? dayNum : null)
+  }
+  const weeks: (number | null)[][] = []
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7))
+  }
+
   const printDate = new Date().toLocaleDateString('ja-JP')
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const toDateStr = (day: number) => `${year}-${pad(month)}-${pad(day)}`
 
   return (
     <div className="bg-white min-h-screen">
+      {/* @page設定 */}
+      <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } }`}</style>
+
       {/* Controls */}
       <div className="no-print bg-gray-50 border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
@@ -88,87 +118,133 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
       </div>
 
       {/* Print content */}
-      <div className="max-w-2xl mx-auto p-8 print:p-0 print:max-w-none">
+      <div className="p-6 print:p-0">
         {/* Header */}
-        <div className="mb-6 pb-4 border-b-2 border-[#1E3A5F]">
-          <h1 className="text-xl font-bold text-[#1E3A5F]">月次{titlePrefix}</h1>
-          <p className="text-base text-gray-600 mt-1">{monthLabel}</p>
-          <div className="mt-2">
-            <p className="text-2xl font-bold text-gray-900">{personName}</p>
-            {personSub && <p className="text-sm text-gray-500 mt-0.5">{personSub}</p>}
+        <div className="flex items-end justify-between mb-4 pb-3 border-b-2 border-[#1E3A5F] print:mb-3">
+          <div>
+            <p className="text-xs text-gray-500">月次スケジュール</p>
+            <h1 className="text-2xl font-bold text-[#1E3A5F]">{personName}</h1>
+            {personSub && <p className="text-sm text-gray-500">{personSub}</p>}
+          </div>
+          <div className="text-right">
+            <p className="text-xl font-bold text-gray-800">{monthLabel}</p>
+            <p className="text-xs text-gray-400 mt-0.5 hidden print:block">印刷日: {printDate}</p>
           </div>
         </div>
 
-        {/* Schedule table */}
-        {entries.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <p>この月のスケジュールはありません</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-[#1E3A5F] text-white">
-                <th className="text-left px-3 py-2 border border-gray-300 w-20">日付</th>
-                <th className="text-left px-3 py-2 border border-gray-300 w-10">曜</th>
-                <th className="text-left px-3 py-2 border border-gray-300 w-36">時間帯</th>
-                <th className="text-left px-3 py-2 border border-gray-300">コマ名</th>
-                <th className="text-left px-3 py-2 border border-gray-300 w-20">科目</th>
-                {type === 'student' && (
-                  <th className="text-left px-3 py-2 border border-gray-300 w-24">担当講師</th>
-                )}
-                <th className="text-left px-3 py-2 border border-gray-300 w-16">種別</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map(({ date, dateStr, lesson, timeLabel }, i) => (
-                <tr
-                  key={`${lesson.id}-${dateStr}`}
-                  className={i % 2 === 1 ? 'bg-gray-50' : 'bg-white'}
-                >
-                  <td className="px-3 py-2 border border-gray-200 font-medium text-gray-800">
-                    {date.getMonth() + 1}/{date.getDate()}
-                  </td>
-                  <td className="px-3 py-2 border border-gray-200 text-gray-600">
-                    {DAY_NAMES[date.getDay()]}
-                  </td>
-                  <td className="px-3 py-2 border border-gray-200 text-gray-600 text-xs">
-                    {timeLabel}
-                  </td>
-                  <td className="px-3 py-2 border border-gray-200 font-medium text-gray-900">
-                    {lesson.title}
-                  </td>
-                  <td className="px-3 py-2 border border-gray-200 text-gray-600 text-xs">
-                    {lesson.subject ?? '—'}
-                  </td>
-                  {type === 'student' && (
-                    <td className="px-3 py-2 border border-gray-200 text-gray-600 text-xs">
-                      {(lesson as { teacher?: { name: string } }).teacher?.name ?? '—'}
-                    </td>
-                  )}
-                  <td className="px-3 py-2 border border-gray-200 text-xs">
-                    <span className={[
-                      'inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium',
-                      lesson.type === 'group'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-teal-100 text-teal-700',
-                    ].join(' ')}>
-                      {lesson.type === 'group' ? '集団' : '個別'}
-                    </span>
-                  </td>
-                </tr>
+        {/* Calendar */}
+        <table className="w-full border-collapse text-xs table-fixed">
+          <thead>
+            <tr>
+              {DOW_LABELS.map((d, i) => (
+                <th key={d} className={[
+                  'border border-gray-300 py-1.5 text-center text-xs font-bold',
+                  i === 0 ? 'text-red-600 bg-red-50' : i === 6 ? 'text-blue-600 bg-blue-50' : 'text-gray-700 bg-gray-100',
+                ].join(' ')}>
+                  {d}
+                </th>
               ))}
-            </tbody>
-          </table>
-        )}
+            </tr>
+          </thead>
+          <tbody>
+            {weeks.map((week, wi) => (
+              <tr key={wi}>
+                {week.map((day, di) => {
+                  const isSun = di === 0
+                  const isSat = di === 6
+                  const dateStr = day ? toDateStr(day) : null
+                  const dayEntries = dateStr ? (byDate.get(dateStr) ?? []) : []
+                  const hasLesson = dayEntries.length > 0
 
-        {entries.length > 0 && (
-          <p className="text-right text-xs text-gray-400 mt-2">全{entries.length}コマ</p>
-        )}
+                  return (
+                    <td key={di} className={[
+                      'border border-gray-300 align-top p-1',
+                      'h-24 print:h-20',
+                      !day ? 'bg-gray-50' : '',
+                      isSun && day ? 'bg-red-50/30' : '',
+                      isSat && day ? 'bg-blue-50/30' : '',
+                    ].join(' ')}
+                      style={{ width: '14.28%' }}
+                    >
+                      {day && (
+                        <>
+                          {/* 日付 */}
+                          <div className={[
+                            'font-bold text-sm leading-none mb-1',
+                            isSun ? 'text-red-500' : isSat ? 'text-blue-500' : 'text-gray-700',
+                            hasLesson ? 'text-[#1E3A5F]' : '',
+                          ].join(' ')}>
+                            {day}
+                          </div>
+
+                          {/* その日のコマ */}
+                          <div className="space-y-0.5">
+                            {dayEntries.map(({ lesson, timeLabel }, ei) => {
+                              // 時間（開始時刻のみ）
+                              const startTime = timeLabel.split('〜')[0]
+
+                              if (type === 'teacher') {
+                                // 先生ビュー: 生徒一覧を表示
+                                const enrolledStudents = (lesson.enrollments ?? [])
+                                  .filter(e => e.student != null)
+                                  .map(e => ({
+                                    name: (e as { student?: { name: string } }).student?.name ?? '',
+                                    subject: (e as { subject?: string | null }).subject ?? lesson.subject ?? '',
+                                  }))
+                                return (
+                                  <div key={ei} className="bg-teal-50 border border-teal-200 rounded px-1 py-0.5">
+                                    <p className="text-[9px] text-teal-600 font-bold leading-none">{startTime}</p>
+                                    {enrolledStudents.length > 0 ? (
+                                      enrolledStudents.map((s, si) => (
+                                        <p key={si} className="text-[9px] text-gray-800 leading-tight truncate">
+                                          {s.name}{s.subject ? `（${shortSubject(s.subject)}）` : ''}
+                                        </p>
+                                      ))
+                                    ) : (
+                                      <p className="text-[9px] text-gray-400 leading-tight">{lesson.subject || '—'}</p>
+                                    )}
+                                  </div>
+                                )
+                              } else {
+                                // 生徒ビュー: 先生と科目を表示
+                                const enrollment = (lesson.enrollments ?? []).find(e => e.student_id === id)
+                                const mySubject = (enrollment as { subject?: string | null } | undefined)?.subject ?? lesson.subject
+                                const teacherName = (lesson as { teacher?: { name: string } }).teacher?.name
+                                const isGroup = lesson.type === 'group'
+                                return (
+                                  <div key={ei} className={[
+                                    'border rounded px-1 py-0.5',
+                                    isGroup ? 'bg-purple-50 border-purple-200' : 'bg-teal-50 border-teal-200',
+                                  ].join(' ')}>
+                                    <p className={[
+                                      'text-[9px] font-bold leading-none',
+                                      isGroup ? 'text-purple-600' : 'text-teal-600',
+                                    ].join(' ')}>{startTime}</p>
+                                    {teacherName && (
+                                      <p className="text-[9px] text-gray-800 leading-tight truncate">{teacherName}先生</p>
+                                    )}
+                                    {mySubject && (
+                                      <p className="text-[9px] text-gray-500 leading-tight">{mySubject}</p>
+                                    )}
+                                  </div>
+                                )
+                              }
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
         {/* Footer */}
-        <div className="hidden print:flex mt-8 pt-3 border-t border-gray-300 text-xs text-gray-400 justify-between">
-          <span>塾スケジュール管理システム</span>
-          <span>印刷日: {printDate}</span>
+        <div className="mt-3 flex justify-between items-center text-xs text-gray-400">
+          <span>全{entries.length}コマ</span>
+          <span className="hidden print:inline">塾スケジュール管理システム</span>
         </div>
       </div>
     </div>
