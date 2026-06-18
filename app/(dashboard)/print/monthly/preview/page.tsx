@@ -167,19 +167,20 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
                   return (
                     <td key={di} className={[
-                      'border border-gray-300 align-top p-1',
-                      'h-24 print:h-16',
+                      'border border-gray-300 p-0',
                       !day ? 'bg-gray-50' : '',
                       isSun && day ? 'bg-red-50/30' : '',
                       isSat && day ? 'bg-blue-50/30' : '',
                     ].join(' ')}
                       style={{ width: '14.28%' }}
                     >
+                      {/* 高さ固定・はみ出し非表示のコンテナ */}
+                      <div className="h-28 print:h-20 overflow-hidden p-1 flex flex-col">
                       {day && (
                         <>
                           {/* 日付 */}
                           <div className={[
-                            'font-bold text-sm leading-none mb-1',
+                            'font-bold text-sm leading-none mb-1 flex-shrink-0',
                             isSun ? 'text-red-500' : isSat ? 'text-blue-500' : 'text-gray-700',
                             hasLesson ? 'text-[#1E3A5F]' : '',
                           ].join(' ')}>
@@ -187,7 +188,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                           </div>
 
                           {/* その日のコマ */}
-                          <div className="space-y-0.5">
+                          <div className="space-y-0.5 overflow-hidden">
                             {dayEntries.map(({ lesson, timeLabel }, ei) => {
                               // 時間（開始時刻のみ）
                               const startTime = timeLabel.split('〜')[0]
@@ -242,6 +243,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                           </div>
                         </>
                       )}
+                      </div>
                     </td>
                   )
                 })}
