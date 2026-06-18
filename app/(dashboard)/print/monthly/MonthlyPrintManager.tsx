@@ -18,6 +18,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [search, setSearch] = useState('')
 
   function toggleId(id: string) {
     setSelectedIds((prev) =>
@@ -26,8 +27,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
   }
 
   function selectAll() {
-    const list = tab === 'teacher' ? teachers : students
-    setSelectedIds(list.map((x) => x.id))
+    setSelectedIds(filteredList.map((x) => x.id))
   }
 
   function clearAll() {
@@ -46,6 +46,9 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
   }
 
   const currentList = tab === 'teacher' ? teachers : students
+  const filteredList = search.trim()
+    ? currentList.filter((p) => p.name.includes(search.trim()))
+    : currentList
 
   return (
     <div className="space-y-6">
@@ -89,7 +92,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
           {(['teacher', 'student'] as Tab[]).map((t) => (
             <button
               key={t}
-              onClick={() => { setTab(t); setSelectedIds([]) }}
+              onClick={() => { setTab(t); setSelectedIds([]); setSearch('') }}
               className={[
                 'px-5 py-2 text-sm font-medium transition-colors',
                 tab === t
@@ -113,8 +116,19 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
           </div>
         </div>
 
+        <input
+          type="text"
+          placeholder="名前で絞り込み..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full mb-3 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+        />
+
         <div className="space-y-2 max-h-72 overflow-y-auto">
-          {currentList.map((person) => {
+          {filteredList.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">「{search}」に一致する人が見つかりません</p>
+          )}
+          {filteredList.map((person) => {
             const isSelected = selectedIds.includes(person.id)
             const sub = tab === 'teacher'
               ? ((person as Teacher).subjects?.join('・') ?? '担当科目未設定')
