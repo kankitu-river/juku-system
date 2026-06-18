@@ -332,7 +332,6 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
 function LessonCell({ lesson }: { lesson: Lesson }) {
   const isGroup = lesson.type === 'group'
   const teacher = (lesson as { teacher?: { name: string } }).teacher
-  const booth = (lesson as { booth?: { name: string } }).booth
   const students = (lesson.enrollments ?? [])
     .map((e) => e.student)
     .filter((s): s is NonNullable<typeof s> => s != null)
@@ -346,15 +345,26 @@ function LessonCell({ lesson }: { lesson: Lesson }) {
         ? 'bg-purple-50 border-l-purple-500 border border-purple-200'
         : 'bg-teal-50 border-l-teal-500 border border-teal-200',
     ].join(' ')}>
-      {/* 先生名 */}
-      {teacher?.name && (
-        <p className={[
-          'text-xs font-bold mb-1 inline-block px-1.5 py-0.5 rounded-full wpl-pill',
-          isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
+      {/* 先生名 + バッジ + 定員 */}
+      <div className="flex items-center gap-1 mb-0.5">
+        {(lesson as any).is_ps1 && (
+          <span className="text-[7px] font-bold px-1 rounded bg-purple-500 text-white wpl-pill">1対1</span>
+        )}
+        {teacher?.name && (
+          <span className={[
+            'text-[10px] font-bold px-1.5 py-0.5 rounded-full wpl-pill',
+            isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
+          ].join(' ')}>
+            {teacher.name}
+          </span>
+        )}
+        <span className={[
+          'ml-auto text-[8px] font-bold px-1 rounded-full flex-shrink-0',
+          isGroup ? 'bg-purple-200 text-purple-800' : 'bg-teal-200 text-teal-800',
         ].join(' ')}>
-          {teacher.name}
-        </p>
-      )}
+          {students.length}/{lesson.capacity}名
+        </span>
+      </div>
       {/* 生徒一覧 */}
       {displayStudents.length > 0 ? (
         <div className="text-xs text-gray-800 leading-relaxed">
@@ -365,10 +375,6 @@ function LessonCell({ lesson }: { lesson: Lesson }) {
         </div>
       ) : (
         <p className="text-[10px] text-gray-400">生徒未登録</p>
-      )}
-      {/* ブース */}
-      {booth?.name && (
-        <p className="text-[10px] text-gray-400 mt-0.5">{booth.name}</p>
       )}
     </div>
   )
