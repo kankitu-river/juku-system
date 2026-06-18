@@ -59,34 +59,29 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
             )
           }
 
-          // 曜日ごとにコマをまとめる
-          const dowSlots: Record<number, Set<number>> = {}
-          let totalDays = 0
-          for (const [dateStr, slots] of Object.entries(res.availableSlots)) {
-            if (!slots || slots.length === 0) continue
-            totalDays++
-            const dow = new Date(dateStr + 'T12:00:00').getDay()
-            if (!dowSlots[dow]) dowSlots[dow] = new Set()
-            slots.forEach((s) => dowSlots[dow].add(s))
-          }
-
-          const dowEntries = Object.entries(dowSlots)
-            .sort(([a], [b]) => Number(a) - Number(b))
+          // 日付ごとにソートして表示
+          const dateEntries = Object.entries(res.availableSlots)
+            .filter(([, slots]) => slots && slots.length > 0)
+            .sort(([a], [b]) => a.localeCompare(b))
 
           return (
             <div key={token.id}>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-sm font-medium text-gray-700 w-20 shrink-0">{token.teacher?.name}</span>
-                <span className="text-xs text-green-600 font-medium">✓ {totalDays}日間</span>
+                <span className="text-xs text-green-600 font-medium">✓ {dateEntries.length}日間</span>
               </div>
-              {dowEntries.length > 0 && (
+              {dateEntries.length > 0 && (
                 <div className="flex flex-wrap gap-1 ml-20">
-                  {dowEntries.map(([dow, slots]) => (
-                    <span key={dow} className="inline-flex items-center gap-1 bg-blue-50 border border-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full">
-                      <span className="font-bold">{DOW_NAMES[Number(dow)]}</span>
-                      第{[...slots].sort((a, b) => a - b).join('・')}コマ
-                    </span>
-                  ))}
+                  {dateEntries.map(([dateStr, slots]) => {
+                    const d = new Date(dateStr + 'T12:00:00')
+                    const label = `${d.getMonth() + 1}/${d.getDate()}（${DOW_NAMES[d.getDay()]}）`
+                    return (
+                      <span key={dateStr} className="inline-flex items-center gap-1 bg-blue-50 border border-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full">
+                        <span className="font-bold">{label}</span>
+                        第{[...slots].sort((a, b) => a - b).join('・')}コマ
+                      </span>
+                    )
+                  })}
                 </div>
               )}
             </div>
