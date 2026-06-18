@@ -5,7 +5,7 @@ import type { Lesson, TermPeriod } from '@/types'
 import { PrintButton } from '@/components/print/PrintButton'
 
 interface PageProps {
-  searchParams: Promise<{ date?: string }>
+  searchParams: Promise<{ date?: string; waiting?: string }>
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
@@ -34,7 +34,8 @@ function getDefaultSlots(dow: number, termType: 'regular' | 'intensive'): SlotIn
 }
 
 export default async function DayPrintPage({ searchParams }: PageProps) {
-  const { date } = await searchParams
+  const { date, waiting } = await searchParams
+  const showWaiting = waiting === '1'
   const refDate = date ? new Date(date) : new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -48,7 +49,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   const nextDay = new Date(refDate); nextDay.setDate(refDate.getDate() + 1)
 
   const supabase = await createClient()
-  const [{ data: lessons }, { data: termPeriods }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }] = await Promise.all([
     supabase
       .from('lessons')
       .select(`
@@ -60,6 +61,8 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
       .eq('day_of_week', dow)
       .order('slot_index'),
     supabase.from('term_periods').select('*').order('start_date'),
+    supabase.from('teachers').select('id, name').order('name'),
+    supabase.from('shifts').select('teacher_id, date, start_time, end_time').eq('date', dateStr),
   ])
 
   const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
@@ -99,6 +102,22 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
     .sort((a, b) => a.start.localeCompare(b.start))
 
   const slotCount = slotGroups.length
+
+  // 待機中の先生計算
+  const allTeachers = (teachersData ?? []) as { id: string; name: string }[]
+  const dayShifts = (shiftsData ?? []) as { teacher_id: string; date: string; start_time: string; end_time: string }[]
+
+  function shiftCoversSlot(shift: { start_time: string; end_time: string }, slotStart: string, slotEnd: string) {
+    return shift.start_time <= slotStart && shift.end_time >= slotEnd
+  }
+
+  function getWaitingTeachers(slotStart: string, slotEnd: string, slotLessons: Lesson[]) {
+    const busyIds = new Set(slotLessons.map(l => l.teacher_id).filter(Boolean))
+    return allTeachers.filter(t =>
+      !busyIds.has(t.id) &&
+      dayShifts.some(s => s.teacher_id === t.id && shiftCoversSlot(s, slotStart, slotEnd))
+    )
+  }
 
   return (
     <div className="bg-white min-h-screen">
@@ -220,6 +239,17 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
               {activeTerm.name}
             </span>
           )}
+          <Link
+            href={`/schedule/print/day?date=${dateStr}&waiting=${showWaiting ? '0' : '1'}`}
+            className={[
+              'px-3 py-1.5 text-sm rounded-lg border transition-colors',
+              showWaiting
+                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50',
+            ].join(' ')}
+          >
+            待機中の先生を{showWaiting ? '非表示' : '表示'}
+          </Link>
           <PrintButton label="印刷（縦A4）" />
         </div>
       </div>
@@ -271,6 +301,18 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
                       授業なし
                     </div>
                   )}
+                  {showWaiting && (() => {
+                    const waiting = getWaitingTeachers(slot.start, slot.end, slot.lessons)
+                    return waiting.length > 0 ? (
+                      <div className="w-full flex flex-wrap gap-1.5 pt-2 mt-1 border-t border-dashed border-blue-200">
+                        {waiting.map(t => (
+                          <span key={t.id} className="text-xs bg-blue-50 text-blue-600 border border-dashed border-blue-300 px-2 py-0.5 rounded-full print:text-[8px]">
+                            {t.name}（待機中）
+                          </span>
+                        ))}
+                      </div>
+                    ) : null
+                  })()}
                 </div>
               </div>
             ))}

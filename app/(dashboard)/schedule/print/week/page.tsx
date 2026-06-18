@@ -28,17 +28,22 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   const { start, end } = getWeekRange(refDate)
 
   const supabase = await createClient()
-  const [{ data: lessons }, { data: termPeriods }] = await Promise.all([
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const weekDateStrs = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(start); d.setDate(start.getDate() + i); return toLocalDate(d)
+  })
+
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student:students(id, name))')
       .order('day_of_week')
       .order('slot_index'),
     supabase.from('term_periods').select('*').order('start_date'),
+    supabase.from('teachers').select('id, name').order('name'),
+    supabase.from('shifts').select('teacher_id, date, start_time, end_time').in('date', weekDateStrs),
   ])
-
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dateStr = toLocalDate(start)
   const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
     (t) => t.start_date <= dateStr && t.end_date >= dateStr
@@ -46,6 +51,29 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   const currentTermType = activeTerm?.type ?? 'regular'
 
   const typedLessons = (lessons as Lesson[]) ?? []
+  const allTeachers = (teachersData ?? []) as { id: string; name: string }[]
+
+  // 曜日×スロットで担当中の先生IDセット
+  const busyTeacherMap = new Map<string, Set<string>>()
+  for (const lesson of typedLessons) {
+    if (!lesson.teacher_id) continue
+    const k = `${lesson.day_of_week}-${lesson.slot_index}`
+    const s = busyTeacherMap.get(k) ?? new Set<string>()
+    s.add(lesson.teacher_id)
+    busyTeacherMap.set(k, s)
+  }
+
+  // 日付→シフト一覧
+  const shiftByDate = new Map<string, { teacher_id: string; start_time: string; end_time: string }[]>()
+  for (const shift of (shiftsData ?? []) as { teacher_id: string; date: string; start_time: string; end_time: string }[]) {
+    const list = shiftByDate.get(shift.date) ?? []
+    list.push(shift)
+    shiftByDate.set(shift.date, list)
+  }
+
+  function shiftCoversSlot(shift: { start_time: string; end_time: string }, slotStart: string, slotEnd: string) {
+    return shift.start_time <= slotStart && shift.end_time >= slotEnd
+  }
 
   // Group lessons by day and slot key
   // Map: dayOfWeek -> slot_index -> lesson[]
@@ -185,11 +213,27 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                     {[1, 2, 3, 4, 5].map((dow) => {
                       const key = `${dow}-${slot.index}-individual`
                       const cellLessons = lessonMap.get(key) ?? []
+                      const dateStr2 = weekDateStrs[dow - 1]
+                      const busySet = busyTeacherMap.get(`${dow}-${slot.index}`) ?? new Set()
+                      const dayShifts = shiftByDate.get(dateStr2) ?? []
+                      const waitingTeachers = allTeachers.filter(t =>
+                        !busySet.has(t.id) &&
+                        dayShifts.some(s => s.teacher_id === t.id && shiftCoversSlot(s, slot.start, slot.end))
+                      )
                       return (
                         <td key={dow} className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
                             <LessonCell key={lesson.id} lesson={lesson} />
                           ))}
+                          {waitingTeachers.length > 0 && (
+                            <div className="flex flex-wrap gap-0.5 mt-0.5">
+                              {waitingTeachers.map(t => (
+                                <span key={t.id} className="text-[8px] bg-blue-50 text-blue-600 border border-dashed border-blue-300 px-1 py-0.5 rounded-full whitespace-nowrap wpl-pill">
+                                  {t.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </td>
                       )
                     })}
