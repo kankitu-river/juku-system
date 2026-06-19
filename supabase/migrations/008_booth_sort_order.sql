@@ -1,0 +1,2 @@
+ALTER TABLE booths ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+UPDATE booths SET sort_order = (ROW_NUMBER() OVER (ORDER BY name)) * 10;

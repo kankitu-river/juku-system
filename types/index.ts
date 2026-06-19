@@ -32,6 +32,7 @@ export interface Booth {
   id: string
   name: string
   is_active: boolean
+  sort_order: number
 }
 
 export type LessonKind = 'regular' | 'temporary'

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { BoothBoard } from './BoothBoard'
+import { BoothSettings } from './BoothSettings'
 import Link from 'next/link'
 import type { Booth, Lesson, TermPeriod } from '@/types'
 
@@ -24,7 +25,7 @@ export default async function BoothsPage({ searchParams }: PageProps) {
   const nextDate = new Date(targetDate); nextDate.setDate(nextDate.getDate() + 1)
 
   const [{ data: booths }, { data: regularLessons }, { data: tempLessons }, { data: termPeriods }] = await Promise.all([
-    supabase.from('booths').select('*').order('name'),
+    supabase.from('booths').select('*').order('sort_order').order('name'),
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), enrollments:lesson_enrollments(id, student:students(id, name))')
@@ -76,6 +77,7 @@ export default async function BoothsPage({ searchParams }: PageProps) {
           </div>
         }
       />
+      <BoothSettings booths={(booths as Booth[]) ?? []} />
       <BoothBoard
         booths={(booths as Booth[]) ?? []}
         lessons={dayLessons}
