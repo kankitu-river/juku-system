@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 塾スケジュール管理システム
 
-## Getting Started
+学習塾のスタッフ・先生向けスケジュール管理Webアプリケーション。PC・スマホ両対応。
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 機能一覧
+
+### ダッシュボード（`/`）
+- 今日のコマ一覧と出欠クイック入力
+- 振替クレジットが3件以上たまっている生徒の警告（オレンジ）
+- 振替残数が少ない生徒の警告（アンバー）
+- コマ追加・生徒追加・振替管理へのクイックリンク
+
+### スケジュール管理（`/schedule`）
+- 週次カレンダービュー（集団授業と個別指導を色分け表示）
+- 先生でフィルタリング
+- コマの作成・編集・削除
+- 通常コマ / 臨時コマの区別
+- 待機中の先生バッジをクリック → 臨時コマ作成フォームに自動入力
+- 週間スケジュール印刷（`/schedule/print/week`）
+- 日次スケジュール印刷（`/schedule/print/day`）
+
+### 講習割り振り（`/schedule/intensive`）
+- 講習期間中の生徒の来塾希望コマ確認
+- 自動割り振り機能
+- 生徒ごとの来塾希望入力（`/schedule/intensive/availability`）
+
+### 出欠管理（`/attendance`）
+- コマ一覧から対象コマを選択
+- 生徒ごとに出席 / 欠席を入力
+- 欠席登録時に「振替クレジットを付与するか」確認ダイアログ
+- 出欠レポート（`/attendance/report`）
+
+### 振替管理（`/attendance/makeup`）
+- 振替クレジット残数を生徒一覧で確認
+- 生徒を選択し、日付・コマを指定して振替割り当て
+- おすすめコマ表示（科目一致・シフトあり・任せたい先生を自動スコアリング）
+- 振替クレジットの手動追加（件数・有効期限を指定）
+
+### 先生管理（`/teachers`）
+- 先生の一覧・追加・編集・削除
+- 担当可能科目・得意学年の登録
+- メールアドレス・ロールの管理
+
+### シフト管理（`/shifts`）
+- 週次シフトの確認・作成・編集
+- 今週のシフトを来週にまるごとコピー
+- 手動入力（`/shifts/manual-entry`）
+- 出勤可能日アンケート管理（`/shifts/survey`）
+
+### 生徒管理（`/students`）
+- 生徒の一覧・追加・編集・削除
+- 学年・受講科目・任せたい先生・NGの先生の登録
+- 振替クレジット残数の確認
+- 出欠履歴の確認
+
+### ブース管理（`/booths`）
+- 日付ごとのブース使用状況確認
+- 前日・翌日への移動
+- ブースの追加・削除・並び替え・有効/無効切り替え・名前変更
+
+### イベント管理（`/events`）
+- イベント・講習会の一覧・作成・編集・削除
+- 開催日時・担当講師の管理
+
+### PDF出力（`/print/monthly`）
+- 先生・生徒ごとの月次スケジュールをPDFで出力
+
+### 検索（`/search`）
+- 先生・生徒をキーワードで横断検索
+
+### 設定（`/settings`）
+- **アカウント管理**：ログインできるアカウントの追加・削除・権限変更（管理者/スタッフ）
+- **休校日設定**：カレンダーで休校日を登録（スケジュールに反映）
+- **授業時間の変更**：各コマの開始・終了時刻をカスタマイズ
+- **期間区分の管理**：通常期間・講習期間（夏・冬・春）の日付範囲を登録
+- **講習期間のコマ数設定**：曜日ごとに使用する最終コマを制限
+- **一括進級処理**：年度替わりに全生徒の学年を一括更新
+- **重複コマの統合**：同じ先生・時間帯に重複したコマをまとめる
+- **設定のバックアップ**：設定データをJSONでダウンロード
+
+---
+
+## 使い方
+
+### アカウント追加
+1. **設定** → **アカウント管理** → 「アカウントを追加」
+2. メールアドレス・初期パスワード（8文字以上）・権限を入力して作成
+3. 作成されたアカウントでログインページからサインイン
+
+### コマを作る
+1. **スケジュール** → 「＋コマ追加」ボタン
+2. 授業形式（集団/個別）・曜日・時間帯・担当先生・科目・ブースを設定して保存
+3. 週次カレンダーに表示される
+
+### 臨時コマを素早く追加する
+1. 週次カレンダーで、シフトが入っているが担当コマのない先生のバッジが表示される
+2. バッジをクリック → 先生・日付・時間帯が自動入力された臨時コマ作成フォームが開く
+
+### 出欠を入力する
+1. **出欠管理** → 対象のコマをクリック
+2. 各生徒の出席/欠席をタップ
+3. 欠席を選ぶと「振替クレジットを付与するか」が確認される
+
+### 振替を割り当てる
+1. **振替管理** → 左側の生徒一覧からクレジットが残っている生徒を選択
+2. 振替日を入力 → おすすめコマが上部に表示される
+3. コマを選んで「振替を割り当てる」
+
+### シフトを来週にコピーする
+1. **シフト管理** → 今週のシフトを確認
+2. 「来週にコピー」ボタンを押して確認 → 7日後の同じシフトが自動作成される
+
+### 年度更新（進級処理）
+1. **設定** → **一括進級処理** → 実行
+2. 全生徒の学年が1つ上に更新される
+
+---
+
+## 技術スタック
+
+| 項目 | 内容 |
+|---|---|
+| フレームワーク | Next.js 14（App Router）+ TypeScript |
+| スタイリング | Tailwind CSS |
+| データベース | Supabase（PostgreSQL） |
+| 認証 | Supabase Auth（メール+パスワード） |
+| ホスティング | Vercel |
+
+## 環境変数
+
+`.env.local` に以下を設定：
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+RESEND_API_KEY=
+NEXT_PUBLIC_BASE_URL=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ローカル起動
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[http://localhost:3000](http://localhost:3000) でアクセス可能。
