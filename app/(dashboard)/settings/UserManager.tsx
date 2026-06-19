@@ -76,7 +76,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
             </div>
             <select
               value={u.role}
-              disabled={u.id === currentUserId || isPending}
+              disabled={isPending}
               onChange={(e) => handleRoleChange(u.id, e.target.value as 'admin' | 'staff')}
               className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#1E3A5F] disabled:opacity-50"
             >
