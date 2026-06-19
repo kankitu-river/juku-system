@@ -241,60 +241,86 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
               {scoredLessons.length === 0 ? (
                 <p className="text-xs text-gray-400 py-4 text-center">条件に合うコマがありません</p>
               ) : (
-                <div className="space-y-1 max-h-72 overflow-y-auto">
-                  {scoredLessons.map(({ lesson, isPreferred, subjectMatch, hasShift, isFull }) => {
-                    const slotLabel = getSlotLabel(lesson.slot_index, lesson.day_of_week, lesson.term_type, lesson.type)
-                    const isSelected = selectedLessonId === lesson.id
-                    const enrolled = lesson.enrollments?.length ?? 0
+                <div className="max-h-96 overflow-y-auto space-y-3">
+                  {(() => {
+                    const recommended = scoredLessons.filter((x) => x.score > 0 && !x.isFull)
+                    const others = scoredLessons.filter((x) => x.score === 0 || x.isFull)
+                    const LessonButton = ({ lesson, isPreferred, subjectMatch, hasShift, isFull }: typeof scoredLessons[0]) => {
+                      const slotLabel = getSlotLabel(lesson.slot_index, lesson.day_of_week, lesson.term_type, lesson.type)
+                      const isSelected = selectedLessonId === lesson.id
+                      const enrolled = lesson.enrollments?.length ?? 0
+                      return (
+                        <button
+                          key={lesson.id}
+                          type="button"
+                          onClick={() => !isFull && setSelectedLessonId(isSelected ? '' : lesson.id)}
+                          disabled={isFull}
+                          className={[
+                            'w-full flex items-start justify-between px-3 py-2 rounded-lg border text-left text-sm transition-colors',
+                            isFull
+                              ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+                              : isSelected
+                                ? 'border-[#1E3A5F] bg-blue-50'
+                                : isPreferred
+                                  ? 'border-amber-200 bg-amber-50 hover:border-amber-400'
+                                  : 'border-gray-100 hover:border-gray-300',
+                          ].join(' ')}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              {isPreferred && <span title="任せたい先生">⭐</span>}
+                              <span className="font-medium text-gray-800">
+                                第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              {lesson.booth?.name && (
+                                <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{lesson.booth.name}</span>
+                              )}
+                              {subjectMatch && (
+                                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">✓ 科目一致</span>
+                              )}
+                              {hasShift && (
+                                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">シフトあり</span>
+                              )}
+                              {isFull && (
+                                <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">定員満</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right text-xs text-gray-400 ml-2 shrink-0">
+                            <p>{dayLabel(lesson.day_of_week)}曜</p>
+                            <p>{slotLabel}</p>
+                            <p className={isFull ? 'text-red-400' : 'text-gray-400'}>{enrolled}/{lesson.capacity}名</p>
+                          </div>
+                        </button>
+                      )
+                    }
                     return (
-                      <button
-                        key={lesson.id}
-                        type="button"
-                        onClick={() => !isFull && setSelectedLessonId(isSelected ? '' : lesson.id)}
-                        disabled={isFull}
-                        className={[
-                          'w-full flex items-start justify-between px-3 py-2 rounded-lg border text-left text-sm transition-colors',
-                          isFull
-                            ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                            : isSelected
-                              ? 'border-[#1E3A5F] bg-blue-50'
-                              : isPreferred
-                                ? 'border-amber-200 bg-amber-50 hover:border-amber-400'
-                                : 'border-gray-100 hover:border-gray-300',
-                        ].join(' ')}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            {isPreferred && <span title="任せたい先生">⭐</span>}
-                            <span className="font-medium text-gray-800 truncate">{lesson.title}</span>
-                            <span className="text-gray-500 text-xs">{lesson.subject}</span>
+                      <>
+                        {recommended.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-semibold text-amber-600 mb-1 flex items-center gap-1">
+                              ⭐ おすすめ（{recommended.length}件）
+                            </p>
+                            <div className="space-y-1">
+                              {recommended.map((x) => <LessonButton key={x.lesson.id} {...x} />)}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            {lesson.teacher?.name && (
-                              <span className="text-xs text-gray-500">{lesson.teacher.name}</span>
+                        )}
+                        {others.length > 0 && (
+                          <div>
+                            {recommended.length > 0 && (
+                              <p className="text-[10px] font-semibold text-gray-400 mb-1">その他（{others.length}件）</p>
                             )}
-                            {lesson.booth?.name && (
-                              <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{lesson.booth.name}</span>
-                            )}
-                            {subjectMatch && (
-                              <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">✓ 科目一致</span>
-                            )}
-                            {hasShift && (
-                              <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">シフトあり</span>
-                            )}
-                            {isFull && (
-                              <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">定員満</span>
-                            )}
+                            <div className="space-y-1">
+                              {others.map((x) => <LessonButton key={x.lesson.id} {...x} />)}
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right text-xs text-gray-400 ml-2 shrink-0">
-                          <p>{dayLabel(lesson.day_of_week)}曜</p>
-                          <p>{slotLabel}</p>
-                          <p className={isFull ? 'text-red-400' : 'text-gray-400'}>{enrolled}/{lesson.capacity}名</p>
-                        </div>
-                      </button>
+                        )}
+                      </>
                     )
-                  })}
+                  })()}
                 </div>
               )}
             </div>

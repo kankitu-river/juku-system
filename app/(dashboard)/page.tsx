@@ -41,14 +41,18 @@ export default async function DashboardPage() {
 
   const currentTerm = termPeriods?.[0]
 
-  // 振替残数が1以下の生徒を抽出
-  const lowCreditStudents = (makeupCredits ?? [])
+  const creditWithStudents = (makeupCredits ?? [])
     .map((mc) => ({
       ...mc,
       remaining: mc.total_credits - mc.used_credits,
       student: (students ?? []).find((s) => s.id === mc.student_id),
     }))
-    .filter((mc) => mc.remaining <= 1 && mc.remaining > 0 && mc.student)
+    .filter((mc) => mc.student)
+
+  // 振替が3件以上たまっている生徒
+  const highCreditStudents = creditWithStudents.filter((mc) => mc.remaining >= 3)
+  // 振替残数が1以下（少ない）生徒
+  const lowCreditStudents = creditWithStudents.filter((mc) => mc.remaining <= 1 && mc.remaining > 0)
 
   return (
     <div>
@@ -92,7 +96,34 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* 振替残数警告 */}
+      {/* 振替がたまりすぎ警告 */}
+      {highCreditStudents.length > 0 && (
+        <div className="mb-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-orange-600 font-semibold text-sm">📌 振替が3件以上たまっている生徒</span>
+            <Link href="/attendance/makeup" className="ml-auto text-xs text-orange-700 hover:underline">
+              振替管理へ →
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {highCreditStudents.map((mc) => (
+              <Link
+                key={mc.student_id}
+                href={`/students/${mc.student_id}`}
+                className="flex items-center gap-1.5 bg-white border border-orange-200 rounded-lg px-3 py-1.5 hover:border-orange-400 transition-colors"
+              >
+                <span className="text-sm font-medium text-gray-800">{mc.student!.name}</span>
+                <span className="text-xs text-gray-400">{getDisplayGrade(mc.student!.grade)}</span>
+                <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                  残{mc.remaining}件
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 振替残数が少ない警告 */}
       {lowCreditStudents.length > 0 && (
         <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -110,10 +141,7 @@ export default async function DashboardPage() {
               >
                 <span className="text-sm font-medium text-gray-800">{mc.student!.name}</span>
                 <span className="text-xs text-gray-400">{getDisplayGrade(mc.student!.grade)}</span>
-                <span className={[
-                  'ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full',
-                  mc.remaining === 0 ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700',
-                ].join(' ')}>
+                <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
                   残{mc.remaining}
                 </span>
               </Link>
