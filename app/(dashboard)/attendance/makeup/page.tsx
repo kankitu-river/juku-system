@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { MakeupManager } from './MakeupManager'
+import { AddCreditForm } from './AddCreditForm'
 
 export default async function MakeupPage() {
   const supabase = await createClient()
 
-  const [{ data: credits }, { data: lessons }, { data: teachers }, { data: shifts }] = await Promise.all([
+  const [{ data: credits }, { data: lessons }, { data: teachers }, { data: shifts }, { data: students }] = await Promise.all([
     supabase
       .from('makeup_credits')
       .select('*, student:students(id, name, grade, subjects, preferred_teacher_ids, ng_teacher_ids)')
@@ -25,6 +26,11 @@ export default async function MakeupPage() {
       .select('*')
       .gte('date', new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0])
       .lte('date', new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0]),
+    supabase
+      .from('students')
+      .select('id, name, grade')
+      .order('grade')
+      .order('name'),
   ])
 
   const activeCredits = (credits ?? []).filter(
@@ -37,6 +43,7 @@ export default async function MakeupPage() {
         title="振替管理"
         subtitle="振替クレジットの残数確認・コマ割り当て"
       />
+      <AddCreditForm students={students ?? []} />
       <MakeupManager
         credits={activeCredits}
         lessons={lessons ?? []}

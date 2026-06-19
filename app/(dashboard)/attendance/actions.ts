@@ -20,11 +20,10 @@ export async function recordAttendance(
   return {}
 }
 
-// 振替クレジットを1加算（有効期限付き）
-export async function addMakeupCredit(studentId: string, expiresMonths = 3): Promise<{ error?: string }> {
+// 振替クレジットを加算（有効期限付き）
+export async function addMakeupCredit(studentId: string, expiresMonths = 3, amount = 1): Promise<{ error?: string }> {
   const supabase = await createClient()
 
-  // makeup_credits が存在しない場合は作成
   const { data: existing } = await supabase
     .from('makeup_credits')
     .select('id, total_credits')
@@ -38,13 +37,13 @@ export async function addMakeupCredit(studentId: string, expiresMonths = 3): Pro
   if (existing) {
     const { error } = await supabase
       .from('makeup_credits')
-      .update({ total_credits: existing.total_credits + 1, expires_at: expiresAt, updated_at: new Date().toISOString() })
+      .update({ total_credits: existing.total_credits + amount, expires_at: expiresAt, updated_at: new Date().toISOString() })
       .eq('student_id', studentId)
     if (error) return { error: error.message }
   } else {
     const { error } = await supabase
       .from('makeup_credits')
-      .insert({ student_id: studentId, total_credits: 1, used_credits: 0, expires_at: expiresAt })
+      .insert({ student_id: studentId, total_credits: amount, used_credits: 0, expires_at: expiresAt })
     if (error) return { error: error.message }
   }
   return {}
