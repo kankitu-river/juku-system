@@ -114,7 +114,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
         @media print {
           @page { size: A4 landscape; margin: 3mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .wpl-printbody { zoom: 1.2; }
+          .wpl-printbody { zoom: 1.0; }
           .wpl-wrap { display: flex; align-items: flex-start; gap: 4mm; }
           .wpl-days { flex: 13; min-width: 0; }
           .wpl-sat  { flex: 4;  min-width: 0; }
