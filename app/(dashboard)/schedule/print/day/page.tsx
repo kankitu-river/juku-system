@@ -134,6 +134,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             height: 285mm;
             display: flex !important;
             flex-direction: column !important;
+            overflow: hidden !important;
           }
 
           /* ヘッダー */
@@ -164,9 +165,17 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             overflow: hidden !important;
             border: 1px solid #9ca3af !important;
             border-radius: 0 !important;
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
           }
+
+          /* 連絡事項メモ */
+          .dpp-memo {
+            flex-shrink: 0 !important;
+            margin-top: 2mm !important;
+            padding-top: 2mm !important;
+            border-top: 1px dashed #d1d5db !important;
+          }
+          .dpp-memo-label { font-size: 8px !important; font-weight: 700 !important; color: #b45309 !important; }
+          .dpp-memo-body  { font-size: 9px !important; color: #374151 !important; white-space: pre-wrap !important; }
 
           /* コマヘッダー（濃紺） */
           .dpp-slot-hdr {
@@ -271,14 +280,6 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             )}
           </div>
 
-          {/* 連絡事項メモ（印刷に含める） */}
-          {dailyNote?.content && (
-            <div className="mt-2 pt-2 border-t border-dashed border-gray-300 print:mt-1 print:pt-1 flex-shrink-0">
-              <p className="text-[10px] font-bold text-amber-700 print:text-[8px]">【連絡事項】</p>
-              <p className="text-xs text-gray-700 whitespace-pre-wrap print:text-[9px]">{dailyNote.content}</p>
-            </div>
-          )}
-
           {/* コマ一覧 */}
           <div className="dpp-slots flex flex-col gap-3 print:gap-0">
             {slotGroups.map((slot) => (
@@ -328,6 +329,14 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
+
+          {/* 連絡事項メモ（コマ一覧の後） */}
+          {dailyNote?.content && (
+            <div className="dpp-memo mt-3 pt-2 border-t border-dashed border-gray-300 print:mt-0">
+              <p className="dpp-memo-label text-[10px] font-bold text-amber-700">【連絡事項】</p>
+              <p className="dpp-memo-body text-xs text-gray-700 whitespace-pre-wrap">{dailyNote.content}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
