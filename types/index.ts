@@ -28,6 +28,15 @@ export interface TermPeriod {
   created_at: string
 }
 
+export interface DailyNote {
+  id: string
+  date: string          // 'YYYY-MM-DD'
+  content: string
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Booth {
   id: string
   name: string

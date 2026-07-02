@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import Link from 'next/link'
 import type { Lesson, TermPeriod, Teacher, Student } from '@/types'
 import type { TimeSlotConfig } from '@/app/(dashboard)/settings/actions'
+import { DailyNoteEditor } from '@/components/schedule/DailyNoteEditor'
 
 interface PageProps {
   searchParams: Promise<{ view?: string; date?: string }>
@@ -61,7 +62,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
         subtitle="週次カレンダー"
         actions={
           <div className="flex items-center gap-2">
-            <Link href={`/schedule/print/week?date=${dateStr}`}>
+            <Link href={`/schedule/print/week?date=${dateStr}`} target="_blank">
               <Button size="md" variant="ghost">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -70,7 +71,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
                 週間印刷
               </Button>
             </Link>
-            <Link href={`/schedule/print/day?date=${dateStr}`}>
+            <Link href={`/schedule/print/day?date=${dateStr}`} target="_blank">
               <Button size="md" variant="ghost">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -144,7 +145,10 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           <MonthlyViewPlaceholder date={referenceDate} />
         )}
         {view === 'day' && (
-          <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={(makeupAssignments ?? []) as unknown as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]} />
+          <>
+            <DailyNoteEditor date={dateStr} />
+            <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={(makeupAssignments ?? []) as unknown as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]} />
+          </>
         )}
       </div>
     </div>

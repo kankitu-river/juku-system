@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { expandLessonsForMonth } from '@/lib/utils/schedule'
 import type { Lesson, TermPeriod } from '@/types'
 import { PrintButton } from '@/components/print/PrintButton'
+import { AutoPrint } from '@/components/print/AutoPrint'
 import { getDisplayGrade } from '@/lib/utils/grade'
 
 interface PageProps {
@@ -84,6 +85,16 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
     byDate.get(entry.dateStr)!.push(entry)
   }
 
+  const maxEntriesPerDay = Math.max(
+    1,
+    ...Array.from(byDate.values()).map((v) => v.length)
+  )
+  const zoomLevel =
+    maxEntriesPerDay <= 3 ? 0.85 :
+    maxEntriesPerDay <= 5 ? 0.68 :
+    maxEntriesPerDay <= 7 ? 0.55 :
+    0.42
+
   // カレンダー行列を構築
   const firstDay = new Date(year, month - 1, 1)
   const daysInMonth = new Date(year, month, 0).getDate()
@@ -107,13 +118,14 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
   return (
     <div className="bg-white min-h-screen">
+      <AutoPrint />
       {/* @page設定・印刷縮小 */}
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 0; }
           .no-print { display: none !important; }
           #monthly-print-area {
-            zoom: 0.58;
+            zoom: ${zoomLevel};
             padding: 5mm;
           }
         }
@@ -192,7 +204,10 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                       style={{ width: '14.28%' }}
                     >
                       {/* 高さ固定・はみ出し非表示のコンテナ */}
-                      <div className="h-52 print:h-40 overflow-hidden p-1 flex flex-col">
+                      <div
+                        className="print:h-auto overflow-hidden p-1 flex flex-col"
+                        style={{ minHeight: dayEntries.length > 4 ? '15rem' : '13rem' }}
+                      >
                       {day && (
                         <>
                           {/* 日付 */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const PAPER_SIZES = [
   { value: 'A3 landscape', label: 'A3 横' },
@@ -12,13 +12,23 @@ const PAPER_SIZES = [
 export function WeekPrintClient() {
   const [paperSize, setPaperSize] = useState<string>('A3 landscape')
 
-  function handlePrint() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('autoprint') !== '1') return
+    const size = params.get('paperSize') ?? paperSize
     const style = document.createElement('style')
     style.id = '__print_page_size'
-    style.textContent = `@page { size: ${paperSize}; margin: 10mm; }`
+    style.textContent = `@page { size: ${size}; margin: 10mm; }`
     document.head.appendChild(style)
     window.print()
     setTimeout(() => document.getElementById('__print_page_size')?.remove(), 500)
+  }, [])
+
+  function handlePrint() {
+    const url = new URL(window.location.href)
+    url.searchParams.set('autoprint', '1')
+    url.searchParams.set('paperSize', paperSize)
+    window.open(url.toString(), '_blank')
   }
 
   return (

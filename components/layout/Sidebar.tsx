@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { DarkModeToggle } from './DarkModeToggle'
@@ -139,75 +140,112 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <aside className="w-64 bg-[#1E3A5F] text-white flex flex-col min-h-screen">
-      <div className="px-6 py-5 border-b border-white/10">
-        <h1 className="text-lg font-bold leading-tight">
-          塾スケジュール
-          <br />
-          <span className="text-sm font-normal text-white/70">管理システム</span>
-        </h1>
-      </div>
+    <>
+      {/* モバイル用ハンバーガーボタン（lg以上では非表示） */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className="lg:hidden fixed top-3 left-3 z-40 bg-[#1E3A5F] text-white p-2 rounded-lg shadow-md"
+        aria-label="メニューを開く"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
 
-      {/* 検索 */}
-      <div className="px-3 py-3 border-b border-white/10">
-        <form method="GET" action="/search">
-          <div className="relative">
-            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              name="q"
-              placeholder="検索..."
-              className="w-full bg-white/10 text-white placeholder-white/40 text-sm rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:bg-white/20 transition-colors"
-            />
-          </div>
-        </form>
-      </div>
+      {/* モバイル用オーバーレイ背景 */}
+      {isOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/40 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive = item.activeMatch
-            ? item.activeMatch(pathname)
-            : item.href === '/'
-              ? pathname === '/'
-              : pathname.startsWith(item.href)
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={[
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-white/20 text-white'
-                  : 'text-white/70 hover:bg-white/10 hover:text-white',
-              ].join(' ')}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
-
-      <div className="px-3 py-4 border-t border-white/10 space-y-1">
-        <DarkModeToggle />
-        <form action="/api/auth/signout" method="POST">
+      <aside className={[
+        'w-64 bg-[#1E3A5F] text-white flex flex-col min-h-screen',
+        'fixed lg:static top-0 left-0 z-50 transition-transform duration-200',
+        isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+      ].join(' ')}>
+        <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
+          <h1 className="text-lg font-bold leading-tight">
+            塾スケジュール
+            <br />
+            <span className="text-sm font-normal text-white/70">管理システム</span>
+          </h1>
+          {/* モバイル用閉じるボタン */}
           <button
-            type="submit"
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            onClick={() => setIsOpen(false)}
+            className="lg:hidden text-white/60 hover:text-white"
+            aria-label="メニューを閉じる"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
-            ログアウト
           </button>
-        </form>
-      </div>
-    </aside>
+        </div>
+
+        {/* 検索 */}
+        <div className="px-3 py-3 border-b border-white/10">
+          <form method="GET" action="/search">
+            <div className="relative">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                name="q"
+                placeholder="検索..."
+                className="w-full bg-white/10 text-white placeholder-white/40 text-sm rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:bg-white/20 transition-colors"
+              />
+            </div>
+          </form>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = item.activeMatch
+              ? item.activeMatch(pathname)
+              : item.href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(item.href)
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={[
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-white/20 text-white'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white',
+                ].join(' ')}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="px-3 py-4 border-t border-white/10 space-y-1">
+          <DarkModeToggle />
+          <form action="/api/auth/signout" method="POST">
+            <button
+              type="submit"
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              ログアウト
+            </button>
+          </form>
+        </div>
+      </aside>
+    </>
   )
 }

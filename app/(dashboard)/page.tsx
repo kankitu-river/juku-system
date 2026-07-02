@@ -26,6 +26,7 @@ export default async function DashboardPage() {
     { data: termPeriods },
     { data: makeupCredits },
     { data: students },
+    { data: todayShifts },
   ] = await Promise.all([
     supabase
       .from('lessons')
@@ -37,7 +38,10 @@ export default async function DashboardPage() {
       .gte('end_date', todayStr),
     supabase.from('makeup_credits').select('student_id, total_credits, used_credits'),
     supabase.from('students').select('id, name, grade'),
+    supabase.from('shifts').select('teacher_id').eq('date', todayStr),
   ])
+
+  const workingTeacherCount = new Set((todayShifts ?? []).map(s => s.teacher_id)).size
 
   const currentTerm = termPeriods?.[0]
 
@@ -59,7 +63,7 @@ export default async function DashboardPage() {
       <Header title="ダッシュボード" subtitle={displayDate} />
 
       {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-500 mb-1">今日のコマ数</p>
           <p className="text-3xl font-bold text-[#1E3A5F]">
@@ -77,6 +81,13 @@ export default async function DashboardPage() {
               〜 {new Date(currentTerm.end_date).toLocaleDateString('ja-JP')}
             </p>
           )}
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <p className="text-sm text-gray-500 mb-1">本日出勤講師数</p>
+          <p className="text-3xl font-bold text-[#1E3A5F]">
+            {workingTeacherCount}
+            <span className="text-base font-normal text-gray-500 ml-1">名</span>
+          </p>
         </div>
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-500 mb-1">クイックリンク</p>

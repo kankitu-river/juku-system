@@ -138,6 +138,8 @@ const lessonMap = useMemo(() => {
     return map
   }, [shifts])
 
+  const todayStr = toDateStr(new Date())
+
   const weekdays = DAYS_OF_WEEK.filter(d => d.value !== 6)
   const slots = termType === 'intensive' ? slots_intensive : slots_regular
 
@@ -189,13 +191,19 @@ const lessonMap = useMemo(() => {
                 {weekdays.map((day, i) => {
                   const dateStr = weekDateStrings[i]
                   const isClosed = closureDates.includes(dateStr)
+                  const isToday = dateStr === todayStr
                   const dateObj = new Date(dateStr)
                   const dateLabel = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`
                   return (
                     <th key={day.value}
-                      className={['border border-gray-200 px-3 py-3 text-center font-semibold',
-                        isClosed ? 'bg-red-50 text-red-400' : 'bg-gray-50 text-gray-700',
+                      className={['border px-3 py-3 text-center font-semibold relative',
+                        isClosed ? 'bg-red-50 text-red-400 border-gray-200' :
+                        isToday ? 'bg-amber-100 text-amber-900 border-amber-300 border-2' :
+                        'bg-gray-50 text-gray-700 border-gray-200',
                       ].join(' ')}>
+                      {isToday && (
+                        <span className="absolute top-0.5 right-1 text-[9px] font-bold text-amber-600">TODAY</span>
+                      )}
                       <div className="text-sm">{day.label}曜日</div>
                       <div className="text-xs font-normal opacity-60">{dateLabel}</div>
                       {isClosed && <div className="text-[10px] font-bold text-red-500 mt-0.5">休校</div>}
@@ -214,6 +222,7 @@ const lessonMap = useMemo(() => {
                   {weekdays.map((day, i) => {
                     const dateStr = weekDateStrings[i]
                     const isClosed = closureDates.includes(dateStr)
+                    const isToday = dateStr === todayStr
                     const key = termType === 'intensive'
                       ? `${day.value}-${slot.index}`
                       : `${day.value}-i-${slot.index}`
@@ -229,8 +238,10 @@ const lessonMap = useMemo(() => {
 
                     return (
                       <td key={day.value}
-                        className={['border border-gray-200 px-2 py-2 align-top',
-                          isClosed ? 'bg-red-50/50' : '',
+                        className={['border px-2 py-2 align-top',
+                          isClosed ? 'bg-red-50/50 border-gray-200' :
+                          isToday ? 'bg-amber-50/60 border-amber-200' :
+                          'border-gray-200',
                         ].join(' ')}
                         style={{ minWidth: '190px' }}>
                         {isClosed ? (
@@ -252,7 +263,7 @@ const lessonMap = useMemo(() => {
                                     key={t.id}
                                     href={`/schedule/new?teacher_id=${t.id}&date=${dateStr}&slot_index=${slot.index}&term_type=${termType}`}
                                     title="クリックして臨時コマを追加"
-                                    className="text-[10px] bg-blue-50 text-blue-600 border border-dashed border-blue-300 px-1.5 py-0.5 rounded-full whitespace-nowrap hover:bg-blue-100 hover:border-blue-400 transition-colors cursor-pointer"
+                                    className="text-[10px] bg-gray-50 text-gray-400 border border-dashed border-gray-300 px-1.5 py-0.5 rounded-full whitespace-nowrap hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors cursor-pointer"
                                   >
                                     {t.name}
                                   </a>

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, GROUP_SATURDAY_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
 import type { Lesson, TermPeriod } from '@/types'
 import { PrintButton } from '@/components/print/PrintButton'
+import { AutoPrint } from '@/components/print/AutoPrint'
 
 interface PageProps {
   searchParams: Promise<{ date?: string; waiting?: string }>
@@ -49,7 +50,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   const nextDay = new Date(refDate); nextDay.setDate(refDate.getDate() + 1)
 
   const supabase = await createClient()
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }] = await Promise.all([
     supabase
       .from('lessons')
       .select(`
@@ -63,6 +64,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
     supabase.from('term_periods').select('*').order('start_date'),
     supabase.from('teachers').select('id, name').order('name'),
     supabase.from('shifts').select('teacher_id, date, start_time, end_time').eq('date', dateStr),
+    supabase.from('daily_notes').select('content').eq('date', dateStr).maybeSingle(),
   ])
 
   const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
@@ -121,17 +123,17 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
 
   return (
     <div className="bg-white min-h-screen">
+      <AutoPrint />
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 6mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-          /* ページ全体: 100vhでA4に確実に収める */
+          /* ページ全体: A4縦297mm − 上下余白6mm×2 = 285mm */
           .dpp-page {
-            height: 100vh;
+            height: 285mm;
             display: flex !important;
             flex-direction: column !important;
-            overflow: hidden !important;
           }
 
           /* ヘッダー */
@@ -156,13 +158,14 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
 
           /* コマ枠 */
           .dpp-slot {
-            flex: 1 !important;
             min-height: 0 !important;
             display: flex !important;
             flex-direction: column !important;
             overflow: hidden !important;
             border: 1px solid #9ca3af !important;
             border-radius: 0 !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
 
           /* コマヘッダー（濃紺） */
@@ -268,12 +271,20 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             )}
           </div>
 
+          {/* 連絡事項メモ（印刷に含める） */}
+          {dailyNote?.content && (
+            <div className="mt-2 pt-2 border-t border-dashed border-gray-300 print:mt-1 print:pt-1 flex-shrink-0">
+              <p className="text-[10px] font-bold text-amber-700 print:text-[8px]">【連絡事項】</p>
+              <p className="text-xs text-gray-700 whitespace-pre-wrap print:text-[9px]">{dailyNote.content}</p>
+            </div>
+          )}
+
           {/* コマ一覧 */}
           <div className="dpp-slots flex flex-col gap-3 print:gap-0">
             {slotGroups.map((slot) => (
               <div key={`${slot.start}-${slot.end}`}
                 className="dpp-slot flex flex-col border border-gray-300 rounded-lg print:rounded-none overflow-hidden"
-                style={{ minHeight: `${Math.floor(100 / slotCount)}%` }}>
+                style={{ flexGrow: Math.max(slot.lessons.length, 1), flexBasis: 0 }}>
                 {/* コマヘッダー */}
                 <div className="dpp-slot-hdr bg-[#1E3A5F] text-white flex items-center gap-6 px-4 py-2.5 print:px-3 print:py-1.5">
                   <span className="slot-num font-bold text-base print:text-sm">
@@ -325,6 +336,8 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
 
 function LessonPosterCard({ lesson }: { lesson: Lesson }) {
   const isGroup = lesson.type === 'group'
+  const isPS1 = Boolean((lesson as { is_ps1?: boolean }).is_ps1)
+  const isPurple = isGroup || isPS1
   const teacher = (lesson as { teacher?: { name: string } }).teacher
   const booth = (lesson as { booth?: { name: string } }).booth
   const students = (lesson.enrollments ?? [])
@@ -335,28 +348,29 @@ function LessonPosterCard({ lesson }: { lesson: Lesson }) {
     <div className={[
       'dpp-card flex-1 flex flex-col rounded-lg border-2 print:rounded overflow-hidden',
       'min-w-[130px] print:min-w-[28mm]',
-      isGroup
+      isPurple
         ? 'border-purple-400 bg-purple-50'
         : 'border-teal-400 bg-teal-50',
     ].join(' ')}>
-      {/* ブース */}
       {booth?.name && (
         <div className={[
-          'dpp-card-booth text-xs font-bold px-3 py-1 print:px-2 print:py-0.5 border-b',
-          isGroup
+          'dpp-card-booth text-xs font-bold px-3 py-1 print:px-2 print:py-0.5 border-b flex items-center gap-1',
+          isPurple
             ? 'bg-purple-200 border-purple-300 text-purple-800'
             : 'bg-teal-200 border-teal-300 text-teal-800',
         ].join(' ')}>
+          {isPS1 && !isGroup && (
+            <span className="text-[8px] font-bold px-1 rounded bg-purple-500 text-white">1対1</span>
+          )}
           {booth.name}
         </div>
       )}
 
       <div className="dpp-card-body flex flex-col gap-1 p-3 print:p-2">
-        {/* 先生名 */}
         {teacher?.name ? (
           <p className={[
             'dpp-card-teacher font-bold text-lg print:text-sm leading-tight',
-            isGroup ? 'text-purple-900' : 'text-teal-900',
+            isPurple ? 'text-purple-900' : 'text-teal-900',
           ].join(' ')}>
             {teacher.name}
           </p>
@@ -364,15 +378,12 @@ function LessonPosterCard({ lesson }: { lesson: Lesson }) {
           <p className="text-sm text-gray-400 print:text-xs">担当未設定</p>
         )}
 
-        {/* 生徒 */}
         <div className="space-y-0.5">
           {students.length > 0 ? (
             students.map((s, i) => (
               <p key={i} className="text-sm print:text-[10px] leading-snug text-gray-800">
                 {s.name}
-                <span className="text-gray-500 ml-1 text-xs print:text-[8px]">
-                  （{lesson.subject}）
-                </span>
+                <span className="text-gray-500 ml-1 text-xs print:text-[8px]">（{lesson.subject}）</span>
               </p>
             ))
           ) : (
