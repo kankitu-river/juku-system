@@ -212,7 +212,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
               className={[
                 'flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left',
                 formData.lesson_kind === k
-                  ? k === 'regular' ? 'border-[#1E3A5F] bg-blue-50 text-[#1E3A5F]' : 'border-orange-400 bg-orange-50 text-orange-700'
+                  ? k === 'regular' ? 'border-navy bg-blue-50 text-navy' : 'border-orange-400 bg-orange-50 text-orange-700'
                   : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300',
               ].join(' ')}
             >
@@ -231,7 +231,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">授業形式 <span className="text-red-500">*</span></label>
           <select value={formData.type} onChange={(e) => handleTypeChange(e.target.value as LessonType)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]">
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
             <option value="individual">個別指導</option>
             <option value="group">集団授業</option>
           </select>
@@ -285,7 +285,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">曜日</label>
             <select value={formData.day_of_week} onChange={(e) => handleDayOrTermChange('day_of_week', Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]">
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
               {DAYS_OF_WEEK.map((d) => <option key={d.value} value={d.value}>{d.label}曜日</option>)}
             </select>
           </div>
@@ -295,7 +295,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">期間区分</label>
           <select value={formData.term_type} onChange={(e) => handleDayOrTermChange('term_type', e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]">
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
             <option value="regular">通常期間</option>
             <option value="intensive">講習期間</option>
           </select>
@@ -305,7 +305,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">時間帯スロット</label>
           <select value={formData.slot_index} onChange={(e) => setFormData({ ...formData, slot_index: Number(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]">
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
             {slots.map((slot) => (
               <option key={slot.index} value={slot.index}>第{slot.index}コマ（{slot.start}〜{slot.end}）</option>
             ))}
@@ -316,7 +316,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">担当講師</label>
           <select value={formData.teacher_id} onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]">
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
             <option value="">— 未割り当て —</option>
             {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
@@ -327,7 +327,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ブース</label>
             <select value={formData.booth_id} onChange={(e) => setFormData({ ...formData, booth_id: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]">
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
               <option value="">— 未割り当て —</option>
               {booths.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
@@ -339,7 +339,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           <label className="block text-sm font-medium text-gray-700 mb-1">定員</label>
           <input type="number" min={1} max={100} value={formData.capacity}
             onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
         </div>
 
         {/* PS1 チェックボックス */}
@@ -383,7 +383,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           placeholder="例：今日は模試返却、テキストp.30〜"
           rows={2}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] resize-none"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none"
         />
       </div>
 
@@ -409,7 +409,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-gray-700">受講生徒</span>
             {selectedCount > 0 && (
-              <span className="text-xs bg-[#1E3A5F] text-white px-2 py-0.5 rounded-full font-bold">
+              <span className="text-xs bg-navy text-white px-2 py-0.5 rounded-full font-bold">
                 {selectedCount}/{formData.capacity}名
               </span>
             )}
@@ -423,7 +423,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                 className={[
                   'px-2 py-1 text-[10px] rounded border transition-colors',
                   studentSort === s
-                    ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
+                    ? 'bg-navy text-white border-navy'
                     : 'border-gray-300 text-gray-500 hover:bg-gray-50',
                 ].join(' ')}
               >
@@ -436,7 +436,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
             placeholder="名前・学年で検索"
             value={studentSearch}
             onChange={(e) => setStudentSearch(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs w-40 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs w-40 focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
 
@@ -462,7 +462,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                       checked={isSelected}
                       disabled={isOver}
                       onChange={() => toggleStudent(student.id)}
-                      className="rounded text-[#1E3A5F]"
+                      className="rounded text-navy"
                     />
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium text-gray-900">{student.name}</span>
@@ -480,7 +480,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                       <select
                         value={formData.student_subjects[student.id] ?? formData.subject}
                         onChange={(e) => setStudentSubject(student.id, e.target.value)}
-                        className="text-xs border border-gray-300 rounded px-2 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                        className="text-xs border border-gray-300 rounded px-2 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-navy"
                       >
                         <option value="">未設定</option>
                         {SUBJECTS.map((s) => (

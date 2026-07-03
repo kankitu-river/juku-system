@@ -64,7 +64,7 @@ export function IntensiveSlotSettings({ initialLimits }: Props) {
                 value={max}
                 onChange={(e) => setMax(dow, Number(e.target.value))}
                 className={[
-                  'border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]',
+                  'border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy',
                   restricted ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-white text-gray-400',
                 ].join(' ')}
               >
@@ -86,7 +86,7 @@ export function IntensiveSlotSettings({ initialLimits }: Props) {
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="px-4 py-2 bg-[#1E3A5F] text-white text-sm font-medium rounded-lg hover:bg-[#162d4a] disabled:opacity-50 transition-colors"
+          className="px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark disabled:opacity-50 transition-colors"
         >
           {isPending ? '保存中...' : '保存'}
         </button>

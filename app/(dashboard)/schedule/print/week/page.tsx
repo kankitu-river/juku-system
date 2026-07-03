@@ -164,7 +164,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
       <div className="p-6 print:p-0 wpl-printbody">
         {/* Header */}
         <div className="mb-4 print:mb-3">
-          <h1 className="text-xl font-bold text-[#1E3A5F]">週間スケジュール</h1>
+          <h1 className="text-xl font-bold text-navy">週間スケジュール</h1>
           <p className="text-sm text-gray-500">
             {yearLabel}年 {startLabel} 〜 {endLabel}
             {activeTerm && <span className="ml-2 text-amber-600">（{activeTerm.name}）</span>}
@@ -191,13 +191,13 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
             <table className="w-full border-collapse text-xs wpl-table">
               <thead>
                 <tr>
-                  <th className="border border-gray-300 bg-[#1E3A5F] text-white px-2 py-1.5 text-left w-28">時間帯</th>
+                  <th className="border border-gray-300 bg-navy text-white px-2 py-1.5 text-left w-28">時間帯</th>
                   {weekDates.slice(0, 5).map((d, i) => {
                     const dow = i + 1
                     const day = d.getDate()
                     const month = d.getMonth() + 1
                     return (
-                      <th key={dow} className="border border-gray-300 bg-[#1E3A5F] text-white px-2 py-1.5 text-center">
+                      <th key={dow} className="border border-gray-300 bg-navy text-white px-2 py-1.5 text-center">
                         {DAY_NAMES[dow]}（{month}/{day}）
                       </th>
                     )

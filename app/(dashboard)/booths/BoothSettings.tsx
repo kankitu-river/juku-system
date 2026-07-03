@@ -84,7 +84,7 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
     <div className="mb-4">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 text-sm font-medium text-[#1E3A5F] border border-[#1E3A5F] rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
+        className="flex items-center gap-2 text-sm font-medium text-navy border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -141,7 +141,7 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
                   </div>
                 ) : (
                   <span
-                    className={['flex-1 cursor-pointer hover:text-[#1E3A5F]', !booth.is_active ? 'text-gray-400 line-through' : 'text-gray-700'].join(' ')}
+                    className={['flex-1 cursor-pointer hover:text-navy', !booth.is_active ? 'text-gray-400 line-through' : 'text-gray-700'].join(' ')}
                     onClick={() => { setEditingId(booth.id); setEditingName(booth.name) }}
                     title="クリックで名前を変更"
                   >
@@ -187,12 +187,12 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
               placeholder="新しいブース名"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
             <button
               onClick={handleAdd}
               disabled={!newName.trim() || isPending}
-              className="px-3 py-1.5 bg-[#1E3A5F] text-white text-sm rounded-lg hover:bg-[#2d5487] disabled:opacity-40 transition-colors"
+              className="px-3 py-1.5 bg-navy text-white text-sm rounded-lg hover:bg-navy-light disabled:opacity-40 transition-colors"
             >
               + 追加
             </button>

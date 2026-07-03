@@ -96,14 +96,14 @@ export function TimeSlotEditor({ initialConfig }: TimeSlotEditorProps) {
                   type="time"
                   value={slot.start}
                   onChange={e => updateSlot(key, slot.index, 'start', e.target.value)}
-                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] w-28"
+                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy w-28"
                 />
                 <span className="text-gray-400 text-sm">〜</span>
                 <input
                   type="time"
                   value={slot.end}
                   onChange={e => updateSlot(key, slot.index, 'end', e.target.value)}
-                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] w-28"
+                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy w-28"
                 />
               </div>
             ))}
@@ -115,7 +115,7 @@ export function TimeSlotEditor({ initialConfig }: TimeSlotEditorProps) {
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="px-5 py-2.5 bg-[#1E3A5F] text-white rounded-lg text-sm font-semibold hover:bg-[#2d5487] disabled:opacity-50 transition-colors"
+          className="px-5 py-2.5 bg-navy text-white rounded-lg text-sm font-semibold hover:bg-navy-light disabled:opacity-50 transition-colors"
         >
           {isPending ? '保存中...' : '時間を保存する'}
         </button>

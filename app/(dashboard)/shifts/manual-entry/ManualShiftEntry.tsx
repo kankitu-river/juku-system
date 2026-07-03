@@ -118,7 +118,7 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
             <select
               value={teacherId}
               onChange={(e) => { setTeacherId(e.target.value); setSelectedDates({}); setEditingDate(null) }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             >
               <option value="">選択してください</option>
               {teachers.map((t) => (
@@ -132,7 +132,7 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
               type="month"
               value={ym}
               onChange={(e) => { setYm(e.target.value); setSelectedDates({}); setEditingDate(null) }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
         </div>
@@ -145,20 +145,20 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
               type="time"
               value={defaultStart}
               onChange={(e) => setDefaultStart(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
             <span className="text-gray-400 text-sm">〜</span>
             <input
               type="time"
               value={defaultEnd}
               onChange={(e) => setDefaultEnd(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
             {selectedCount > 0 && (
               <button
                 type="button"
                 onClick={applyDefaultToAll}
-                className="text-xs text-[#1E3A5F] hover:underline whitespace-nowrap"
+                className="text-xs text-navy hover:underline whitespace-nowrap"
               >
                 全日に適用
               </button>
@@ -174,7 +174,7 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
           <p className="font-semibold text-gray-800">{y}年{m}月</p>
           {teacherId && (
             <span className="text-xs text-gray-500">
-              {teacherName} · <span className="font-bold text-[#1E3A5F]">{selectedCount}</span>日選択中
+              {teacherName} · <span className="font-bold text-navy">{selectedCount}</span>日選択中
             </span>
           )}
         </div>
@@ -214,11 +214,11 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
                       : isEditing
                         ? 'bg-amber-400 text-white shadow-sm ring-2 ring-amber-500 ring-offset-1'
                         : isSelected
-                          ? 'bg-[#1E3A5F] text-white shadow-sm'
+                          ? 'bg-navy text-white shadow-sm'
                           : dow === 6
                             ? 'text-blue-500 hover:bg-blue-50'
                             : 'text-gray-700 hover:bg-gray-100',
-                  isToday && !isSelected && !isEditing && !disabled ? 'ring-2 ring-[#1E3A5F] ring-offset-1' : '',
+                  isToday && !isSelected && !isEditing && !disabled ? 'ring-2 ring-navy ring-offset-1' : '',
                 ].join(' ')}
               >
                 <span>{d.getDate()}</span>
@@ -324,7 +324,7 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
         type="button"
         onClick={handleSubmit}
         disabled={isPending || selectedCount === 0 || !teacherId}
-        className="w-full bg-[#1E3A5F] text-white font-semibold py-4 rounded-xl hover:bg-[#2d5487] transition-colors disabled:opacity-40 text-base"
+        className="w-full bg-navy text-white font-semibold py-4 rounded-xl hover:bg-navy-light transition-colors disabled:opacity-40 text-base"
       >
         {isPending ? '登録中...' : `${teacherName ? `${teacherName}先生の` : ''}${selectedCount}日分のシフトを登録する`}
       </button>

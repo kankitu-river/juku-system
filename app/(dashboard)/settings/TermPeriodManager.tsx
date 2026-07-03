@@ -96,7 +96,7 @@ export function TermPeriodManager({ initialPeriods }: TermPeriodManagerProps) {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="例：2025年夏期講習"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
           <div>
@@ -104,7 +104,7 @@ export function TermPeriodManager({ initialPeriods }: TermPeriodManagerProps) {
             <select
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value as TermType })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             >
               <option value="intensive">講習期間</option>
               <option value="regular">通常期間</option>
@@ -118,7 +118,7 @@ export function TermPeriodManager({ initialPeriods }: TermPeriodManagerProps) {
                 required
                 value={form.start_date}
                 onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
             </div>
             <div>
@@ -128,7 +128,7 @@ export function TermPeriodManager({ initialPeriods }: TermPeriodManagerProps) {
                 required
                 value={form.end_date}
                 onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
             </div>
           </div>

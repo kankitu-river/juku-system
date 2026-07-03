@@ -84,7 +84,7 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           placeholder="例：夏期特別講習"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
         />
       </div>
 
@@ -98,7 +98,7 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
             required
             value={form.start_at}
             onChange={(e) => setForm({ ...form, start_at: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
         <div>
@@ -110,7 +110,7 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
             required
             value={form.end_at}
             onChange={(e) => setForm({ ...form, end_at: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
       </div>
@@ -120,7 +120,7 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
         <select
           value={form.teacher_id}
           onChange={(e) => setForm({ ...form, teacher_id: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
         >
           <option value="">— 未割り当て —</option>
           {teachers.map((t) => (
@@ -136,7 +136,7 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           placeholder="イベントの詳細や注意事項など"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] resize-none"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none"
         />
       </div>
 

@@ -101,7 +101,7 @@ export default async function SettingsPage() {
           </p>
           <Link
             href="/settings/merge-lessons"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#1E3A5F] text-white rounded-lg text-sm hover:bg-[#162d4a] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm hover:bg-navy-dark transition-colors"
           >
             重複コマを確認・統合する
           </Link>

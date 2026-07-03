@@ -83,10 +83,10 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           翌日 ›
         </Link>
         <div className="ml-auto flex items-center gap-3">
-          <Link href="/attendance/report" className="text-sm text-[#1E3A5F] font-medium hover:underline">
+          <Link href="/attendance/report" className="text-sm text-navy font-medium hover:underline">
             集計レポート →
           </Link>
-          <Link href="/attendance/makeup" className="text-sm text-[#1E3A5F] font-medium hover:underline">
+          <Link href="/attendance/makeup" className="text-sm text-navy font-medium hover:underline">
             振替管理 →
           </Link>
         </div>
@@ -110,7 +110,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
                 key={lesson.id}
                 href={`/attendance/${lesson.id}?date=${dateStr}`}
                 className={[
-                  'flex items-center gap-4 bg-white rounded-xl border shadow-sm px-5 py-4 hover:border-[#1E3A5F] transition-colors',
+                  'flex items-center gap-4 bg-white rounded-xl border shadow-sm px-5 py-4 hover:border-navy transition-colors',
                   allDone ? 'border-green-200 bg-green-50/30' : 'border-gray-100',
                 ].join(' ')}
               >

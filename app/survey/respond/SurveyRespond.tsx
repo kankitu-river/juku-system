@@ -203,7 +203,7 @@ export function SurveyRespond({
           {selectedTeacher?.teacher?.name} 先生：{selectedDateCount}日間、合計 {totalSlotCount} コマ登録
         </p>
         <p className="text-xs text-gray-400 mt-4">このページは閉じても大丈夫です</p>
-        <button onClick={() => setStep('select')} className="mt-4 text-sm text-[#1E3A5F] underline">
+        <button onClick={() => setStep('select')} className="mt-4 text-sm text-navy underline">
           別の先生の回答を入力する
         </button>
       </div>
@@ -240,11 +240,11 @@ export function SurveyRespond({
                 : isActive
                   ? 'bg-amber-400 text-white shadow-sm ring-2 ring-amber-500 ring-offset-1'
                   : isSelected
-                    ? 'bg-[#1E3A5F] text-white shadow-sm'
+                    ? 'bg-navy text-white shadow-sm'
                     : dow === 0 ? 'text-red-400 hover:bg-red-50'
                     : dow === 6 ? 'text-blue-400 hover:bg-blue-50'
                     : 'text-gray-700 hover:bg-gray-100',
-            isToday && !isSelected && !isActive && isSelectable ? 'ring-2 ring-[#1E3A5F] ring-offset-1' : '',
+            isToday && !isSelected && !isActive && isSelectable ? 'ring-2 ring-navy ring-offset-1' : '',
           ].join(' ')}
         >
           <span>{d.getDate()}</span>
@@ -278,7 +278,7 @@ export function SurveyRespond({
                   type="button"
                   onClick={doSubmit}
                   disabled={isPending}
-                  className="flex-1 bg-[#1E3A5F] text-white font-semibold py-2.5 rounded-lg hover:bg-[#2d5487] transition-colors disabled:opacity-50 text-sm"
+                  className="flex-1 bg-navy text-white font-semibold py-2.5 rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50 text-sm"
                 >
                   {isPending ? '送信中...' : 'このまま送信'}
                 </button>
@@ -297,7 +297,7 @@ export function SurveyRespond({
         {/* ヘッダー */}
         <div className="flex items-center gap-3 flex-wrap">
           <button onClick={() => setStep('select')} className="text-sm text-gray-500 hover:text-gray-700">← 戻る</button>
-          <div className="bg-[#1E3A5F] text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
+          <div className="bg-navy text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
             {selectedTeacher.teacher?.name} 先生
           </div>
           {termType === 'intensive' && (
@@ -383,7 +383,7 @@ export function SurveyRespond({
                     onClick={() => toggleSlot(activeDate, slot.index)}
                     className={[
                       'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left',
-                      isSlotSelected ? 'bg-[#1E3A5F] text-white' : 'bg-white border border-blue-200 text-blue-800 hover:bg-blue-100',
+                      isSlotSelected ? 'bg-navy text-white' : 'bg-white border border-blue-200 text-blue-800 hover:bg-blue-100',
                     ].join(' ')}
                   >
                     <span className={['text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0',
@@ -402,8 +402,8 @@ export function SurveyRespond({
         {/* サマリー */}
         <div className="bg-blue-50 rounded-xl px-4 py-3 flex items-center justify-between">
           <p className="text-sm text-blue-700">
-            <span className="font-bold text-lg text-[#1E3A5F]">{selectedDateCount}</span> 日間・
-            合計 <span className="font-bold text-lg text-[#1E3A5F]">{totalSlotCount}</span> コマ選択中
+            <span className="font-bold text-lg text-navy">{selectedDateCount}</span> 日間・
+            合計 <span className="font-bold text-lg text-navy">{totalSlotCount}</span> コマ選択中
           </p>
           {selectedDateCount > 0 && (
             <button type="button" onClick={() => { setSelectedSlots({}); setActiveDate(null) }}
@@ -412,7 +412,7 @@ export function SurveyRespond({
         </div>
 
         <button type="button" onClick={handleSubmit} disabled={isPending}
-          className="w-full bg-[#1E3A5F] text-white font-semibold py-4 rounded-xl hover:bg-[#2d5487] transition-colors disabled:opacity-50 text-base">
+          className="w-full bg-navy text-white font-semibold py-4 rounded-xl hover:bg-navy-light transition-colors disabled:opacity-50 text-base">
           {isPending ? '送信中...' : '回答を送信する'}
         </button>
       </div>
@@ -426,8 +426,8 @@ export function SurveyRespond({
         <div className="space-y-2">
           {tokens.map((token) => (
             <button key={token.id} type="button" onClick={() => handleSelectTeacher(token)}
-              className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-gray-200 hover:border-[#1E3A5F] hover:bg-blue-50 transition-colors text-left group">
-              <span className="font-medium text-gray-800 group-hover:text-[#1E3A5F]">
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-gray-200 hover:border-navy hover:bg-blue-50 transition-colors text-left group">
+              <span className="font-medium text-gray-800 group-hover:text-navy">
                 {token.teacher?.name ?? '—'} 先生
               </span>
               {token.responded_at ? (

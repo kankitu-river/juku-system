@@ -36,7 +36,7 @@ export function WeekPrintClient() {
       <select
         value={paperSize}
         onChange={(e) => setPaperSize(e.target.value)}
-        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] bg-white"
+        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy bg-white"
       >
         {PAPER_SIZES.map((s) => (
           <option key={s.value} value={s.value}>{s.label}</option>
@@ -44,7 +44,7 @@ export function WeekPrintClient() {
       </select>
       <button
         onClick={handlePrint}
-        className="inline-flex items-center gap-2 px-4 py-2 bg-[#1E3A5F] text-white text-sm font-medium rounded-lg hover:bg-[#2d5487] transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-light transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

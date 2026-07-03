@@ -131,7 +131,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="例：田中 太郎"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
 
@@ -143,7 +143,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
             required
             value={form.grade}
             onChange={(e) => setForm({ ...form, grade: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           >
             <option value="">— 選択 —</option>
             {GRADE_OPTIONS.map((g) => (
@@ -160,7 +160,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
           {student?.id && (
             <Link
               href={`/schedule/new?student=${student.id}`}
-              className="inline-flex items-center gap-1 text-xs font-medium text-[#1E3A5F] border border-[#1E3A5F] rounded-lg px-2.5 py-1 hover:bg-blue-50 transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-medium text-navy border border-navy rounded-lg px-2.5 py-1 hover:bg-blue-50 transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -198,7 +198,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleLesson(lesson.id)}
-                            className="rounded text-[#1E3A5F]"
+                            className="rounded text-navy"
                           />
                           <div className="flex-1 min-w-0">
                             <span className="text-xs font-semibold text-gray-700">第{lesson.slot_index}コマ</span>
@@ -241,8 +241,8 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
               className={[
                 'px-3 py-1.5 rounded-full text-sm border transition-colors',
                 form.subjects.includes(subject)
-                  ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-[#1E3A5F]',
+                  ? 'bg-navy text-white border-navy'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-navy',
               ].join(' ')}
             >
               {subject}

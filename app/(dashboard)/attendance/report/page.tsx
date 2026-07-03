@@ -69,7 +69,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
         title="出欠集計レポート"
         subtitle={`${year}年${month}月`}
         actions={
-          <Link href="/attendance" className="text-sm text-[#1E3A5F] hover:underline">
+          <Link href="/attendance" className="text-sm text-navy hover:underline">
             ← 出欠管理
           </Link>
         }
@@ -111,7 +111,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
               <p className="text-xs text-gray-400 mt-0.5">欠席数</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-              <p className="text-2xl font-bold text-[#1E3A5F]">{rate}%</p>
+              <p className="text-2xl font-bold text-navy">{rate}%</p>
               <p className="text-xs text-gray-400 mt-0.5">全体出席率</p>
             </div>
             <div className={[
@@ -132,7 +132,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#1E3A5F] text-white text-xs">
+              <tr className="bg-navy text-white text-xs">
                 <th className="text-left px-4 py-3 font-medium">生徒名</th>
                 <th className="text-center px-3 py-3 font-medium">学年</th>
                 <th className="text-center px-3 py-3 font-medium">出席</th>
@@ -155,7 +155,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
                     isAlert ? 'bg-red-50/50' : '',
                   ].join(' ')}>
                     <td className="px-4 py-3">
-                      <Link href={`/students/${row.id}`} className="font-medium text-gray-900 hover:text-[#1E3A5F] hover:underline">
+                      <Link href={`/students/${row.id}`} className="font-medium text-gray-900 hover:text-navy hover:underline">
                         {row.name}
                       </Link>
                     </td>

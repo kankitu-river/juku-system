@@ -172,7 +172,7 @@ const lessonMap = useMemo(() => {
         {(['weekday', 'saturday'] as DayView[]).map(v => (
           <button key={v} onClick={() => setDayView(v)}
             className={['px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              dayView === v ? 'bg-[#1E3A5F] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              dayView === v ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
             ].join(' ')}>
             {v === 'weekday' ? '月〜金' : '土曜日'}
           </button>

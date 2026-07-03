@@ -110,7 +110,7 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
           <button
             onClick={handleGenerate}
             disabled={isPending}
-            className="flex-shrink-0 px-5 py-2.5 bg-[#1E3A5F] text-white text-sm font-medium rounded-lg hover:bg-[#162d4a] disabled:opacity-50 transition-colors"
+            className="flex-shrink-0 px-5 py-2.5 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark disabled:opacity-50 transition-colors"
           >
             {isPending ? '生成中...' : result ? '再生成' : '割り振り案を生成'}
           </button>

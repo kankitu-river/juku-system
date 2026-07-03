@@ -2,15 +2,16 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-:root {
+@theme {
   --color-navy: #1E3A5F;
   --color-navy-light: #2d5487;
-  --color-amber: #F59E0B;
-  --color-amber-light: #FCD34D;
+  --color-navy-dark: #162c49;
+  --color-amber-brand: #F59E0B;
+  --font-sans: var(--font-noto), 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
 }
 
 body {
-  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+  font-family: var(--font-sans);
   background-color: #f3f4f6;
   color: #111827;
 }

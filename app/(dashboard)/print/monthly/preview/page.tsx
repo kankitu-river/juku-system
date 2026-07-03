@@ -144,7 +144,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
               className={[
                 'text-sm px-3 py-1.5 rounded-lg border transition-colors',
                 showTeacher
-                  ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
+                  ? 'bg-navy text-white border-navy'
                   : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
               ].join(' ')}
             >
@@ -158,10 +158,10 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
       {/* Print content */}
       <div id="monthly-print-area" className="p-6">
         {/* Header */}
-        <div className="flex items-end justify-between mb-4 pb-3 border-b-2 border-[#1E3A5F] print:mb-3">
+        <div className="flex items-end justify-between mb-4 pb-3 border-b-2 border-navy print:mb-3">
           <div>
             <p className="text-xs text-gray-500">月次スケジュール</p>
-            <h1 className="text-2xl font-bold text-[#1E3A5F]">{personName}</h1>
+            <h1 className="text-2xl font-bold text-navy">{personName}</h1>
             {personSub && <p className="text-sm text-gray-500">{personSub}</p>}
           </div>
           <div className="text-right">
@@ -214,7 +214,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                           <div className={[
                             'font-bold text-sm leading-none mb-1 flex-shrink-0',
                             isSun ? 'text-red-500' : isSat ? 'text-blue-500' : 'text-gray-700',
-                            hasLesson ? 'text-[#1E3A5F]' : '',
+                            hasLesson ? 'text-navy' : '',
                           ].join(' ')}>
                             {day}
                           </div>

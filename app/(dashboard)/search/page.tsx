@@ -36,11 +36,11 @@ export default async function SearchPage({ searchParams }: PageProps) {
             defaultValue={query}
             placeholder="名前・科目で検索..."
             autoFocus
-            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] shadow-sm"
+            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-navy shadow-sm"
           />
           <button
             type="submit"
-            className="px-5 py-3 bg-[#1E3A5F] text-white text-sm font-medium rounded-xl hover:bg-[#162d4a] transition-colors"
+            className="px-5 py-3 bg-navy text-white text-sm font-medium rounded-xl hover:bg-navy-dark transition-colors"
           >
             検索
           </button>

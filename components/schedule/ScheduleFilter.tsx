@@ -86,8 +86,8 @@ export function ScheduleFilter({
           value={teacherFilter}
           onChange={(e) => setTeacherFilter(e.target.value)}
           className={[
-            'border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] transition-colors',
-            teacherFilter ? 'border-[#1E3A5F] bg-blue-50 text-[#1E3A5F]' : 'border-gray-300 text-gray-600 bg-white',
+            'border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy transition-colors',
+            teacherFilter ? 'border-navy bg-blue-50 text-navy' : 'border-gray-300 text-gray-600 bg-white',
           ].join(' ')}
         >
           <option value="">先生で絞り込み</option>
@@ -100,8 +100,8 @@ export function ScheduleFilter({
           value={studentFilter}
           onChange={(e) => setStudentFilter(e.target.value)}
           className={[
-            'border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] transition-colors',
-            studentFilter ? 'border-[#1E3A5F] bg-blue-50 text-[#1E3A5F]' : 'border-gray-300 text-gray-600 bg-white',
+            'border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy transition-colors',
+            studentFilter ? 'border-navy bg-blue-50 text-navy' : 'border-gray-300 text-gray-600 bg-white',
           ].join(' ')}
         >
           <option value="">生徒で絞り込み</option>
@@ -120,7 +120,7 @@ export function ScheduleFilter({
         )}
 
         {isFiltered && (
-          <span className="text-xs text-[#1E3A5F] font-medium">
+          <span className="text-xs text-navy font-medium">
             {filtered.length}コマ表示中
           </span>
         )}

@@ -201,7 +201,7 @@ export function TopNav() {
   const settingsActive = pathname.startsWith('/settings')
 
   return (
-    <header className="sticky top-0 z-40 bg-[#1E3A5F] text-white shadow-md print:hidden relative">
+    <header className="sticky top-0 z-40 bg-navy text-white shadow-md print:hidden relative">
       {/* ドロップダウン用の外側クリック閉じオーバーレイ */}
       {openMenu && (
         <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(null)} />
@@ -255,7 +255,7 @@ export function TopNav() {
                           className={[
                             'block px-4 py-2.5 text-sm',
                             childActive
-                              ? 'text-[#1E3A5F] font-semibold bg-gray-50'
+                              ? 'text-navy font-semibold bg-gray-50'
                               : 'text-gray-700 hover:bg-gray-50',
                           ].join(' ')}
                         >
@@ -318,7 +318,7 @@ export function TopNav() {
 
       {/* モバイル: 展開パネル */}
       {mobileOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-[#1E3A5F] border-t border-white/10 shadow-lg max-h-[calc(100vh-3.5rem)] overflow-y-auto z-50">
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-navy border-t border-white/10 shadow-lg max-h-[calc(100vh-3.5rem)] overflow-y-auto z-50">
           <SearchForm />
           <nav className="px-3 py-3 space-y-1">
             {navigation.map((entry) => {

@@ -215,7 +215,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                 className={[
                   'flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors',
                   form.term_type === 'regular'
-                    ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
+                    ? 'bg-navy text-white border-navy'
                     : 'border-gray-300 text-gray-600 hover:bg-gray-50',
                 ].join(' ')}
               >
@@ -278,7 +278,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                 value={form.target_month}
                 onChange={(e) => setForm((f) => ({ ...f, target_month: e.target.value }))}
                 disabled={form.term_type === 'intensive' && !!form.term_period_id}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy disabled:bg-gray-50 disabled:text-gray-400"
               />
             </div>
             <div>
@@ -290,7 +290,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                 required
                 value={form.deadline}
                 onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
             </div>
           </div>
@@ -373,7 +373,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                                   navigator.clipboard.writeText(url)
                                   alert('リンクをコピーしました')
                                 }}
-                                className="text-[10px] text-[#1E3A5F] hover:underline"
+                                className="text-[10px] text-navy hover:underline"
                               >
                                 リンクコピー
                               </button>

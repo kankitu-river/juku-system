@@ -61,7 +61,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             >
               {[today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1].map((y) => (
                 <option key={y} value={y}>{y}年</option>
@@ -73,7 +73,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
             <select
               value={month}
               onChange={(e) => setMonth(Number(e.target.value))}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             >
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                 <option key={m} value={m}>{m}月</option>
@@ -96,7 +96,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
               className={[
                 'px-5 py-2 text-sm font-medium transition-colors',
                 tab === t
-                  ? 'bg-[#1E3A5F] text-white'
+                  ? 'bg-navy text-white'
                   : 'text-gray-600 hover:bg-gray-50',
               ].join(' ')}
             >
@@ -110,7 +110,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
             {tab === 'teacher' ? '先生' : '生徒'}を選択（複数可）
           </h2>
           <div className="flex items-center gap-2">
-            <button onClick={selectAll} className="text-xs text-[#1E3A5F] hover:underline">全選択</button>
+            <button onClick={selectAll} className="text-xs text-navy hover:underline">全選択</button>
             <span className="text-gray-300">|</span>
             <button onClick={clearAll} className="text-xs text-gray-500 hover:underline">クリア</button>
           </div>
@@ -121,7 +121,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
           placeholder="名前で絞り込み..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full mb-3 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+          className="w-full mb-3 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
         />
 
         <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -139,7 +139,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
                 className={[
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors',
                   isSelected
-                    ? 'border-[#1E3A5F] bg-blue-50'
+                    ? 'border-navy bg-blue-50'
                     : 'border-gray-200 hover:bg-gray-50',
                 ].join(' ')}
               >
@@ -147,7 +147,7 @@ export function MonthlyPrintManager({ teachers, students }: MonthlyPrintManagerP
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => toggleId(person.id)}
-                  className="text-[#1E3A5F] rounded"
+                  className="text-navy rounded"
                 />
                 <div>
                   <p className="text-sm font-medium text-gray-900">{person.name}</p>

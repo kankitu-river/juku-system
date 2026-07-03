@@ -36,7 +36,7 @@ export default async function TeachersPage() {
             <Link
               key={teacher.id}
               href={`/teachers/${teacher.id}`}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:border-[#1E3A5F] transition-colors block"
+              className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:border-navy transition-colors block"
             >
               <div className="flex items-start justify-between mb-3">
                 <div>

@@ -28,10 +28,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1E3A5F] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-navy flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[#1E3A5F]">塾スケジュール</h1>
+          <h1 className="text-2xl font-bold text-navy">塾スケジュール</h1>
           <p className="text-gray-500 text-sm mt-1">管理システム</p>
         </div>
 
@@ -53,7 +53,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
               placeholder="teacher@juku.com"
             />
           </div>
@@ -69,7 +69,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
               placeholder="••••••••"
             />
           </div>

@@ -1,6 +1,14 @@
 import type { Metadata, Viewport } from 'next'
+import { Noto_Sans_JP } from 'next/font/google'
 import './globals.css'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
+
+const notoSansJP = Noto_Sans_JP({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-noto',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: '塾スケジュール管理システム',
@@ -26,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ja" className="h-full">
+    <html lang="ja" className={`h-full ${notoSansJP.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>

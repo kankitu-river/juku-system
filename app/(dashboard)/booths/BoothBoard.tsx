@@ -94,11 +94,11 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr>
-                <th className="border border-gray-200 bg-[#1E3A5F] text-white px-3 py-2 text-left font-medium whitespace-nowrap w-24">
+                <th className="border border-gray-200 bg-navy text-white px-3 py-2 text-left font-medium whitespace-nowrap w-24">
                   ブース
                 </th>
                 {slots.map((slot) => (
-                  <th key={slot.index} className="border border-gray-200 bg-[#1E3A5F] text-white px-2 py-2 text-center font-medium whitespace-nowrap">
+                  <th key={slot.index} className="border border-gray-200 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap">
                     <div>第{slot.index}コマ</div>
                     <div className="text-[10px] opacity-70">{slot.start}〜{slot.end}</div>
                   </th>

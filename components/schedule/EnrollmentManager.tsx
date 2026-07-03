@@ -96,7 +96,7 @@ export function EnrollmentManager({
             placeholder="名前で検索..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-navy"
           />
           {candidates.length === 0 ? (
             <p className="text-xs text-gray-400">
@@ -109,13 +109,13 @@ export function EnrollmentManager({
                   <button
                     onClick={() => handleEnroll(student.id)}
                     disabled={isPending}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-[#1E3A5F] transition-colors text-left"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-50 hover:border-navy transition-colors text-left"
                   >
                     <div>
                       <span className="text-sm font-medium text-gray-800">{student.name}</span>
                       <span className="text-xs text-gray-400 ml-2">{getDisplayGrade(student.grade)}</span>
                     </div>
-                    <span className="text-xs text-[#1E3A5F] font-medium">+ 追加</span>
+                    <span className="text-xs text-navy font-medium">+ 追加</span>
                   </button>
                 </li>
               ))}

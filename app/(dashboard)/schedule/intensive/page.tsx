@@ -44,7 +44,7 @@ export default async function IntensivePage({ searchParams }: PageProps) {
         title="講習コマ割り振り"
         subtitle="生徒ごとに受講コマ数を設定し、具体的な日程に割り振ります"
         actions={
-          <Link href="/schedule/new" className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1E3A5F] text-white text-sm font-medium rounded-lg hover:bg-[#162d4a] transition-colors">
+          <Link href="/schedule/new" className="inline-flex items-center gap-1.5 px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark transition-colors">
             + 講習コマを追加
           </Link>
         }
@@ -52,7 +52,7 @@ export default async function IntensivePage({ searchParams }: PageProps) {
 
       {/* タブナビゲーション */}
       <div className="flex gap-2 mb-5 border-b border-gray-200">
-        <span className="px-5 py-2.5 text-sm font-medium text-[#1E3A5F] border-b-2 border-[#1E3A5F]">
+        <span className="px-5 py-2.5 text-sm font-medium text-navy border-b-2 border-navy">
           コマ割り振り
         </span>
         <Link
@@ -88,8 +88,8 @@ export default async function IntensivePage({ searchParams }: PageProps) {
               className={[
                 'px-4 py-2 rounded-lg text-sm font-medium border transition-colors',
                 t.id === selectedTermId
-                  ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-[#1E3A5F]',
+                  ? 'bg-navy text-white border-navy'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-navy',
               ].join(' ')}
             >
               {t.name}

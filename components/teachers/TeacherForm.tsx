@@ -122,7 +122,7 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="例：山田 太郎"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
 
@@ -136,7 +136,7 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="teacher@juku.com"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
 
@@ -145,7 +145,7 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value as 'admin' | 'staff' })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           >
             <option value="staff">スタッフ</option>
             <option value="admin">管理者</option>
@@ -171,8 +171,8 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
                     className={[
                       'shrink-0 w-20 py-1.5 rounded-lg text-sm font-medium border transition-colors',
                       selected
-                        ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
-                        : 'bg-white text-gray-500 border-gray-300 hover:border-[#1E3A5F]',
+                        ? 'bg-navy text-white border-navy'
+                        : 'bg-white text-gray-500 border-gray-300 hover:border-navy',
                     ].join(' ')}
                   >
                     {subject}
@@ -188,8 +188,8 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
                           className={[
                             'px-2 py-1 rounded text-xs font-medium border transition-colors',
                             grades.includes(grade)
-                              ? 'bg-[#F59E0B] text-white border-[#F59E0B]'
-                              : 'bg-white text-gray-400 border-gray-200 hover:border-[#F59E0B] hover:text-[#F59E0B]',
+                              ? 'bg-amber-brand text-white border-amber-brand'
+                              : 'bg-white text-gray-400 border-gray-200 hover:border-amber-brand hover:text-amber-brand',
                           ].join(' ')}
                         >
                           {grade}
@@ -233,7 +233,7 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
             <div className="flex flex-wrap gap-2">
               {selectedSubjects.map((sg) => (
                 <span key={sg.subject} className="text-xs bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-gray-700">
-                  <span className="font-medium text-[#1E3A5F]">{sg.subject}</span>
+                  <span className="font-medium text-navy">{sg.subject}</span>
                   {sg.grades.length > 0
                     ? `：${sg.grades[0]}〜${sg.grades[sg.grades.length - 1]}`
                     : <span className="text-amber-500 ml-1">（学年未設定）</span>

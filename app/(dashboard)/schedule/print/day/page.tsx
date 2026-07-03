@@ -271,8 +271,8 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
         {/* 画面プレビュー */}
         <div className="dpp-page">
           {/* ヘッダー */}
-          <div className="dpp-header mb-4 pb-3 border-b-2 border-[#1E3A5F]">
-            <h1 className="text-2xl font-bold text-[#1E3A5F] print:text-xl leading-tight">
+          <div className="dpp-header mb-4 pb-3 border-b-2 border-navy">
+            <h1 className="text-2xl font-bold text-navy print:text-xl leading-tight">
               {fullDateLabel}
             </h1>
             {activeTerm && (
@@ -287,7 +287,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
                 className="dpp-slot flex flex-col border border-gray-300 rounded-lg print:rounded-none overflow-hidden"
                 style={{ flexGrow: Math.max(slot.lessons.length, 1), flexBasis: 0 }}>
                 {/* コマヘッダー */}
-                <div className="dpp-slot-hdr bg-[#1E3A5F] text-white flex items-center gap-6 px-4 py-2.5 print:px-3 print:py-1.5">
+                <div className="dpp-slot-hdr bg-navy text-white flex items-center gap-6 px-4 py-2.5 print:px-3 print:py-1.5">
                   <span className="slot-num font-bold text-base print:text-sm">
                     第{slot.index}コマ
                   </span>

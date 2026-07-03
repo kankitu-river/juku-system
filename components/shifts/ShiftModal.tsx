@@ -93,7 +93,7 @@ export function ShiftModal({
                   </span>
                   <Link
                     href={`/schedule/${lesson.id}`}
-                    className="text-gray-700 hover:text-[#1E3A5F] hover:underline"
+                    className="text-gray-700 hover:text-navy hover:underline"
                   >
                     第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}　{label}
                     <span className="ml-1 text-gray-400 text-[10px]">
@@ -120,7 +120,7 @@ export function ShiftModal({
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
           <div>
@@ -129,7 +129,7 @@ export function ShiftModal({
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
         </div>

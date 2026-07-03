@@ -107,7 +107,7 @@ export function ClosureCalendar({ initialClosureDates }: ClosureCalendarProps) {
                       : dow === 0 ? 'text-red-400 hover:bg-red-50'
                       : dow === 6 ? 'text-blue-400 hover:bg-blue-50'
                       : 'text-gray-700 hover:bg-gray-100',
-                  isToday && !isClosed ? 'ring-2 ring-[#1E3A5F] ring-offset-1' : '',
+                  isToday && !isClosed ? 'ring-2 ring-navy ring-offset-1' : '',
                 ].join(' ')}
               >
                 <span>{d.getDate()}</span>

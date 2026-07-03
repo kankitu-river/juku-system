@@ -143,7 +143,7 @@ export function TeacherImport() {
         >
           サンプルCSVをダウンロード
         </button>
-        <label className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[#1E3A5F] border border-[#1E3A5F] rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+        <label className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-navy border border-navy rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
           CSVを選択してインポート
           <input
             ref={fileRef}
@@ -186,7 +186,7 @@ export function TeacherImport() {
                 type="button"
                 onClick={handleImport}
                 disabled={isPending}
-                className="px-4 py-1.5 text-xs font-medium bg-[#1E3A5F] text-white rounded-lg hover:bg-[#162d4a] disabled:opacity-50 transition-colors"
+                className="px-4 py-1.5 text-xs font-medium bg-navy text-white rounded-lg hover:bg-navy-dark disabled:opacity-50 transition-colors"
               >
                 {isPending ? '登録中...' : `${teacherCount}名を一括登録`}
               </button>

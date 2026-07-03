@@ -153,7 +153,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-8">
-        <div className="bg-[#1E3A5F] text-white rounded-xl px-6 py-5 mb-6">
+        <div className="bg-navy text-white rounded-xl px-6 py-5 mb-6">
           <p className="text-sm opacity-70 mb-1">塾スケジュール管理システム</p>
           <h1 className="text-xl font-bold">出勤可能日アンケート</h1>
           <p className="text-sm opacity-80 mt-1">

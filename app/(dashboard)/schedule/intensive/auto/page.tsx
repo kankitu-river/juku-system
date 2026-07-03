@@ -28,7 +28,7 @@ export default async function IntensiveAutoPage({ searchParams }: PageProps) {
         title="自動割り振り"
         subtitle="来塾希望・担当先生・相性をもとに講習コマへの割り振り案を生成します"
         actions={
-          <Link href="/schedule/new" className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1E3A5F] text-white text-sm font-medium rounded-lg hover:bg-[#162d4a] transition-colors">
+          <Link href="/schedule/new" className="inline-flex items-center gap-1.5 px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark transition-colors">
             + 講習コマを追加
           </Link>
         }
@@ -48,7 +48,7 @@ export default async function IntensiveAutoPage({ searchParams }: PageProps) {
         >
           来塾希望入力
         </Link>
-        <span className="px-5 py-2.5 text-sm font-medium text-[#1E3A5F] border-b-2 border-[#1E3A5F]">
+        <span className="px-5 py-2.5 text-sm font-medium text-navy border-b-2 border-navy">
           自動割り振り
         </span>
       </div>
@@ -73,8 +73,8 @@ export default async function IntensiveAutoPage({ searchParams }: PageProps) {
                 className={[
                   'px-4 py-2 rounded-lg text-sm font-medium border transition-colors',
                   t.id === selectedTermId
-                    ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#1E3A5F]',
+                    ? 'bg-navy text-white border-navy'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-navy',
                 ].join(' ')}
               >
                 {t.name}

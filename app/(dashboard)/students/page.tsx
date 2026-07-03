@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { StudentImport } from '@/components/students/StudentImport'
 import Link from 'next/link'
 import type { Student, Teacher } from '@/types'
@@ -36,7 +37,7 @@ export default async function StudentsPage() {
       </div>
 
       {sorted.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <Card padding="none" className="overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -56,7 +57,7 @@ export default async function StudentsPage() {
                     {(student.fixed_slots as FixedSlot[] | undefined)?.length ? (
                       <div className="flex flex-wrap gap-1">
                         {(student.fixed_slots as FixedSlot[]).map(({ day, slot }) => (
-                          <span key={`${day}-${slot}`} className="text-[10px] bg-[#1E3A5F] text-white px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
+                          <span key={`${day}-${slot}`} className="text-[10px] bg-navy text-white px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
                             {DAY_LABELS[day]}・{slot}
                           </span>
                         ))}
@@ -77,7 +78,7 @@ export default async function StudentsPage() {
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/students/${student.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#1E3A5F] border border-[#1E3A5F] rounded-lg hover:bg-blue-50 transition-colors"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-navy border border-navy rounded-lg hover:bg-blue-50 transition-colors"
                     >
                       編集
                     </Link>
@@ -86,7 +87,7 @@ export default async function StudentsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
           <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">

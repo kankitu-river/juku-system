@@ -78,7 +78,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
               value={u.role}
               disabled={isPending}
               onChange={(e) => handleRoleChange(u.id, e.target.value as 'admin' | 'staff')}
-              className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#1E3A5F] disabled:opacity-50"
+              className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-navy disabled:opacity-50"
             >
               <option value="admin">管理者</option>
               <option value="staff">スタッフ</option>
@@ -114,7 +114,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="example@email.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
           <div>
@@ -127,7 +127,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="8文字以上"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] pr-10"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy pr-10"
               />
               <button
                 type="button"
@@ -152,7 +152,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'admin' | 'staff')}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             >
               <option value="staff">スタッフ（閲覧・基本操作）</option>
               <option value="admin">管理者（全操作）</option>
@@ -162,7 +162,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 bg-[#1E3A5F] text-white text-sm rounded-lg py-2 font-medium hover:bg-[#2d5487] disabled:opacity-40 transition-colors"
+              className="flex-1 bg-navy text-white text-sm rounded-lg py-2 font-medium hover:bg-navy-light disabled:opacity-40 transition-colors"
             >
               {isPending ? '追加中...' : 'アカウントを作成'}
             </button>
@@ -178,7 +178,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
       ) : (
         <button
           onClick={() => { setShowForm(true); setSuccess('') }}
-          className="flex items-center gap-2 text-sm font-medium text-[#1E3A5F] border border-[#1E3A5F] rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
+          className="flex items-center gap-2 text-sm font-medium text-navy border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

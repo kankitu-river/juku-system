@@ -103,7 +103,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
               className={[
                 'px-4 py-2 text-sm font-medium transition-colors',
                 view === v
-                  ? 'bg-[#1E3A5F] text-white'
+                  ? 'bg-navy text-white'
                   : 'text-gray-600 hover:bg-gray-50',
               ].join(' ')}
             >
@@ -222,7 +222,7 @@ function MonthlyViewPlaceholder({ date }: { date: Date }) {
                   <span
                     className={[
                       'inline-flex items-center justify-center w-7 h-7 rounded-full text-sm',
-                      isToday ? 'bg-[#1E3A5F] text-white font-bold' : 'text-gray-700',
+                      isToday ? 'bg-navy text-white font-bold' : 'text-gray-700',
                     ].join(' ')}
                   >
                     {day}

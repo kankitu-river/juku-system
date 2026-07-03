@@ -132,7 +132,7 @@ export function TodayLessons({ lessons, todayStr }: TodayLessonsProps) {
                 </div>
                 <Link
                   href={`/attendance/${lesson.id}`}
-                  className="text-xs text-[#1E3A5F] hover:underline flex-shrink-0"
+                  className="text-xs text-navy hover:underline flex-shrink-0"
                 >
                   詳細 →
                 </Link>
@@ -203,7 +203,7 @@ export function TodayLessons({ lessons, todayStr }: TodayLessonsProps) {
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => confirmAbsent(true)}
-                className="w-full py-2.5 rounded-xl bg-[#1E3A5F] text-white text-sm font-medium hover:bg-[#162d4a] transition-colors"
+                className="w-full py-2.5 rounded-xl bg-navy text-white text-sm font-medium hover:bg-navy-dark transition-colors"
               >
                 振替を追加する
               </button>

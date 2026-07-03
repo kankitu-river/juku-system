@@ -160,8 +160,8 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
                 className={[
                   'w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors',
                   isSelected
-                    ? 'border-[#1E3A5F] bg-blue-50'
-                    : 'border-gray-100 bg-white hover:border-[#1E3A5F] shadow-sm',
+                    ? 'border-navy bg-blue-50'
+                    : 'border-gray-100 bg-white hover:border-navy shadow-sm',
                 ].join(' ')}
               >
                 <div>
@@ -178,9 +178,9 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
                 <div className="text-right">
                   <div className="flex items-center gap-1.5 justify-end">
                     {Array.from({ length: Math.min(remaining, 5) }).map((_, i) => (
-                      <span key={i} className="inline-block w-3 h-3 rounded-full bg-[#F59E0B]" />
+                      <span key={i} className="inline-block w-3 h-3 rounded-full bg-amber-brand" />
                     ))}
-                    <span className="text-sm font-bold text-[#F59E0B] ml-1">{remaining}</span>
+                    <span className="text-sm font-bold text-amber-brand ml-1">{remaining}</span>
                     <span className="text-xs text-gray-400">残</span>
                   </div>
                   {credit.expires_at && (
@@ -223,7 +223,7 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
                 required
                 value={assignedDate}
                 onChange={(e) => { setAssignedDate(e.target.value); setSelectedLessonId('') }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
             </div>
 
@@ -260,7 +260,7 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
                             isFull
                               ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
                               : isSelected
-                                ? 'border-[#1E3A5F] bg-blue-50'
+                                ? 'border-navy bg-blue-50'
                                 : isPreferred
                                   ? 'border-amber-200 bg-amber-50 hover:border-amber-400'
                                   : 'border-gray-100 hover:border-gray-300',

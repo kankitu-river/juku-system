@@ -73,7 +73,7 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
             </Link>
             <Link
               href="/shifts/survey"
-              className="text-sm text-[#1E3A5F] font-medium hover:underline"
+              className="text-sm text-navy font-medium hover:underline"
             >
               出勤アンケート →
             </Link>

@@ -161,7 +161,7 @@ export function IntensivePlanner({
               value={studentSearch}
               onChange={(e) => setStudentSearch(e.target.value)}
               placeholder="名前・学年で検索"
-              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
           <ul className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
@@ -186,7 +186,7 @@ export function IntensivePlanner({
                         <>
                           <p className={[
                             'text-xs font-bold',
-                            enrolled >= total ? 'text-green-600' : 'text-[#F59E0B]',
+                            enrolled >= total ? 'text-green-600' : 'text-amber-brand',
                           ].join(' ')}>
                             {enrolled}/{total}コマ
                           </p>
@@ -241,7 +241,7 @@ export function IntensivePlanner({
                     <button
                       onClick={handleSavePlan}
                       disabled={isPending}
-                      className="px-3 py-1.5 bg-[#1E3A5F] text-white text-sm rounded-lg hover:bg-[#162d4a] disabled:opacity-50"
+                      className="px-3 py-1.5 bg-navy text-white text-sm rounded-lg hover:bg-navy-dark disabled:opacity-50"
                     >
                       保存
                     </button>
@@ -255,7 +255,7 @@ export function IntensivePlanner({
                 ) : (
                   <button
                     onClick={() => setEditingPlan({ subject: SUBJECTS[0], count: '1' })}
-                    className="px-3 py-1.5 border border-[#1E3A5F] text-[#1E3A5F] text-sm rounded-lg hover:bg-blue-50 transition-colors"
+                    className="px-3 py-1.5 border border-navy text-navy text-sm rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     + 科目を追加
                   </button>

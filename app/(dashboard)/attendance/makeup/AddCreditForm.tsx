@@ -48,7 +48,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
     <div className="mb-6">
       <button
         onClick={() => { setOpen((v) => !v); setError(''); setSuccess('') }}
-        className="flex items-center gap-2 text-sm font-medium text-[#1E3A5F] border border-[#1E3A5F] rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
+        className="flex items-center gap-2 text-sm font-medium text-navy border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -74,7 +74,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
                 required
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               >
                 <option value="">選択してください</option>
                 {students.map((s) => (
@@ -95,7 +95,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
                   required
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
                 />
               </div>
               <div className="flex-1">
@@ -103,7 +103,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
                 <select
                   value={expiresMonths}
                   onChange={(e) => setExpiresMonths(Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
                 >
                   <option value={1}>1ヶ月後</option>
                   <option value={2}>2ヶ月後</option>
@@ -118,7 +118,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
               <button
                 type="submit"
                 disabled={!studentId || isPending}
-                className="flex-1 bg-[#1E3A5F] text-white text-sm rounded-lg py-2 font-medium hover:bg-[#2d5487] disabled:opacity-40 transition-colors"
+                className="flex-1 bg-navy text-white text-sm rounded-lg py-2 font-medium hover:bg-navy-light disabled:opacity-40 transition-colors"
               >
                 {isPending ? '追加中...' : `${amount}件追加する`}
               </button>

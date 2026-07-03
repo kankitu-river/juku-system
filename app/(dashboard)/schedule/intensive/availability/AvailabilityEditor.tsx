@@ -137,7 +137,7 @@ export function AvailabilityEditor({
               value={studentSearch}
               onChange={(e) => setStudentSearch(e.target.value)}
               placeholder="名前・学年で検索"
-              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
           <ul className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
@@ -201,7 +201,7 @@ export function AvailabilityEditor({
                     onChange={(e) => handleNotesChange(e.target.value)}
                     placeholder="例：3コマ連続は避けてほしい、午前中は不可など"
                     rows={2}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] resize-none"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-navy resize-none"
                   />
                 </div>
               </div>
@@ -213,14 +213,14 @@ export function AvailabilityEditor({
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr>
-                      <th className="border border-gray-200 bg-[#1E3A5F] text-white px-3 py-2 text-left font-medium whitespace-nowrap w-28">
+                      <th className="border border-gray-200 bg-navy text-white px-3 py-2 text-left font-medium whitespace-nowrap w-28">
                         日付
                       </th>
-                      <th className="border border-gray-200 bg-[#1E3A5F] text-white px-2 py-2 text-center font-medium whitespace-nowrap w-16">
+                      <th className="border border-gray-200 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap w-16">
                         全選択
                       </th>
                       {INTENSIVE_SLOTS.map((slot) => (
-                        <th key={slot.index} className="border border-gray-200 bg-[#1E3A5F] text-white px-2 py-2 text-center font-medium whitespace-nowrap">
+                        <th key={slot.index} className="border border-gray-200 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap">
                           <div>第{slot.index}コマ</div>
                           <div className="text-[10px] opacity-70">{slot.start}〜</div>
                         </th>
