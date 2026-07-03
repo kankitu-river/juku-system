@@ -65,6 +65,8 @@ export function IntensivePlanner({
   const [studentSearch, setStudentSearch] = useState('')
   // 持ちコマまとめて入力
   const [bulkRows, setBulkRows] = useState<{ subject: string; count: string }[] | null>(null)
+  const [error, setError] = useState<string>()
+  const [showOverview, setShowOverview] = useState(false)
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId)
 
@@ -120,12 +122,12 @@ export function IntensivePlanner({
 
   function handleEnrollToggle(lessonId: string) {
     if (!selectedStudentId) return
+    setError(undefined)
     startTransition(async () => {
-      if (isEnrolled(lessonId)) {
-        await unenrollIntensiveLesson(selectedStudentId, lessonId)
-      } else {
-        await enrollIntensiveLesson(selectedStudentId, lessonId)
-      }
+      const res = isEnrolled(lessonId)
+        ? await unenrollIntensiveLesson(selectedStudentId, lessonId)
+        : await enrollIntensiveLesson(selectedStudentId, lessonId)
+      if (res.error) { setError(`割り当ての保存に失敗しました: ${res.error}`); return }
       router.refresh()
     })
   }
@@ -134,8 +136,10 @@ export function IntensivePlanner({
     if (!editingPlan || !selectedStudentId) return
     const count = parseInt(editingPlan.count)
     if (!count || count < 1) return
+    setError(undefined)
     startTransition(async () => {
-      await upsertIntensivePlan(selectedStudentId, termPeriodId, editingPlan.subject, count)
+      const res = await upsertIntensivePlan(selectedStudentId, termPeriodId, editingPlan.subject, count)
+      if (res.error) { setError(`持ちコマの保存に失敗しました: ${res.error}`); return }
       setEditingPlan(null)
       router.refresh()
     })
@@ -143,8 +147,10 @@ export function IntensivePlanner({
 
   function handleDeletePlan(subject: string) {
     if (!selectedStudentId) return
+    setError(undefined)
     startTransition(async () => {
-      await deleteIntensivePlan(selectedStudentId, termPeriodId, subject)
+      const res = await deleteIntensivePlan(selectedStudentId, termPeriodId, subject)
+      if (res.error) { setError(`削除に失敗しました: ${res.error}`); return }
       router.refresh()
     })
   }
@@ -166,8 +172,10 @@ export function IntensivePlanner({
     const plans = bulkRows
       .map((r) => ({ subject: r.subject, count: parseInt(r.count) || 0 }))
       .filter((r) => r.subject)
+    setError(undefined)
     startTransition(async () => {
-      await saveStudentPlans(selectedStudentId, termPeriodId, plans)
+      const res = await saveStudentPlans(selectedStudentId, termPeriodId, plans)
+      if (res.error) { setError(`持ちコマの保存に失敗しました: ${res.error}`); return }
       setBulkRows(null)
       router.refresh()
     })
@@ -177,8 +185,83 @@ export function IntensivePlanner({
     !studentSearch || s.name.includes(studentSearch) || s.grade.includes(studentSearch)
   )
 
+  const studentsWithPlans = students.filter((s) => plans.some((p) => p.student_id === s.id))
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div className="space-y-4">
+      {error && (
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
+      )}
+
+      {/* 持ちコマ一覧（全生徒） */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <button
+          onClick={() => setShowOverview((v) => !v)}
+          className="w-full px-5 py-3.5 flex items-center justify-between text-left"
+        >
+          <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+            持ちコマ一覧
+            <span className="ml-2 text-xs font-normal text-gray-400">
+              設定済み {studentsWithPlans.length}名 / 全{students.length}名
+            </span>
+          </p>
+          <svg className={`w-4 h-4 text-gray-400 transition-transform ${showOverview ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {showOverview && (
+          studentsWithPlans.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-gray-400 text-center border-t border-gray-100 dark:border-gray-700">
+              持ちコマが設定された生徒はまだいません
+            </p>
+          ) : (
+            <div className="border-t border-gray-100 dark:border-gray-700 overflow-x-auto">
+              <table className="w-full text-sm min-w-[480px]">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300">生徒</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300">学年</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300">持ちコマ内訳</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300">割当済み/合計</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+                  {studentsWithPlans.map((s) => {
+                    const { total, enrolled } = getStudentProgress(s.id)
+                    const breakdown = plans
+                      .filter((p) => p.student_id === s.id)
+                      .map((p) => `${p.subject}${p.planned_count}`)
+                      .join('・')
+                    return (
+                      <tr
+                        key={s.id}
+                        onClick={() => { setSelectedStudentId(s.id); setShowOverview(false) }}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-4 py-2 font-medium text-gray-900 dark:text-gray-100">{s.name}</td>
+                        <td className="px-4 py-2 text-gray-500 dark:text-gray-400 text-xs">{getDisplayGrade(s.grade)}</td>
+                        <td className="px-4 py-2 text-gray-600 dark:text-gray-300 text-xs">{breakdown}</td>
+                        <td className="px-4 py-2 text-right">
+                          <span className={[
+                            'text-xs font-bold px-2 py-0.5 rounded-full',
+                            enrolled >= total
+                              ? 'bg-green-100 dark:bg-green-900/60 text-green-700 dark:text-green-300'
+                              : 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300',
+                          ].join(' ')}>
+                            {enrolled}/{total}コマ
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {/* 生徒一覧 */}
       <div className="lg:col-span-1">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
@@ -481,6 +564,7 @@ export function IntensivePlanner({
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   )
