@@ -1,4 +1,5 @@
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, GROUP_SATURDAY_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
+import { toDateStr } from '@/lib/utils/datetime'
 import type { Lesson, TermPeriod } from '@/types'
 
 // 指定月の特定曜日の日付一覧を返す（dayOfWeek: 1=月〜6=土）
@@ -30,7 +31,7 @@ export function expandLessonsForMonth(
   for (const lesson of lessons) {
     const dates = getDatesForDayOfWeek(year, month, lesson.day_of_week)
     for (const date of dates) {
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = toDateStr(date)
       const termType = getTermTypeForDate(dateStr, termPeriods)
       if (lesson.term_type !== termType) continue
 

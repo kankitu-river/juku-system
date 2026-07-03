@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getSlotLabel } from '@/lib/constants/timeSlots'
+import { getJstTodayStr } from '@/lib/utils/datetime'
 import type { Lesson } from '@/types'
 
 interface PageProps {
@@ -15,8 +16,8 @@ interface PageProps {
 export default async function LessonAttendancePage({ params, searchParams }: PageProps) {
   const { lessonId } = await params
   const { date } = await searchParams
-  const dateStr = date ?? new Date().toISOString().split('T')[0]
-  const dateLabel = new Date(dateStr).toLocaleDateString('ja-JP', {
+  const dateStr = date ?? getJstTodayStr()
+  const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('ja-JP', {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
   })
 

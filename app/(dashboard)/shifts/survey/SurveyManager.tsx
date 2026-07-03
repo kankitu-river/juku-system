@@ -104,8 +104,8 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
 
   const today = new Date()
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, '0')}`
-  const defaultDeadline = new Date(today.getFullYear(), today.getMonth() + 1, 10)
-    .toISOString().split('T')[0]
+  const defaultDeadlineDate = new Date(today.getFullYear(), today.getMonth() + 1, 10)
+  const defaultDeadline = `${defaultDeadlineDate.getFullYear()}-${String(defaultDeadlineDate.getMonth() + 1).padStart(2, '0')}-${String(defaultDeadlineDate.getDate()).padStart(2, '0')}`
 
   const [form, setForm] = useState({
     target_month: defaultMonth,

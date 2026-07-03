@@ -3,6 +3,7 @@ import { Header } from '@/components/layout/Header'
 import { WeeklyShiftTable } from '@/components/shifts/WeeklyShiftTable'
 import { CopyShiftsButton } from './CopyShiftsButton'
 import Link from 'next/link'
+import { getJstTodayStr } from '@/lib/utils/datetime'
 import type { Teacher, Lesson } from '@/types'
 
 interface PageProps {
@@ -35,7 +36,7 @@ function addWeeks(dateStr: string, weeks: number): string {
 
 export default async function ShiftsPage({ searchParams }: PageProps) {
   const { date } = await searchParams
-  const referenceDate = date ? new Date(date) : new Date()
+  const referenceDate = new Date(date ?? getJstTodayStr())
   const weekDates = getWeekDates(referenceDate)
   const weekLabel = formatWeekLabel(weekDates)
 

@@ -7,6 +7,7 @@ import { assignMakeup } from '@/app/(dashboard)/attendance/actions'
 import { getSlotLabel } from '@/lib/constants/timeSlots'
 import { DAYS_OF_WEEK } from '@/lib/constants/timeSlots'
 import { getDisplayGrade } from '@/lib/utils/grade'
+import { toDateStr } from '@/lib/utils/datetime'
 
 interface StudentInfo {
   id: string
@@ -94,7 +95,7 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
   const router = useRouter()
   const [selectedCredit, setSelectedCredit] = useState<Credit | null>(null)
   const [selectedLessonId, setSelectedLessonId] = useState('')
-  const [assignedDate, setAssignedDate] = useState(new Date().toISOString().split('T')[0])
+  const [assignedDate, setAssignedDate] = useState(() => toDateStr(new Date()))
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
 

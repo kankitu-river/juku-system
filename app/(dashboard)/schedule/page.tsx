@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { Lesson, TermPeriod, Teacher, Student } from '@/types'
 import type { TimeSlotConfig } from '@/app/(dashboard)/settings/actions'
 import { DailyNoteEditor } from '@/components/schedule/DailyNoteEditor'
+import { getJstTodayStr } from '@/lib/utils/datetime'
 
 interface PageProps {
   searchParams: Promise<{ view?: string; date?: string }>
@@ -17,7 +18,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const { view = 'week', date } = await searchParams
   const supabase = await createClient()
 
-  const referenceDate = date ? new Date(date) : new Date()
+  const referenceDate = new Date(`${date ?? getJstTodayStr()}T12:00:00`)
 
   // 表示週の月〜土の日付を計算（シフト取得用）
   const pad0 = (n: number) => String(n).padStart(2, '0')

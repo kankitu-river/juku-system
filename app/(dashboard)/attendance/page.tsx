@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import Link from 'next/link'
-import type { Lesson } from '@/types'
+import type { Lesson, TermPeriod } from '@/types'
 import { getSlotLabel } from '@/lib/constants/timeSlots'
+import { getJstTodayStr, toDateStr } from '@/lib/utils/datetime'
 
 interface PageProps {
   searchParams: Promise<{ date?: string }>
@@ -10,8 +11,8 @@ interface PageProps {
 
 export default async function AttendancePage({ searchParams }: PageProps) {
   const { date } = await searchParams
-  const targetDate = date ? new Date(date) : new Date()
-  const dateStr = targetDate.toISOString().split('T')[0]
+  const dateStr = date ?? getJstTodayStr()
+  const targetDate = new Date(`${dateStr}T12:00:00`)
   const dayOfWeek = targetDate.getDay() // 0=日
 
   const dateLabel = targetDate.toLocaleDateString('ja-JP', {
@@ -23,39 +24,45 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
   const supabase = await createClient()
 
-  // 今日のコマ（day_of_weekで絞り込み）
-  const { data: lessons } = await supabase
-    .from('lessons')
-    .select(`
-      *,
-      teacher:teachers(id, name),
-      enrollments:lesson_enrollments(
-        id, student_id,
-        student:students(id, name)
-      )
-    `)
-    .eq('day_of_week', dayOfWeek)
-    .order('slot_index')
-
-  // 今日の出欠記録
-  const { data: attendances } = await supabase
-    .from('attendances')
-    .select('*')
-    .eq('date', dateStr)
+  const [{ data: lessons }, { data: attendances }, { data: termPeriods }] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select(`
+        *,
+        teacher:teachers(id, name),
+        enrollments:lesson_enrollments(
+          id, student_id,
+          student:students(id, name)
+        )
+      `)
+      .eq('day_of_week', dayOfWeek)
+      .order('slot_index'),
+    supabase.from('attendances').select('*').eq('date', dateStr),
+    supabase.from('term_periods').select('*')
+      .lte('start_date', dateStr)
+      .gte('end_date', dateStr),
+  ])
 
   const attendanceMap = new Map<string, string>()
   for (const a of attendances ?? []) {
     attendanceMap.set(`${a.student_id}-${a.lesson_id}`, a.status)
   }
 
-  const typedLessons = (lessons as Lesson[]) ?? []
+  // その日の期間区分に合うコマだけを表示（臨時コマは特定日一致のみ）
+  const termType = ((termPeriods as TermPeriod[])?.[0]?.type as 'regular' | 'intensive') ?? 'regular'
+  const typedLessons = ((lessons as Lesson[]) ?? []).filter((l) =>
+    l.lesson_kind === 'temporary' ? l.specific_date === dateStr : l.term_type === termType
+  )
 
-  function getCompletionRate(lesson: Lesson): { present: number; total: number } {
+  function getCompletionRate(lesson: Lesson): { present: number; recorded: number; total: number } {
     const enrolled = lesson.enrollments ?? []
     const present = enrolled.filter(
       (e) => attendanceMap.get(`${e.student_id}-${lesson.id}`) === 'present'
     ).length
-    return { present, total: enrolled.length }
+    const recorded = enrolled.filter(
+      (e) => attendanceMap.get(`${e.student_id}-${lesson.id}`)
+    ).length
+    return { present, recorded, total: enrolled.length }
   }
 
   return (
@@ -65,7 +72,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
       {/* 日付ナビゲーション */}
       <div className="flex items-center gap-3 mb-6">
         <Link
-          href={`/attendance?date=${prevDate.toISOString().split('T')[0]}`}
+          href={`/attendance?date=${toDateStr(prevDate)}`}
           className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
         >
           ‹ 前日
@@ -77,7 +84,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           今日
         </Link>
         <Link
-          href={`/attendance?date=${nextDate.toISOString().split('T')[0]}`}
+          href={`/attendance?date=${toDateStr(nextDate)}`}
           className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
         >
           翌日 ›
@@ -99,10 +106,8 @@ export default async function AttendancePage({ searchParams }: PageProps) {
       ) : (
         <div className="space-y-3">
           {typedLessons.map((lesson) => {
-            const { present, total } = getCompletionRate(lesson)
-            const allDone = total > 0 && present + (lesson.enrollments ?? []).filter(
-              (e) => attendanceMap.get(`${e.student_id}-${lesson.id}`)
-            ).length === total
+            const { present, recorded, total } = getCompletionRate(lesson)
+            const allDone = total > 0 && recorded === total
             const slotLabel = getSlotLabel(lesson.slot_index, lesson.day_of_week, lesson.term_type, lesson.type)
 
             return (
