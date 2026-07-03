@@ -143,7 +143,12 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           />
         )}
         {view === 'month' && (
-          <MonthlyViewPlaceholder date={referenceDate} />
+          <MonthlyViewPlaceholder
+            date={referenceDate}
+            lessons={(lessons as Lesson[]) ?? []}
+            termPeriods={(termPeriods as TermPeriod[]) ?? []}
+            closureDates={closureDates}
+          />
         )}
         {view === 'day' && (
           <>
@@ -156,7 +161,12 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   )
 }
 
-function MonthlyViewPlaceholder({ date }: { date: Date }) {
+function MonthlyViewPlaceholder({ date, lessons, termPeriods, closureDates }: {
+  date: Date
+  lessons: Lesson[]
+  termPeriods: TermPeriod[]
+  closureDates: string[]
+}) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const year = date.getFullYear()
@@ -175,7 +185,17 @@ function MonthlyViewPlaceholder({ date }: { date: Date }) {
   while (cells.length % 7 !== 0) cells.push(null)
 
   const dayHeaders = ['月', '火', '水', '木', '金', '土', '日']
-  const today = new Date()
+  const todayStr = getJstTodayStr()
+
+  // その日のコマ数（期間区分・臨時コマの特定日を考慮）
+  function lessonCountFor(dateStr: string, dow: number): number {
+    const termType = termPeriods.find((t) => t.start_date <= dateStr && t.end_date >= dateStr)?.type ?? 'regular'
+    return lessons.filter((l) =>
+      l.lesson_kind === 'temporary'
+        ? l.specific_date === dateStr
+        : l.day_of_week === dow && l.term_type === termType
+    ).length
+  }
 
   return (
     <div>
@@ -201,33 +221,46 @@ function MonthlyViewPlaceholder({ date }: { date: Date }) {
           </div>
         ))}
         {cells.map((day, i) => {
-          const isToday =
-            day !== null &&
-            today.getFullYear() === year &&
-            today.getMonth() === month &&
-            today.getDate() === day
+          const cellDateStr = day !== null
+            ? `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            : null
+          const isToday = cellDateStr === todayStr
+          const isClosed = cellDateStr !== null && closureDates.includes(cellDateStr)
+          const dow = day !== null ? new Date(`${cellDateStr}T12:00:00`).getDay() : 0
+          const count = cellDateStr && !isClosed ? lessonCountFor(cellDateStr, dow) : 0
           return (
             <div
               key={i}
               className={[
                 'min-h-[80px] p-1.5 border-b border-r border-gray-100 dark:border-gray-700',
-                day === null ? 'bg-gray-50 dark:bg-gray-900/50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer',
+                day === null ? 'bg-gray-50 dark:bg-gray-900/50' :
+                isClosed ? 'bg-red-50/50 dark:bg-red-950/20 cursor-pointer' :
+                'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer',
                 i % 7 === 0 ? 'border-l' : '',
               ].join(' ')}
             >
               {day !== null && (
                 <Link
-                  href={`/schedule?view=day&date=${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`}
+                  href={`/schedule?view=day&date=${cellDateStr}`}
                   className="block w-full h-full"
                 >
                   <span
                     className={[
                       'inline-flex items-center justify-center w-7 h-7 rounded-full text-sm',
-                      isToday ? 'bg-navy text-white font-bold' : 'text-gray-700 dark:text-gray-300',
+                      isToday ? 'bg-navy text-white font-bold' :
+                      isClosed ? 'text-red-400' :
+                      'text-gray-700 dark:text-gray-300',
                     ].join(' ')}
                   >
                     {day}
                   </span>
+                  {isClosed ? (
+                    <span className="block text-[10px] font-bold text-red-400 mt-1">休校</span>
+                  ) : count > 0 ? (
+                    <span className="inline-block text-[10px] font-medium bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-900 rounded-full px-1.5 py-0.5 mt-1">
+                      {count}コマ
+                    </span>
+                  ) : null}
                 </Link>
               )}
             </div>
