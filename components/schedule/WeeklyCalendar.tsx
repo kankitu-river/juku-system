@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { Lesson, TermPeriod, TimeSlot } from '@/types'
 import {
   REGULAR_SLOTS,
@@ -62,7 +64,13 @@ export function WeeklyCalendar({
   closureDates = [],
   customSlots,
 }: WeeklyCalendarProps) {
+  const router = useRouter()
   const [dayView, setDayView] = useState<DayView>('weekday')
+  // モバイル（lg未満）では1日分だけ表示する。初期値は今日（土日は月曜）
+  const [mobileDay, setMobileDay] = useState<number>(() => {
+    const d = new Date().getDay()
+    return d >= 1 && d <= 5 ? d : 1
+  })
 
   const slots_regular = customSlots?.regular ?? REGULAR_SLOTS
   const slots_intensive = customSlots?.intensive ?? INTENSIVE_SLOTS
@@ -155,16 +163,36 @@ const lessonMap = useMemo(() => {
   return (
     <div>
       {/* ナビ */}
-      <div className="flex items-center justify-between mb-3">
-        <a href={`/schedule?date=${toDateStr(prevWeekDate)}`}
-          className="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-          ‹ 前の週
-        </a>
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <div className="flex items-center gap-1">
+          <Link href={`/schedule?date=${toDateStr(prevWeekDate)}`}
+            className="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            ‹ 前の週
+          </Link>
+          <Link href={`/schedule?date=${todayStr}`}
+            className={[
+              'px-3 py-1.5 text-sm rounded-lg border',
+              weekDateStrings.includes(todayStr)
+                ? 'text-gray-300 dark:text-gray-600 border-gray-100 dark:border-gray-700 pointer-events-none'
+                : 'text-navy dark:text-blue-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium',
+            ].join(' ')}>
+            今日
+          </Link>
+        </div>
         <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{monthStr} {weekRange}</span>
-        <a href={`/schedule?date=${toDateStr(nextWeekDate)}`}
-          className="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-          次の週 ›
-        </a>
+        <div className="flex items-center gap-1">
+          <input
+            type="date"
+            value={toDateStr(monday)}
+            onChange={(e) => { if (e.target.value) router.push(`/schedule?date=${e.target.value}`) }}
+            className="px-2 py-1.5 text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent"
+            aria-label="表示する週の日付を選択"
+          />
+          <Link href={`/schedule?date=${toDateStr(nextWeekDate)}`}
+            className="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            次の週 ›
+          </Link>
+        </div>
       </div>
 
       {/* タブ */}
@@ -181,6 +209,31 @@ const lessonMap = useMemo(() => {
 
       {/* 月〜金ビュー */}
       {dayView === 'weekday' && (
+        <>
+        {/* モバイル用の曜日切り替え（lg以上では全曜日を表として表示） */}
+        <div className="lg:hidden flex gap-1 mb-3">
+          {weekdays.map((day, i) => {
+            const dateObj = new Date(weekDateStrings[i] + 'T12:00:00')
+            const isToday = weekDateStrings[i] === todayStr
+            return (
+              <button
+                key={day.value}
+                onClick={() => setMobileDay(day.value)}
+                className={[
+                  'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                  mobileDay === day.value
+                    ? 'bg-navy text-white'
+                    : isToday
+                      ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
+                ].join(' ')}
+              >
+                <div>{day.label}</div>
+                <div className="text-[10px] opacity-70">{dateObj.getMonth() + 1}/{dateObj.getDate()}</div>
+              </button>
+            )
+          })}
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -197,6 +250,7 @@ const lessonMap = useMemo(() => {
                   return (
                     <th key={day.value}
                       className={['border px-3 py-3 text-center font-semibold relative',
+                        day.value === mobileDay ? '' : 'hidden lg:table-cell',
                         isClosed ? 'bg-red-50 dark:bg-red-950/40 text-red-400 border-gray-200 dark:border-gray-700' :
                         isToday ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 border-amber-300 dark:border-amber-800 border-2' :
                         'bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700',
@@ -239,6 +293,7 @@ const lessonMap = useMemo(() => {
                     return (
                       <td key={day.value}
                         className={['border px-2 py-2 align-top',
+                          day.value === mobileDay ? '' : 'hidden lg:table-cell',
                           isClosed ? 'bg-red-50/50 border-gray-200 dark:border-gray-700' :
                           isToday ? 'bg-amber-50/60 border-amber-200 dark:border-amber-900' :
                           'border-gray-200 dark:border-gray-700',
@@ -280,6 +335,7 @@ const lessonMap = useMemo(() => {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* 土曜ビュー */}
