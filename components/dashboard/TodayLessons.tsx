@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { recordAttendance, markAbsentWithCredit, markAbsentNoCredit } from '@/app/(dashboard)/attendance/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
+import { getSlotsForLesson } from '@/lib/constants/timeSlots'
 
 interface Student {
   id: string
@@ -32,6 +33,14 @@ interface Lesson {
 interface TodayLessonsProps {
   lessons: Lesson[]
   todayStr: string
+  dayOfWeek?: number
+  termType?: 'regular' | 'intensive'
+}
+
+function jstTimeNow(): string {
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date())
 }
 
 interface AbsentDialog {
@@ -51,11 +60,19 @@ const STATUS_COLOR: Record<string, string> = {
   makeup_used: 'bg-amber-100 text-amber-700 border-amber-300',
 }
 
-export function TodayLessons({ lessons, todayStr }: TodayLessonsProps) {
+export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(), termType = 'regular' }: TodayLessonsProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [absentDialog, setAbsentDialog] = useState<AbsentDialog | null>(null)
   const [localAttendances, setLocalAttendances] = useState<Record<string, Record<string, string>>>({})
+  // 「進行中」判定はクライアント時刻で行う（SSRとのズレを避けるためマウント後に設定）
+  const [now, setNow] = useState<string | null>(null)
+
+  useEffect(() => {
+    setNow(jstTimeNow())
+    const timer = setInterval(() => setNow(jstTimeNow()), 60_000)
+    return () => clearInterval(timer)
+  }, [])
 
   function getStatus(lessonId: string, studentId: string, attendances: Attendance[]) {
     if (localAttendances[lessonId]?.[studentId]) return localAttendances[lessonId][studentId]
@@ -107,10 +124,47 @@ export function TodayLessons({ lessons, todayStr }: TodayLessonsProps) {
     )
   }
 
+  // スロットごとにグループ化して「進行中」「次」を判定
+  const slotGroups: { slotIndex: number; start: string; end: string; lessons: Lesson[] }[] = []
+  for (const lesson of lessons) {
+    let group = slotGroups.find((g) => g.slotIndex === lesson.slot_index)
+    if (!group) {
+      const slots = getSlotsForLesson(
+        lesson.type === 'group' ? 'group' : 'individual', dayOfWeek, termType
+      )
+      const slot = slots.find((s) => s.index === lesson.slot_index)
+      group = { slotIndex: lesson.slot_index, start: slot?.start ?? '', end: slot?.end ?? '', lessons: [] }
+      slotGroups.push(group)
+    }
+    group.lessons.push(lesson)
+  }
+  slotGroups.sort((a, b) => a.slotIndex - b.slotIndex)
+  const currentIdx = now ? slotGroups.findIndex((g) => g.start && now >= g.start && now <= g.end) : -1
+  const nextIdx = now ? slotGroups.findIndex((g) => g.start && g.start > now) : -1
+
   return (
     <>
-      <ul className="divide-y divide-gray-50">
-        {lessons.map((lesson) => {
+      {slotGroups.map((group, gi) => (
+        <div key={group.slotIndex}>
+          <div className={[
+            'px-5 py-2 border-y border-gray-100 flex items-center gap-2 text-xs font-semibold',
+            gi === currentIdx
+              ? 'bg-amber-50 border-l-4 border-l-amber-brand text-amber-900'
+              : 'bg-gray-50 text-gray-600',
+          ].join(' ')}>
+            第{group.slotIndex}コマ
+            {group.start && (
+              <span className="font-normal opacity-60">{group.start}〜{group.end}</span>
+            )}
+            {gi === currentIdx && (
+              <span className="bg-amber-brand text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">進行中</span>
+            )}
+            {gi === nextIdx && gi !== currentIdx && (
+              <span className="bg-gray-200 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">次</span>
+            )}
+          </div>
+          <ul className="divide-y divide-gray-50">
+        {group.lessons.map((lesson) => {
           const students = lesson.enrollments.map((e) => e.student).filter(Boolean) as Student[]
           return (
             <li key={lesson.id} className="px-5 py-4">
@@ -190,7 +244,9 @@ export function TodayLessons({ lessons, todayStr }: TodayLessonsProps) {
             </li>
           )
         })}
-      </ul>
+          </ul>
+        </div>
+      ))}
 
       {/* 欠席確認ダイアログ */}
       {absentDialog && (

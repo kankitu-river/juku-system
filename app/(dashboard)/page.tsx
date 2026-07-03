@@ -1,21 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { TodayLessons } from '@/components/dashboard/TodayLessons'
+import { UnrecordedAlert, type UnrecordedLesson } from '@/components/dashboard/UnrecordedAlert'
 import { Card } from '@/components/ui/Card'
 import Link from 'next/link'
 import { getDisplayGrade } from '@/lib/utils/grade'
-
-function toDateStr(d: Date) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+import { getJstNow, getJstTodayStr } from '@/lib/utils/datetime'
+import { getSlotsForLesson } from '@/lib/constants/timeSlots'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
-  const today = new Date()
-  const todayStr = toDateStr(today)
+  const today = getJstNow()
+  const todayStr = getJstTodayStr()
   const displayDate = today.toLocaleDateString('ja-JP', {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
   })
@@ -31,8 +27,9 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from('lessons')
-      .select('*, teacher:teachers(name), enrollments:lesson_enrollments(student:students(id, name, grade)), attendances(student_id, status)')
+      .select('*, teacher:teachers(name), enrollments:lesson_enrollments(student:students(id, name, grade)), attendances(student_id, status, date)')
       .eq('day_of_week', dayOfWeek)
+      .eq('attendances.date', todayStr)
       .order('slot_index'),
     supabase.from('term_periods').select('*')
       .lte('start_date', todayStr)
@@ -59,54 +56,39 @@ export default async function DashboardPage() {
   // 振替残数が1以下（少ない）生徒
   const lowCreditStudents = creditWithStudents.filter((mc) => mc.remaining <= 1 && mc.remaining > 0)
 
+  // 今日実際にあるコマ（期間区分と臨時コマの特定日でフィルタ）
+  const termType = (currentTerm?.type as 'regular' | 'intensive') ?? 'regular'
+  const todayLessons = (lessons ?? []).filter((l) =>
+    l.lesson_kind === 'temporary' ? l.specific_date === todayStr : l.term_type === termType
+  )
+
+  // 出欠未入力アラート用データ（終了時刻の判定はクライアント側）
+  const unrecordedLessons: UnrecordedLesson[] = todayLessons
+    .map((l) => {
+      const enrolledIds = (l.enrollments ?? [])
+        .map((e: { student: { id: string } | null }) => e.student?.id)
+        .filter(Boolean) as string[]
+      const recordedIds = new Set((l.attendances ?? []).map((a: { student_id: string }) => a.student_id))
+      const unrecordedCount = enrolledIds.filter((id) => !recordedIds.has(id)).length
+      const slots = getSlotsForLesson(l.type, l.day_of_week, l.term_type)
+      const slot = slots.find((s) => s.index === l.slot_index)
+      return {
+        lessonId: l.id as string,
+        slotIndex: l.slot_index as number,
+        timeLabel: slot ? `${slot.start}〜${slot.end}` : '',
+        endTime: slot?.end ?? '23:59',
+        teacherName: (l.teacher as { name: string } | null)?.name ?? null,
+        unrecordedCount,
+      }
+    })
+    .filter((l) => l.unrecordedCount > 0)
+
   return (
     <div>
       <Header title="ダッシュボード" subtitle={displayDate} />
 
-      {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <p className="text-sm text-gray-500 mb-1">今日のコマ数</p>
-          <p className="text-3xl font-bold text-navy">
-            {lessons?.length ?? 0}
-            <span className="text-base font-normal text-gray-500 ml-1">コマ</span>
-          </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-500 mb-1">現在の期間区分</p>
-          <p className="text-xl font-bold text-navy">
-            {currentTerm ? currentTerm.name : '通常期間'}
-          </p>
-          {currentTerm && (
-            <p className="text-xs text-gray-400 mt-1">
-              〜 {new Date(currentTerm.end_date).toLocaleDateString('ja-JP')}
-            </p>
-          )}
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-500 mb-1">本日出勤講師数</p>
-          <p className="text-3xl font-bold text-navy">
-            {workingTeacherCount}
-            <span className="text-base font-normal text-gray-500 ml-1">名</span>
-          </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-500 mb-1">クイックリンク</p>
-          <div className="flex flex-wrap gap-2 mt-1">
-            <Link href="/schedule/new" className="text-sm text-navy hover:underline font-medium">
-              + コマ追加
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/students/new" className="text-sm text-navy hover:underline font-medium">
-              + 生徒追加
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/attendance/makeup" className="text-sm text-navy hover:underline font-medium">
-              振替管理
-            </Link>
-          </div>
-        </Card>
-      </div>
+      {/* 出欠未入力アラート（終了済みコマ） */}
+      <UnrecordedAlert lessons={unrecordedLessons} />
 
       {/* 振替がたまりすぎ警告 */}
       {highCreditStudents.length > 0 && (
@@ -162,6 +144,51 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* 統計カード */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <p className="text-sm text-gray-500 mb-1">今日のコマ数</p>
+          <p className="text-3xl font-bold text-navy">
+            {todayLessons.length}
+            <span className="text-base font-normal text-gray-500 ml-1">コマ</span>
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-gray-500 mb-1">現在の期間区分</p>
+          <p className="text-xl font-bold text-navy">
+            {currentTerm ? currentTerm.name : '通常期間'}
+          </p>
+          {currentTerm && (
+            <p className="text-xs text-gray-400 mt-1">
+              〜 {new Date(currentTerm.end_date).toLocaleDateString('ja-JP')}
+            </p>
+          )}
+        </Card>
+        <Card>
+          <p className="text-sm text-gray-500 mb-1">本日出勤講師数</p>
+          <p className="text-3xl font-bold text-navy">
+            {workingTeacherCount}
+            <span className="text-base font-normal text-gray-500 ml-1">名</span>
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-gray-500 mb-1">クイックリンク</p>
+          <div className="flex flex-wrap gap-2 mt-1">
+            <Link href="/schedule/new" className="text-sm text-navy hover:underline font-medium">
+              + コマ追加
+            </Link>
+            <span className="text-gray-300">|</span>
+            <Link href="/students/new" className="text-sm text-navy hover:underline font-medium">
+              + 生徒追加
+            </Link>
+            <span className="text-gray-300">|</span>
+            <Link href="/attendance/makeup" className="text-sm text-navy hover:underline font-medium">
+              振替管理
+            </Link>
+          </div>
+        </Card>
+      </div>
+
       {/* 今日のコマ + 出欠クイック入力 */}
       <Card
         title="今日のコマと出欠入力"
@@ -172,7 +199,12 @@ export default async function DashboardPage() {
           </Link>
         }
       >
-        <TodayLessons lessons={(lessons ?? []) as any} todayStr={todayStr} />
+        <TodayLessons
+          lessons={todayLessons as any}
+          todayStr={todayStr}
+          dayOfWeek={dayOfWeek}
+          termType={termType}
+        />
       </Card>
     </div>
   )
