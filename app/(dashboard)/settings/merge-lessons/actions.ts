@@ -45,7 +45,7 @@ export async function getDuplicateGroups(): Promise<{ groups: DuplicateGroup[]; 
   const groups: DuplicateGroup[] = []
   for (const group of map.values()) {
     if (group.length <= 1) continue
-    const t = group[0].teacher as { id: string; name: string } | null
+    const t = group[0].teacher as unknown as { id: string; name: string } | null
     groups.push({
       teacherId: group[0].teacher_id!,
       teacherName: t?.name ?? '不明',
