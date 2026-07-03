@@ -35,11 +35,12 @@ export function DarkModeToggle({ compact = false }: { compact?: boolean }) {
     return (
       <button
         onClick={toggle}
-        className="p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white transition-colors"
         title={dark ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
         aria-label={dark ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
       >
         {icon}
+        <span className="hidden xl:inline">{dark ? 'ライト' : 'ダーク'}</span>
       </button>
     )
   }

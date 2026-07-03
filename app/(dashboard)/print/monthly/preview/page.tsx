@@ -117,7 +117,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
   const toDateStr = (day: number) => `${year}-${pad(month)}-${pad(day)}`
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="print-root bg-white min-h-screen">
       <AutoPrint />
       {/* @page設定・印刷縮小 */}
       <style>{`

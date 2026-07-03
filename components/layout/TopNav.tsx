@@ -67,6 +67,12 @@ const icons = {
         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
+  survey: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
   teachers: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -130,7 +136,16 @@ const navigation: NavEntry[] = [
       { href: '/attendance/makeup', label: '振替管理', icon: icons.makeup },
     ],
   },
-  { href: '/shifts', label: 'シフト管理', icon: icons.shifts },
+  {
+    label: 'シフト管理',
+    children: [
+      {
+        href: '/shifts', label: 'シフト表', icon: icons.shifts,
+        activeMatch: (p) => p.startsWith('/shifts') && !p.startsWith('/shifts/survey'),
+      },
+      { href: '/shifts/survey', label: '出勤アンケート', icon: icons.survey },
+    ],
+  },
   {
     label: '名簿',
     children: [
@@ -166,7 +181,7 @@ function SearchForm({ compact }: { compact?: boolean }) {
           placeholder="検索..."
           className={[
             'bg-white/10 text-white placeholder-white/40 text-sm rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:bg-white/20 transition-all',
-            compact ? 'w-36 focus:w-48' : 'w-full',
+            compact ? 'w-24 focus:w-44 xl:w-32 xl:focus:w-48' : 'w-full',
           ].join(' ')}
         />
       </div>
@@ -214,11 +229,11 @@ export function TopNav() {
         </Link>
 
         {/* デスクトップ: 中央ナビ */}
-        <nav className="hidden lg:flex items-center gap-1 flex-1 ml-6">
+        <nav className="hidden lg:flex items-center gap-1 flex-1 ml-3">
           {navigation.map((entry) => {
             const active = isEntryActive(entry, pathname)
             const baseClass = [
-              'px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+              'px-2 xl:px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
               active ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white',
             ].join(' ')
 
@@ -279,20 +294,22 @@ export function TopNav() {
             title="設定"
             aria-label="設定"
             className={[
-              'p-2 rounded-lg transition-colors',
+              'flex items-center gap-1.5 px-2.5 py-2 rounded-lg transition-colors text-sm font-medium whitespace-nowrap',
               settingsActive ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white',
             ].join(' ')}
           >
             {icons.settings}
+            <span className="hidden xl:inline">設定</span>
           </Link>
           <form action="/api/auth/signout" method="POST">
             <button
               type="submit"
               title="ログアウト"
               aria-label="ログアウト"
-              className="p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-white/70 hover:bg-white/10 hover:text-white transition-colors"
             >
               {icons.logout}
+              <span className="hidden xl:inline">ログアウト</span>
             </button>
           </form>
         </div>

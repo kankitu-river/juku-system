@@ -109,7 +109,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   const yearLabel = start.getFullYear()
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="print-root bg-white min-h-screen">
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 3mm; }

@@ -122,16 +122,16 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="print-root bg-white min-h-screen">
       <AutoPrint />
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 6mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-          /* ページ全体: A4縦297mm − 上下余白6mm×2 = 285mm */
+          /* ページ全体: A4縦297mm − 上下余白6mm×2 = 285mm（誤差吸収で-2mm） */
           .dpp-page {
-            height: 285mm;
+            height: 283mm;
             display: flex !important;
             flex-direction: column !important;
             overflow: hidden !important;
@@ -157,9 +157,11 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             overflow: hidden !important;
           }
 
-          /* コマ枠 */
+          /* コマ枠: 印刷時のみコマ数に応じた比例配分（flex-basis 0）にする。
+             画面表示で basis 0 にすると高さが潰れて何も見えなくなるため print 限定 */
           .dpp-slot {
             min-height: 0 !important;
+            flex-basis: 0 !important;
             display: flex !important;
             flex-direction: column !important;
             overflow: hidden !important;
@@ -285,7 +287,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             {slotGroups.map((slot) => (
               <div key={`${slot.start}-${slot.end}`}
                 className="dpp-slot flex flex-col border border-gray-300 rounded-lg print:rounded-none overflow-hidden"
-                style={{ flexGrow: Math.max(slot.lessons.length, 1), flexBasis: 0 }}>
+                style={{ flexGrow: Math.max(slot.lessons.length, 1) }}>
                 {/* コマヘッダー */}
                 <div className="dpp-slot-hdr bg-navy text-white flex items-center gap-6 px-4 py-2.5 print:px-3 print:py-1.5">
                   <span className="slot-num font-bold text-base print:text-sm">

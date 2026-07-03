@@ -16,6 +16,12 @@ body {
   color: #111827;
 }
 
+/* 印刷ページは従来フォントで固定
+   （Noto Sans JP は行間・字幅が広く、実寸調整済みの印刷レイアウトが溢れるため） */
+.print-root {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+}
+
 /* ダークモード（.dark は DarkModeToggle が <html> に付与） */
 .dark {
   color-scheme: dark;
@@ -49,6 +55,12 @@ body {
   main {
     margin: 0 !important;
     padding: 0 !important;
+  }
+  /* レイアウトの内側ラッパー（p-6 max-w-7xl）も印刷時は無効化 */
+  main > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
   }
   body {
     background: white !important;
