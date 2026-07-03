@@ -196,14 +196,14 @@ export function SurveyRespond({
 
   if (step === 'done') {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
+      <div className="bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-xl p-8 text-center">
         <div className="text-4xl mb-3">✅</div>
-        <p className="text-lg font-semibold text-green-800">回答を受け付けました</p>
-        <p className="text-sm text-green-600 mt-2">
+        <p className="text-lg font-semibold text-green-800 dark:text-green-200">回答を受け付けました</p>
+        <p className="text-sm text-green-600 dark:text-green-300 mt-2">
           {selectedTeacher?.teacher?.name} 先生：{selectedDateCount}日間、合計 {totalSlotCount} コマ登録
         </p>
         <p className="text-xs text-gray-400 mt-4">このページは閉じても大丈夫です</p>
-        <button onClick={() => setStep('select')} className="mt-4 text-sm text-navy underline">
+        <button onClick={() => setStep('select')} className="mt-4 text-sm text-navy dark:text-blue-300 underline">
           別の先生の回答を入力する
         </button>
       </div>
@@ -234,7 +234,7 @@ export function SurveyRespond({
           className={[
             'rounded-xl text-xs font-medium transition-all flex flex-col items-center justify-center py-1.5 gap-0.5 min-h-[44px]',
             isClosed
-              ? 'bg-red-100 text-red-400 cursor-not-allowed'
+              ? 'bg-red-100 dark:bg-red-900/60 text-red-400 cursor-not-allowed'
               : !isSelectable
                 ? 'text-gray-200 cursor-not-allowed'
                 : isActive
@@ -243,7 +243,7 @@ export function SurveyRespond({
                     ? 'bg-navy text-white shadow-sm'
                     : dow === 0 ? 'text-red-400 hover:bg-red-50'
                     : dow === 6 ? 'text-blue-400 hover:bg-blue-50'
-                    : 'text-gray-700 hover:bg-gray-100',
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
             isToday && !isSelected && !isActive && isSelectable ? 'ring-2 ring-navy ring-offset-1' : '',
           ].join(' ')}
         >
@@ -259,20 +259,20 @@ export function SurveyRespond({
         {/* 差分警告モーダル */}
         {changeWarning && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4">
               <div className="flex items-start gap-3">
                 <span className="text-2xl">⚠️</span>
                 <div>
-                  <p className="font-semibold text-gray-800">前回の回答と異なります</p>
-                  <p className="text-xs text-gray-500 mt-1">以下の曜日・コマが変わっています</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">前回の回答と異なります</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">以下の曜日・コマが変わっています</p>
                 </div>
               </div>
-              <ul className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-1">
+              <ul className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-4 py-3 space-y-1">
                 {changeWarning.map((c, i) => (
-                  <li key={i} className="text-sm text-amber-800">{c}</li>
+                  <li key={i} className="text-sm text-amber-800 dark:text-amber-200">{c}</li>
                 ))}
               </ul>
-              <p className="text-xs text-gray-500">このまま送信しますか？</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">このまま送信しますか？</p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -285,7 +285,7 @@ export function SurveyRespond({
                 <button
                   type="button"
                   onClick={() => setChangeWarning(null)}
-                  className="flex-1 border border-gray-300 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                  className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-sm"
                 >
                   見直す
                 </button>
@@ -296,20 +296,20 @@ export function SurveyRespond({
 
         {/* ヘッダー */}
         <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={() => setStep('select')} className="text-sm text-gray-500 hover:text-gray-700">← 戻る</button>
+          <button onClick={() => setStep('select')} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700">← 戻る</button>
           <div className="bg-navy text-white px-3 py-1.5 rounded-lg text-sm font-semibold">
             {selectedTeacher.teacher?.name} 先生
           </div>
           {termType === 'intensive' && (
-            <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-1 rounded-full font-medium">講習期間</span>
+            <span className="text-xs bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 px-2 py-1 rounded-full font-medium">講習期間</span>
           )}
           {slotsMap[selectedTeacher.teacher_id] && (
-            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">回答を更新中</span>
+            <span className="text-xs text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 px-2 py-1 rounded-full">回答を更新中</span>
           )}
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
         )}
 
         {/* カレンダー */}
@@ -320,12 +320,12 @@ export function SurveyRespond({
               const monthDays = getDaysInMonth(ym)
               const fd = monthDays[0].getDay()
               return (
-                <div key={ym} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">{y}年{m}月</p>
+                <div key={ym} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{y}年{m}月</p>
                   <div className="grid grid-cols-7 mb-1">
                     {DAY_NAMES.map((d, i) => (
                       <div key={d} className={['text-center text-xs font-medium py-1',
-                        i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500'].join(' ')}>
+                        i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500 dark:text-gray-400'].join(' ')}>
                         {d}
                       </div>
                     ))}
@@ -339,13 +339,13 @@ export function SurveyRespond({
             })}
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-0.5">{year}年{month}月</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0.5">{year}年{month}月</p>
             <p className="text-xs text-gray-400 mb-3">出勤できる日をタップ → コマを選択してください</p>
             <div className="grid grid-cols-7 mb-1">
               {DAY_NAMES.map((d, i) => (
                 <div key={d} className={['text-center text-xs font-medium py-1',
-                  i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500'].join(' ')}>
+                  i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500 dark:text-gray-400'].join(' ')}>
                   {d}
                 </div>
               ))}
@@ -362,13 +362,13 @@ export function SurveyRespond({
 
         {/* コマ選択パネル */}
         {activeDate && (
-          <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+          <div className="bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900 p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-blue-800">{formatDate(activeDate)}</p>
+              <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">{formatDate(activeDate)}</p>
               <div className="flex items-center gap-2 text-xs">
-                <button onClick={() => selectAllSlots(activeDate)} className="text-blue-600 hover:text-blue-800 font-medium">全選択</button>
+                <button onClick={() => selectAllSlots(activeDate)} className="text-blue-600 dark:text-blue-300 hover:text-blue-800 font-medium">全選択</button>
                 <span className="text-blue-300">|</span>
-                <button onClick={() => clearAllSlots(activeDate)} className="text-blue-600 hover:text-blue-800 font-medium">全解除</button>
+                <button onClick={() => clearAllSlots(activeDate)} className="text-blue-600 dark:text-blue-300 hover:text-blue-800 font-medium">全解除</button>
                 <span className="text-blue-300">|</span>
                 <button onClick={() => removeDate(activeDate)} className="text-red-500 hover:text-red-700 font-medium">この日を削除</button>
               </div>
@@ -383,11 +383,11 @@ export function SurveyRespond({
                     onClick={() => toggleSlot(activeDate, slot.index)}
                     className={[
                       'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left',
-                      isSlotSelected ? 'bg-navy text-white' : 'bg-white border border-blue-200 text-blue-800 hover:bg-blue-100',
+                      isSlotSelected ? 'bg-navy text-white' : 'bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-100',
                     ].join(' ')}
                   >
                     <span className={['text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0',
-                      isSlotSelected ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600'].join(' ')}>
+                      isSlotSelected ? 'bg-white/20 text-white' : 'bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300'].join(' ')}>
                       第{slot.index}コマ
                     </span>
                     <span>{slot.start}〜{slot.end}</span>
@@ -400,10 +400,10 @@ export function SurveyRespond({
         )}
 
         {/* サマリー */}
-        <div className="bg-blue-50 rounded-xl px-4 py-3 flex items-center justify-between">
-          <p className="text-sm text-blue-700">
-            <span className="font-bold text-lg text-navy">{selectedDateCount}</span> 日間・
-            合計 <span className="font-bold text-lg text-navy">{totalSlotCount}</span> コマ選択中
+        <div className="bg-blue-50 dark:bg-blue-950/40 rounded-xl px-4 py-3 flex items-center justify-between">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            <span className="font-bold text-lg text-navy dark:text-blue-300">{selectedDateCount}</span> 日間・
+            合計 <span className="font-bold text-lg text-navy dark:text-blue-300">{totalSlotCount}</span> コマ選択中
           </p>
           {selectedDateCount > 0 && (
             <button type="button" onClick={() => { setSelectedSlots({}); setActiveDate(null) }}
@@ -421,17 +421,17 @@ export function SurveyRespond({
 
   return (
     <div className="space-y-3">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <p className="text-sm font-semibold text-gray-700 mb-4">あなたの名前を選んでください</p>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">あなたの名前を選んでください</p>
         <div className="space-y-2">
           {tokens.map((token) => (
             <button key={token.id} type="button" onClick={() => handleSelectTeacher(token)}
-              className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-gray-200 hover:border-navy hover:bg-blue-50 transition-colors text-left group">
-              <span className="font-medium text-gray-800 group-hover:text-navy">
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-navy hover:bg-blue-50 transition-colors text-left group">
+              <span className="font-medium text-gray-800 dark:text-gray-100 group-hover:text-navy">
                 {token.teacher?.name ?? '—'} 先生
               </span>
               {token.responded_at ? (
-                <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium flex-shrink-0">✓ 回答済み（修正可）</span>
+                <span className="text-xs bg-green-100 dark:bg-green-900/60 text-green-700 dark:text-green-300 px-2.5 py-1 rounded-full font-medium flex-shrink-0">✓ 回答済み（修正可）</span>
               ) : (
                 <span className="text-xs text-gray-400 flex-shrink-0">未回答 →</span>
               )}

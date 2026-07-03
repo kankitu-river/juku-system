@@ -69,7 +69,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
         title="出欠集計レポート"
         subtitle={`${year}年${month}月`}
         actions={
-          <Link href="/attendance" className="text-sm text-navy hover:underline">
+          <Link href="/attendance" className="text-sm text-navy dark:text-blue-300 hover:underline">
             ← 出欠管理
           </Link>
         }
@@ -79,14 +79,14 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
       <div className="flex items-center gap-2 mb-6">
         <Link
           href={`/attendance/report?year=${prevMonth.year}&month=${prevMonth.month}`}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600"
+          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
         >
           ‹ 前月
         </Link>
-        <span className="font-semibold text-gray-800">{year}年{month}月</span>
+        <span className="font-semibold text-gray-800 dark:text-gray-100">{year}年{month}月</span>
         <Link
           href={`/attendance/report?year=${nextMonth.year}&month=${nextMonth.month}`}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600"
+          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
         >
           翌月 ›
         </Link>
@@ -102,23 +102,23 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
         const alertStudents = rows.filter((r) => r.summary.total > 0 && r.summary.present / r.summary.total < 0.6)
         return (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">{totalPresent}</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 text-center">
+              <p className="text-2xl font-bold text-green-600 dark:text-green-300">{totalPresent}</p>
               <p className="text-xs text-gray-400 mt-0.5">出席数</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 text-center">
               <p className="text-2xl font-bold text-red-500">{totalAbsent}</p>
               <p className="text-xs text-gray-400 mt-0.5">欠席数</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-              <p className="text-2xl font-bold text-navy">{rate}%</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 text-center">
+              <p className="text-2xl font-bold text-navy dark:text-blue-300">{rate}%</p>
               <p className="text-xs text-gray-400 mt-0.5">全体出席率</p>
             </div>
             <div className={[
               'rounded-xl border shadow-sm p-4 text-center',
-              alertStudents.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100',
+              alertStudents.length > 0 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700',
             ].join(' ')}>
-              <p className={['text-2xl font-bold', alertStudents.length > 0 ? 'text-amber-600' : 'text-gray-400'].join(' ')}>
+              <p className={['text-2xl font-bold', alertStudents.length > 0 ? 'text-amber-600 dark:text-amber-300' : 'text-gray-400'].join(' ')}>
                 {alertStudents.length}
               </p>
               <p className="text-xs text-gray-400 mt-0.5">出席率60%未満</p>
@@ -128,7 +128,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
       })()}
 
       {/* 生徒別テーブル */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -143,7 +143,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
                 <th className="text-center px-3 py-3 font-medium">状態</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
               {rows.map((row, i) => {
                 const { present, absent, makeup, total } = row.summary
                 const rate = total > 0 ? Math.round((present / total) * 100) : null
@@ -151,24 +151,24 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
                 const isWarning = rate !== null && rate >= 60 && rate < 80
                 return (
                   <tr key={row.id} className={[
-                    i % 2 === 1 ? 'bg-gray-50/50' : 'bg-white',
+                    i % 2 === 1 ? 'bg-gray-50/50' : 'bg-white dark:bg-gray-800',
                     isAlert ? 'bg-red-50/50' : '',
                   ].join(' ')}>
                     <td className="px-4 py-3">
-                      <Link href={`/students/${row.id}`} className="font-medium text-gray-900 hover:text-navy hover:underline">
+                      <Link href={`/students/${row.id}`} className="font-medium text-gray-900 dark:text-gray-100 hover:text-navy hover:underline">
                         {row.name}
                       </Link>
                     </td>
-                    <td className="px-3 py-3 text-center text-gray-500 text-xs">{getDisplayGrade(row.grade)}</td>
-                    <td className="px-3 py-3 text-center font-medium text-green-600">{present || '—'}</td>
+                    <td className="px-3 py-3 text-center text-gray-500 dark:text-gray-400 text-xs">{getDisplayGrade(row.grade)}</td>
+                    <td className="px-3 py-3 text-center font-medium text-green-600 dark:text-green-300">{present || '—'}</td>
                     <td className="px-3 py-3 text-center font-medium text-red-500">{absent || '—'}</td>
-                    <td className="px-3 py-3 text-center font-medium text-amber-600">{makeup || '—'}</td>
-                    <td className="px-3 py-3 text-center text-gray-500">{total || '—'}</td>
+                    <td className="px-3 py-3 text-center font-medium text-amber-600 dark:text-amber-300">{makeup || '—'}</td>
+                    <td className="px-3 py-3 text-center text-gray-500 dark:text-gray-400">{total || '—'}</td>
                     <td className="px-3 py-3 text-center">
                       {rate !== null ? (
                         <span className={[
                           'inline-block font-bold',
-                          isAlert ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-green-600',
+                          isAlert ? 'text-red-600 dark:text-red-300' : isWarning ? 'text-amber-600 dark:text-amber-300' : 'text-green-600 dark:text-green-300',
                         ].join(' ')}>
                           {rate}%
                         </span>
@@ -178,11 +178,11 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
                     </td>
                     <td className="px-3 py-3 text-center">
                       {isAlert ? (
-                        <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">要注意</span>
+                        <span className="text-[10px] bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-300 px-2 py-0.5 rounded-full font-medium">要注意</span>
                       ) : isWarning ? (
-                        <span className="text-[10px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-medium">注意</span>
+                        <span className="text-[10px] bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">注意</span>
                       ) : rate !== null ? (
-                        <span className="text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-medium">良好</span>
+                        <span className="text-[10px] bg-green-100 dark:bg-green-900/60 text-green-600 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">良好</span>
                       ) : null}
                     </td>
                   </tr>
@@ -191,7 +191,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-2 border-t border-gray-100 text-xs text-gray-400">
+        <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-400">
           出席率 60%未満 = 要注意（赤）、60〜79% = 注意（黄）、80%以上 = 良好（緑）
         </div>
       </div>

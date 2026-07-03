@@ -124,11 +124,11 @@ export function StudentImport({ teachers }: Props) {
         <button
           type="button"
           onClick={downloadSample}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
         >
           サンプルCSVをダウンロード
         </button>
-        <label className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-navy border border-navy rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+        <label className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-navy dark:text-blue-300 border border-navy rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
           CSVを選択してインポート
           <input
             ref={fileRef}
@@ -141,32 +141,32 @@ export function StudentImport({ teachers }: Props) {
       </div>
 
       {importResult && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center gap-2">
-          <svg className="w-4 h-4 flex-shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 px-4 py-3 text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
+          <svg className="w-4 h-4 flex-shrink-0 text-green-600 dark:text-green-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
           {importResult.studentCount}名の生徒を登録しました
           {(importResult.lessonCount ?? 0) > 0 && `・${importResult.lessonCount}コマを新規作成しました`}
-          <button onClick={() => setImportResult(null)} className="ml-auto text-green-600 hover:text-green-800 text-xs">閉じる</button>
+          <button onClick={() => setImportResult(null)} className="ml-auto text-green-600 dark:text-green-300 hover:text-green-800 text-xs">閉じる</button>
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
 
       {preview && (
-        <div className="border border-gray-200 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-            <p className="text-sm font-medium text-gray-700">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               プレビュー：{studentCount}名・{preview.length}行
               {lessonRowCount > 0 && (
-                <span className="ml-2 text-teal-600 text-xs">コマ情報あり</span>
+                <span className="ml-2 text-teal-600 dark:text-teal-300 text-xs">コマ情報あり</span>
               )}
               {warnCount > 0 && (
-                <span className="ml-2 text-amber-600 text-xs">⚠ {warnCount}件の警告</span>
+                <span className="ml-2 text-amber-600 dark:text-amber-300 text-xs">⚠ {warnCount}件の警告</span>
               )}
             </p>
             <div className="flex items-center gap-2">
@@ -189,24 +189,24 @@ export function StudentImport({ teachers }: Props) {
           </div>
           <div className="overflow-x-auto max-h-72 overflow-y-auto">
             <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-white border-b border-gray-100">
+              <thead className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
                 <tr>
                   {['氏名', '学年', '受講科目', '曜日', 'コマ', '担当講師'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                 {preview.map((row, i) => (
-                  <tr key={i} className={row.warn ? 'bg-amber-50' : ''}>
-                    <td className="px-3 py-2 font-medium text-gray-800">{row.name}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.grade}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.subject}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.day}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.slot}</td>
-                    <td className="px-3 py-2 text-gray-600">
+                  <tr key={i} className={row.warn ? 'bg-amber-50 dark:bg-amber-950/40' : ''}>
+                    <td className="px-3 py-2 font-medium text-gray-800 dark:text-gray-100">{row.name}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.grade}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.subject}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.day}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.slot}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
                       {row.teacherName}
-                      {row.warn && <span className="ml-1 text-amber-600">⚠</span>}
+                      {row.warn && <span className="ml-1 text-amber-600 dark:text-amber-300">⚠</span>}
                     </td>
                   </tr>
                 ))}

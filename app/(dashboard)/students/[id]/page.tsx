@@ -27,7 +27,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
   return (
     <div>
       <Header title={(student as Student).name} subtitle="生徒の詳細・編集" />
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 max-w-2xl">
         <StudentForm
           student={student as Student}
           teachers={(teachers as Teacher[]) ?? []}

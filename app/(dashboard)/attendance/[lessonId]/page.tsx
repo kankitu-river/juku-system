@@ -89,15 +89,15 @@ export default async function LessonAttendancePage({ params, searchParams }: Pag
 
       {/* 集計バー */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 text-center">
-          <p className="text-2xl font-bold text-gray-800">{entries.length}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{entries.length}</p>
           <p className="text-xs text-gray-400 mt-0.5">登録生徒</p>
         </div>
-        <div className="bg-green-50 rounded-xl border border-green-100 shadow-sm px-4 py-3 text-center">
-          <p className="text-2xl font-bold text-green-600">{presentCount}</p>
+        <div className="bg-green-50 dark:bg-green-950/40 rounded-xl border border-green-100 shadow-sm px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-green-600 dark:text-green-300">{presentCount}</p>
           <p className="text-xs text-gray-400 mt-0.5">出席</p>
         </div>
-        <div className="bg-red-50 rounded-xl border border-red-100 shadow-sm px-4 py-3 text-center">
+        <div className="bg-red-50 dark:bg-red-950/40 rounded-xl border border-red-100 shadow-sm px-4 py-3 text-center">
           <p className="text-2xl font-bold text-red-500">{absentCount}</p>
           <p className="text-xs text-gray-400 mt-0.5">欠席</p>
         </div>
@@ -105,8 +105,8 @@ export default async function LessonAttendancePage({ params, searchParams }: Pag
 
       {/* 担当講師 */}
       {typedLesson.teacher?.name && (
-        <p className="text-sm text-gray-500 mb-4">
-          担当：<span className="font-medium text-gray-700">{typedLesson.teacher.name}</span>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          担当：<span className="font-medium text-gray-700 dark:text-gray-300">{typedLesson.teacher.name}</span>
         </p>
       )}
 

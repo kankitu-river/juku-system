@@ -45,15 +45,15 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
   if (tokens.length === 0) return null
 
   return (
-    <div className="border-t border-gray-100 mt-4 pt-4">
-      <p className="text-xs font-medium text-gray-600 mb-3">回答内容（インポート前に確認できます）</p>
+    <div className="border-t border-gray-100 dark:border-gray-700 mt-4 pt-4">
+      <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-3">回答内容（インポート前に確認できます）</p>
       <div className="space-y-3">
         {tokens.map((token) => {
           const res = responses.find((r) => r.teacherId === token.teacher_id)
           if (!res) {
             return (
               <div key={token.id} className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600 w-20 shrink-0">{token.teacher?.name}</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-300 w-20 shrink-0">{token.teacher?.name}</span>
                 <span className="text-xs text-gray-300">未回答</span>
               </div>
             )
@@ -67,8 +67,8 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
           return (
             <div key={token.id}>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-sm font-medium text-gray-700 w-20 shrink-0">{token.teacher?.name}</span>
-                <span className="text-xs text-green-600 font-medium">✓ {dateEntries.length}日間</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-20 shrink-0">{token.teacher?.name}</span>
+                <span className="text-xs text-green-600 dark:text-green-300 font-medium">✓ {dateEntries.length}日間</span>
               </div>
               {dateEntries.length > 0 && (
                 <div className="flex flex-wrap gap-1 ml-20">
@@ -76,7 +76,7 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
                     const d = new Date(dateStr + 'T12:00:00')
                     const label = `${d.getMonth() + 1}/${d.getDate()}（${DOW_NAMES[d.getDay()]}）`
                     return (
-                      <span key={dateStr} className="inline-flex items-center gap-1 bg-blue-50 border border-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full">
+                      <span key={dateStr} className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 text-blue-700 dark:text-blue-300 text-[10px] px-2 py-0.5 rounded-full">
                         <span className="font-bold">{label}</span>
                         第{[...slots].sort((a, b) => a - b).join('・')}コマ
                       </span>
@@ -197,17 +197,17 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
   return (
     <div className="space-y-6 max-w-2xl">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
       )}
 
       {/* アンケート作成フォーム */}
       {showForm ? (
-        <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
-          <h3 className="font-semibold text-gray-800">新しいアンケートを作成</h3>
+        <form onSubmit={handleCreate} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-4">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">新しいアンケートを作成</h3>
 
           {/* 期間種別 */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">期間種別</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">期間種別</label>
             <div className="flex gap-3">
               <button
                 type="button"
@@ -216,7 +216,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                   'flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors',
                   form.term_type === 'regular'
                     ? 'bg-navy text-white border-navy'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50',
+                    : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50',
                 ].join(' ')}
               >
                 通常期間（3コマ）
@@ -228,7 +228,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                   'flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors',
                   form.term_type === 'intensive'
                     ? 'bg-amber-500 text-white border-amber-500'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50',
+                    : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50',
                 ].join(' ')}
               >
                 講習期間（7コマ）
@@ -239,16 +239,16 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
           {/* 講習期間選択（講習期間の場合のみ） */}
           {form.term_type === 'intensive' && (
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">対象の講習期間</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">対象の講習期間</label>
               {intensivePeriods.length === 0 ? (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
                   先に「設定」から講習期間を登録してください
                 </p>
               ) : (
                 <select
                   value={form.term_period_id}
                   onChange={(e) => handlePeriodSelect(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
                   <option value="">期間を選択してください...</option>
                   {intensivePeriods.map((p) => (
@@ -259,7 +259,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                 </select>
               )}
               {selectedPeriod && (
-                <p className="mt-1.5 text-xs text-amber-700">
+                <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">
                   {selectedPeriod.start_date} 〜 {selectedPeriod.end_date} の全日程がアンケート対象になります
                 </p>
               )}
@@ -269,7 +269,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
           {/* 対象月・回答期限 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                 対象月{form.term_type === 'intensive' && '（自動設定）'}
               </label>
               <input
@@ -278,11 +278,11 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                 value={form.target_month}
                 onChange={(e) => setForm((f) => ({ ...f, target_month: e.target.value }))}
                 disabled={form.term_type === 'intensive' && !!form.term_period_id}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy disabled:bg-gray-50 disabled:text-gray-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                 回答期限{form.term_type === 'intensive' && '（自動設定）'}
               </label>
               <input
@@ -290,7 +290,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                 required
                 value={form.deadline}
                 onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
             </div>
           </div>
@@ -309,7 +309,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
 
       {/* アンケート一覧 */}
       {surveys.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-10 text-center text-gray-400 text-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center text-gray-400 text-sm">
           アンケートはまだ作成されていません
         </div>
       ) : (
@@ -322,19 +322,19 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
             const termType = survey.term_type ?? 'regular'
 
             return (
-              <div key={survey.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div key={survey.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <div
-                  className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50"
+                  className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   onClick={() => setExpandedId(isExpanded ? null : survey.id)}
                 >
                   <div className="flex items-center gap-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-800">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100">
                           {survey.target_month.replace('-', '年')}月 出勤アンケート
                         </p>
                         {termType === 'intensive' && (
-                          <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">講習</span>
+                          <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">講習</span>
                         )}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -343,27 +343,27 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="h-2 w-24 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 w-24 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-green-400 rounded-full transition-all"
                           style={{ width: total > 0 ? `${(responded / total) * 100}%` : '0%' }}
                         />
                       </div>
-                      <span className="text-xs text-gray-500">{responded}/{total}名回答</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{responded}/{total}名回答</span>
                     </div>
                   </div>
                   <span className="text-gray-400 text-sm">{isExpanded ? '▲' : '▼'}</span>
                 </div>
 
                 {isExpanded && (
-                  <div className="border-t border-gray-100 px-5 py-4">
-                    <p className="text-xs font-medium text-gray-600 mb-3">回答状況</p>
+                  <div className="border-t border-gray-100 dark:border-gray-700 px-5 py-4">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-3">回答状況</p>
                     <div className="grid grid-cols-2 gap-2 mb-4">
                       {survey.tokens.map((token) => (
-                        <div key={token.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                          <span className="text-sm text-gray-700">{token.teacher?.name ?? '—'}</span>
+                        <div key={token.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-900/50 rounded-lg px-3 py-2">
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{token.teacher?.name ?? '—'}</span>
                           {token.responded_at ? (
-                            <span className="text-xs text-green-600 font-medium">✓ 回答済み</span>
+                            <span className="text-xs text-green-600 dark:text-green-300 font-medium">✓ 回答済み</span>
                           ) : (
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-400">未回答</span>
@@ -373,7 +373,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                                   navigator.clipboard.writeText(url)
                                   alert('リンクをコピーしました')
                                 }}
-                                className="text-[10px] text-navy hover:underline"
+                                className="text-[10px] text-navy dark:text-blue-300 hover:underline"
                               >
                                 リンクコピー
                               </button>

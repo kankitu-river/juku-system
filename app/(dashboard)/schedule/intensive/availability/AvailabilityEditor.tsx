@@ -129,18 +129,18 @@ export function AvailabilityEditor({
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
       {/* 生徒一覧 */}
       <div className="lg:col-span-1">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <p className="text-sm font-semibold text-gray-700 mb-2">生徒を選択</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">生徒を選択</p>
             <input
               type="text"
               value={studentSearch}
               onChange={(e) => setStudentSearch(e.target.value)}
               placeholder="名前・学年で検索"
-              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
-          <ul className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
+          <ul className="divide-y divide-gray-50 dark:divide-gray-700 max-h-[600px] overflow-y-auto">
             {filteredStudents.map((student) => {
               const count = countAvailable(student.id)
               const isSelected = student.id === selectedStudentId
@@ -150,16 +150,16 @@ export function AvailabilityEditor({
                     onClick={() => setSelectedStudentId(student.id)}
                     className={[
                       'w-full flex items-center justify-between px-4 py-3 text-left transition-colors',
-                      isSelected ? 'bg-blue-50' : 'hover:bg-gray-50',
+                      isSelected ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50',
                     ].join(' ')}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{student.name}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{student.name}</p>
                       <p className="text-xs text-gray-400">{getDisplayGrade(student.grade)}</p>
                     </div>
                     <span className={[
                       'text-xs font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0',
-                      count > 0 ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-400',
+                      count > 0 ? 'bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400',
                     ].join(' ')}>
                       {count}コマ
                     </span>
@@ -174,25 +174,25 @@ export function AvailabilityEditor({
       {/* 希望入力グリッド */}
       <div className="lg:col-span-3">
         {!selectedStudent ? (
-          <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-12 text-center text-gray-400 text-sm">
+          <div className="bg-gray-50 dark:bg-gray-900/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-12 text-center text-gray-400 text-sm">
             左から生徒を選択してください
           </div>
         ) : (
           <div className="space-y-4">
             {/* 生徒ヘッダー */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-bold text-gray-900 text-lg">{selectedStudent.name}</p>
-                  <p className="text-sm text-gray-500">{getDisplayGrade(selectedStudent.grade)}　{termPeriodName}</p>
-                  <p className="text-xs text-teal-600 mt-1 font-medium">
+                  <p className="font-bold text-gray-900 dark:text-gray-100 text-lg">{selectedStudent.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{getDisplayGrade(selectedStudent.grade)}　{termPeriodName}</p>
+                  <p className="text-xs text-teal-600 dark:text-teal-300 mt-1 font-medium">
                     {availability.size}コマ 選択済み
                     {isPending && <span className="ml-2 text-gray-400">保存中...</span>}
                   </p>
                 </div>
                 {/* 備考欄 */}
                 <div className="flex-1 max-w-sm">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                     備考・希望条件
                     {notesSaving && <span className="ml-1 text-gray-400">保存中...</span>}
                   </label>
@@ -201,26 +201,26 @@ export function AvailabilityEditor({
                     onChange={(e) => handleNotesChange(e.target.value)}
                     placeholder="例：3コマ連続は避けてほしい、午前中は不可など"
                     rows={2}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-navy resize-none"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-navy resize-none"
                   />
                 </div>
               </div>
             </div>
 
             {/* カレンダーグリッド */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr>
-                      <th className="border border-gray-200 bg-navy text-white px-3 py-2 text-left font-medium whitespace-nowrap w-28">
+                      <th className="border border-gray-200 dark:border-gray-700 bg-navy text-white px-3 py-2 text-left font-medium whitespace-nowrap w-28">
                         日付
                       </th>
-                      <th className="border border-gray-200 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap w-16">
+                      <th className="border border-gray-200 dark:border-gray-700 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap w-16">
                         全選択
                       </th>
                       {INTENSIVE_SLOTS.map((slot) => (
-                        <th key={slot.index} className="border border-gray-200 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap">
+                        <th key={slot.index} className="border border-gray-200 dark:border-gray-700 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap">
                           <div>第{slot.index}コマ</div>
                           <div className="text-[10px] opacity-70">{slot.start}〜</div>
                         </th>
@@ -239,13 +239,13 @@ export function AvailabilityEditor({
                       const someChecked = enabledSlots.some((s) => isAvailable(date, s.index))
 
                       return (
-                        <tr key={date} className={isSun ? 'bg-red-50' : isSat ? 'bg-blue-50' : 'bg-white'}>
-                          <td className="border border-gray-200 px-3 py-2 font-medium whitespace-nowrap">
-                            <span className={isSun ? 'text-red-600' : isSat ? 'text-blue-600' : 'text-gray-700'}>
+                        <tr key={date} className={isSun ? 'bg-red-50 dark:bg-red-950/40' : isSat ? 'bg-blue-50 dark:bg-blue-950/40' : 'bg-white dark:bg-gray-800'}>
+                          <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 font-medium whitespace-nowrap">
+                            <span className={isSun ? 'text-red-600 dark:text-red-300' : isSat ? 'text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}>
                               {date.slice(5).replace('-', '/')} ({dayLabel})
                             </span>
                           </td>
-                          <td className="border border-gray-200 px-2 py-2 text-center">
+                          <td className="border border-gray-200 dark:border-gray-700 px-2 py-2 text-center">
                             <button
                               onClick={() => handleToggleDay(date, !allChecked)}
                               disabled={isPending}
@@ -254,8 +254,8 @@ export function AvailabilityEditor({
                                 allChecked
                                   ? 'bg-teal-500 text-white hover:bg-teal-600'
                                   : someChecked
-                                    ? 'bg-teal-100 text-teal-700 hover:bg-teal-200'
-                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200',
+                                    ? 'bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 hover:bg-teal-200'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200',
                               ].join(' ')}
                             >
                               {allChecked ? '全解除' : '全選'}
@@ -266,13 +266,13 @@ export function AvailabilityEditor({
                             const disabled = slot.index > (slotLimits?.[String(dow)] ?? INTENSIVE_SLOTS.length)
                             if (disabled) {
                               return (
-                                <td key={slot.index} className="border border-gray-100 px-2 py-2 text-center bg-gray-50">
-                                  <div className="w-8 h-8 mx-auto rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-xs">—</div>
+                                <td key={slot.index} className="border border-gray-100 dark:border-gray-700 px-2 py-2 text-center bg-gray-50 dark:bg-gray-900/50">
+                                  <div className="w-8 h-8 mx-auto rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-300 text-xs">—</div>
                                 </td>
                               )
                             }
                             return (
-                              <td key={slot.index} className="border border-gray-200 px-2 py-2 text-center">
+                              <td key={slot.index} className="border border-gray-200 dark:border-gray-700 px-2 py-2 text-center">
                                 <button
                                   onClick={() => handleToggle(date, slot.index)}
                                   disabled={isPending}
@@ -280,7 +280,7 @@ export function AvailabilityEditor({
                                     'w-8 h-8 rounded-lg border-2 transition-all',
                                     checked
                                       ? 'bg-teal-500 border-teal-500 text-white'
-                                      : 'bg-white border-gray-200 hover:border-teal-300',
+                                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-teal-300',
                                   ].join(' ')}
                                 >
                                   {checked ? '✓' : ''}
@@ -294,7 +294,7 @@ export function AvailabilityEditor({
                   </tbody>
                 </table>
               </div>
-              <p className="text-[10px] text-gray-400 px-4 py-2 border-t border-gray-100">
+              <p className="text-[10px] text-gray-400 px-4 py-2 border-t border-gray-100 dark:border-gray-700">
                 チェックを入れたコマが「来塾可能」として自動割り振りに使用されます
               </p>
             </div>

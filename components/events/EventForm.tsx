@@ -71,11 +71,11 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           タイトル <span className="text-red-500">*</span>
         </label>
         <input
@@ -84,13 +84,13 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           placeholder="例：夏期特別講習"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             開始日時 <span className="text-red-500">*</span>
           </label>
           <input
@@ -98,11 +98,11 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
             required
             value={form.start_at}
             onChange={(e) => setForm({ ...form, start_at: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             終了日時 <span className="text-red-500">*</span>
           </label>
           <input
@@ -110,17 +110,17 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
             required
             value={form.end_at}
             onChange={(e) => setForm({ ...form, end_at: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">担当講師</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">担当講師</label>
         <select
           value={form.teacher_id}
           onChange={(e) => setForm({ ...form, teacher_id: e.target.value })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
         >
           <option value="">— 未割り当て —</option>
           {teachers.map((t) => (
@@ -130,13 +130,13 @@ export function EventForm({ event, teachers, onSave, onDelete }: EventFormProps)
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">説明・備考</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">説明・備考</label>
         <textarea
           rows={3}
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           placeholder="イベントの詳細や注意事項など"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none"
         />
       </div>
 

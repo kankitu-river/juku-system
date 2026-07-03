@@ -244,7 +244,7 @@ export function TopNav() {
                   </svg>
                 </button>
                 {isOpen && (
-                  <div className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                  <div className="absolute top-full left-0 mt-1 min-w-[180px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50">
                     {entry.children.map((child) => {
                       const childActive = isLinkActive(child, pathname)
                       return (
@@ -255,8 +255,8 @@ export function TopNav() {
                           className={[
                             'block px-4 py-2.5 text-sm',
                             childActive
-                              ? 'text-navy font-semibold bg-gray-50'
-                              : 'text-gray-700 hover:bg-gray-50',
+                              ? 'text-navy dark:text-blue-300 font-semibold bg-gray-50 dark:bg-gray-900/50'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50',
                           ].join(' ')}
                         >
                           {child.label}

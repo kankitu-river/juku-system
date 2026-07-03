@@ -56,7 +56,7 @@ export function IntensiveSlotSettings({ initialLimits }: Props) {
             <div key={dow} className="flex items-center gap-4">
               <span className={[
                 'w-16 text-sm font-medium',
-                restricted ? 'text-gray-900' : 'text-gray-400',
+                restricted ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400',
               ].join(' ')}>
                 {label}
               </span>
@@ -65,7 +65,7 @@ export function IntensiveSlotSettings({ initialLimits }: Props) {
                 onChange={(e) => setMax(dow, Number(e.target.value))}
                 className={[
                   'border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy',
-                  restricted ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-white text-gray-400',
+                  restricted ? 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-400',
                 ].join(' ')}
               >
                 {Array.from({ length: MAX_SLOT }, (_, i) => i + 1).map((n) => (
@@ -73,7 +73,7 @@ export function IntensiveSlotSettings({ initialLimits }: Props) {
                 ))}
               </select>
               {restricted && (
-                <span className="text-xs text-amber-600">
+                <span className="text-xs text-amber-600 dark:text-amber-300">
                   第{max + 1}〜{MAX_SLOT}コマは非表示
                 </span>
               )}
@@ -90,7 +90,7 @@ export function IntensiveSlotSettings({ initialLimits }: Props) {
         >
           {isPending ? '保存中...' : '保存'}
         </button>
-        {saved && <span className="text-sm text-green-600">保存しました</span>}
+        {saved && <span className="text-sm text-green-600 dark:text-green-300">保存しました</span>}
       </div>
     </div>
   )

@@ -26,8 +26,8 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
         className={[
           'flex items-center gap-1 rounded px-1.5 py-1 text-xs leading-tight transition-opacity hover:opacity-80',
           isGroup
-            ? 'bg-purple-100 text-purple-900 border border-purple-200'
-            : 'bg-teal-100 text-teal-900 border border-teal-200',
+            ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-900 border border-purple-200 dark:border-purple-900'
+            : 'bg-teal-100 dark:bg-teal-900/60 text-teal-900 border border-teal-200 dark:border-teal-900',
         ].join(' ')}
       >
         {lesson.lesson_kind === 'temporary' && (
@@ -47,7 +47,7 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
         </span>
         <span className={[
           'flex-shrink-0 ml-auto text-[10px] font-bold px-1 rounded-full',
-          isGroup ? 'bg-purple-200 text-purple-800' : 'bg-teal-200 text-teal-800',
+          isGroup ? 'bg-purple-200 text-purple-800 dark:text-purple-200' : 'bg-teal-200 text-teal-800 dark:text-teal-200',
         ].join(' ')}>
           {students.length}/{lesson.capacity}
         </span>
@@ -61,8 +61,8 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
       className={[
         'block rounded-md px-2 py-2 text-xs transition-opacity hover:opacity-80 overflow-hidden h-[72px]',
         isGroup
-          ? 'bg-purple-100 text-purple-900 border border-purple-200'
-          : 'bg-teal-100 text-teal-900 border border-teal-200',
+          ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-900 border border-purple-200 dark:border-purple-900'
+          : 'bg-teal-100 dark:bg-teal-900/60 text-teal-900 border border-teal-200 dark:border-teal-900',
       ].join(' ')}
     >
       {/* 先生 + 科目 + 定員 を1行に */}
@@ -88,7 +88,7 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
         </div>
         <span className={[
           'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-          isGroup ? 'bg-purple-200 text-purple-800' : 'bg-teal-200 text-teal-800',
+          isGroup ? 'bg-purple-200 text-purple-800 dark:text-purple-200' : 'bg-teal-200 text-teal-800 dark:text-teal-200',
         ].join(' ')}>
           {students.length}/{lesson.capacity}名
         </span>
@@ -98,7 +98,7 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
       {displayStudents.length > 0 ? (
         <div className="leading-snug">
           {displayStudents.map((s, i) => (
-            <p key={i} className="truncate text-[11px] text-gray-800">
+            <p key={i} className="truncate text-[11px] text-gray-800 dark:text-gray-100">
               {s.name}{s.enrollmentSubject ? `（${s.enrollmentSubject}）` : ''}
             </p>
           ))}

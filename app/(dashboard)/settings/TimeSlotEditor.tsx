@@ -73,13 +73,13 @@ export function TimeSlotEditor({ initialConfig }: TimeSlotEditorProps) {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
       )}
 
       {(Object.keys(SLOT_LABELS) as SlotKey[]).map((key) => (
-        <div key={key} className="border border-gray-100 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between bg-gray-50 px-4 py-2.5 border-b border-gray-100">
-            <span className="text-sm font-semibold text-gray-700">{SLOT_LABELS[key]}</span>
+        <div key={key} className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900/50 px-4 py-2.5 border-b border-gray-100 dark:border-gray-700">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{SLOT_LABELS[key]}</span>
             <button
               type="button"
               onClick={() => resetToDefault(key)}
@@ -88,22 +88,22 @@ export function TimeSlotEditor({ initialConfig }: TimeSlotEditorProps) {
               デフォルトに戻す
             </button>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-50 dark:divide-gray-700">
             {config[key].map((slot: TimeSlot) => (
               <div key={slot.index} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="text-sm text-gray-500 w-14 flex-shrink-0">第{slot.index}コマ</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 w-14 flex-shrink-0">第{slot.index}コマ</span>
                 <input
                   type="time"
                   value={slot.start}
                   onChange={e => updateSlot(key, slot.index, 'start', e.target.value)}
-                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy w-28"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy w-28"
                 />
                 <span className="text-gray-400 text-sm">〜</span>
                 <input
                   type="time"
                   value={slot.end}
                   onChange={e => updateSlot(key, slot.index, 'end', e.target.value)}
-                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy w-28"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy w-28"
                 />
               </div>
             ))}
@@ -119,7 +119,7 @@ export function TimeSlotEditor({ initialConfig }: TimeSlotEditorProps) {
         >
           {isPending ? '保存中...' : '時間を保存する'}
         </button>
-        {saved && <span className="text-sm text-green-600 font-medium">✓ 保存しました</span>}
+        {saved && <span className="text-sm text-green-600 dark:text-green-300 font-medium">✓ 保存しました</span>}
       </div>
     </div>
   )

@@ -63,15 +63,15 @@ export default async function BoothsPage({ searchParams }: PageProps) {
         actions={
           <div className="flex items-center gap-1">
             <Link href={`/booths?date=${toDateStr(prevDate)}`}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600">
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300">
               ‹ 前日
             </Link>
             <Link href="/booths"
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600">
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300">
               今日
             </Link>
             <Link href={`/booths?date=${toDateStr(nextDate)}`}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600">
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300">
               翌日 ›
             </Link>
           </div>

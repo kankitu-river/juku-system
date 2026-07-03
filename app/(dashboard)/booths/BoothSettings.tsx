@@ -84,7 +84,7 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
     <div className="mb-4">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 text-sm font-medium text-navy border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
+        className="flex items-center gap-2 text-sm font-medium text-navy dark:text-blue-300 border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -95,18 +95,18 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
       </button>
 
       {open && (
-        <div className="mt-3 bg-white border border-gray-200 rounded-xl shadow-sm p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">ブース一覧</h3>
+        <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-4">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">ブース一覧</h3>
 
           {error && (
-            <div className="mb-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+            <div className="mb-3 text-xs text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">{error}</div>
           )}
 
           <div className="space-y-1.5 mb-4">
             {sorted.map((booth, idx) => (
               <div key={booth.id} className={[
                 'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm',
-                booth.is_active ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100',
+                booth.is_active ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-700',
               ].join(' ')}>
                 {/* 並び替えボタン */}
                 <div className="flex flex-col gap-0.5">
@@ -136,12 +136,12 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
                       }}
                       className="flex-1 border border-teal-400 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500"
                     />
-                    <button onClick={() => handleNameSave(booth.id)} className="text-teal-600 hover:text-teal-800 text-xs font-bold">✓</button>
+                    <button onClick={() => handleNameSave(booth.id)} className="text-teal-600 dark:text-teal-300 hover:text-teal-800 text-xs font-bold">✓</button>
                     <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
                   </div>
                 ) : (
                   <span
-                    className={['flex-1 cursor-pointer hover:text-navy', !booth.is_active ? 'text-gray-400 line-through' : 'text-gray-700'].join(' ')}
+                    className={['flex-1 cursor-pointer hover:text-navy', !booth.is_active ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'].join(' ')}
                     onClick={() => { setEditingId(booth.id); setEditingName(booth.name) }}
                     title="クリックで名前を変更"
                   >
@@ -156,8 +156,8 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
                   className={[
                     'text-xs px-2 py-0.5 rounded-full border transition-colors',
                     booth.is_active
-                      ? 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
-                      : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200',
+                      ? 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-900 hover:bg-teal-100'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-200',
                   ].join(' ')}
                 >
                   {booth.is_active ? '稼働中' : '無効'}
@@ -180,14 +180,14 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
           </div>
 
           {/* 追加フォーム */}
-          <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
               placeholder="新しいブース名"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
             <button
               onClick={handleAdd}

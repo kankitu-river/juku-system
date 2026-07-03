@@ -37,9 +37,9 @@ interface MakeupDialog {
 }
 
 const STATUS_CONFIG = {
-  present: { label: '出席', color: 'bg-green-100 text-green-800 border-green-300', icon: '○' },
-  absent: { label: '欠席', color: 'bg-red-100 text-red-800 border-red-300', icon: '×' },
-  makeup_used: { label: '振替', color: 'bg-blue-100 text-blue-800 border-blue-300', icon: '◎' },
+  present: { label: '出席', color: 'bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200 border-green-300 dark:border-green-800', icon: '○' },
+  absent: { label: '欠席', color: 'bg-red-100 dark:bg-red-900/60 text-red-800 dark:text-red-200 border-red-300 dark:border-red-800', icon: '×' },
+  makeup_used: { label: '振替', color: 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-800', icon: '◎' },
 } as const
 
 export function AttendanceSheet({ lessonId, date, entries: initialEntries }: AttendanceSheetProps) {
@@ -111,11 +111,11 @@ export function AttendanceSheet({ lessonId, date, entries: initialEntries }: Att
           return (
             <div
               key={entry.studentId}
-              className="flex items-center gap-4 bg-white rounded-xl border border-gray-100 px-5 py-3 shadow-sm"
+              className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-5 py-3 shadow-sm"
             >
               {/* 生徒情報 */}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">{entry.studentName}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{entry.studentName}</p>
                 <p className="text-xs text-gray-400">{entry.studentGrade}</p>
               </div>
 
@@ -138,7 +138,7 @@ export function AttendanceSheet({ lessonId, date, entries: initialEntries }: Att
                     'min-w-[64px] px-3 py-2 rounded-lg text-sm font-medium border transition-colors',
                     status === 'present'
                       ? 'bg-green-500 text-white border-green-500'
-                      : 'bg-white text-green-700 border-green-300 hover:bg-green-50',
+                      : 'bg-white dark:bg-gray-800 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 hover:bg-green-50',
                     isLoading ? 'opacity-50 cursor-not-allowed' : '',
                   ].join(' ')}
                 >
@@ -151,7 +151,7 @@ export function AttendanceSheet({ lessonId, date, entries: initialEntries }: Att
                     'min-w-[64px] px-3 py-2 rounded-lg text-sm font-medium border transition-colors',
                     status === 'absent'
                       ? 'bg-red-500 text-white border-red-500'
-                      : 'bg-white text-red-600 border-red-300 hover:bg-red-50',
+                      : 'bg-white dark:bg-gray-800 text-red-600 dark:text-red-300 border-red-300 dark:border-red-800 hover:bg-red-50',
                     isLoading ? 'opacity-50 cursor-not-allowed' : '',
                   ].join(' ')}
                 >
@@ -172,12 +172,12 @@ export function AttendanceSheet({ lessonId, date, entries: initialEntries }: Att
       >
         {makeupDialog && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">{makeupDialog.studentName}</span>さんを欠席にします。
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{makeupDialog.studentName}</span>さんを欠席にします。
               <br />
               振替クレジットを追加しますか？
             </p>
-            <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
+            <div className="bg-blue-50 dark:bg-blue-950/40 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300">
               「追加する」を選ぶと振替クレジットが1加算され、後から振替コマを割り当てられます。
             </div>
             <div className="flex flex-col gap-2">

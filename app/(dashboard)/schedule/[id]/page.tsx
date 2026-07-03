@@ -56,7 +56,7 @@ export default async function LessonDetailPage({ params }: PageProps) {
             </Badge>
             <Link
               href={`/schedule/new?copy=${id}`}
-              className="ml-2 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+              className="ml-2 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors"
             >
               コピーして新規作成
             </Link>
@@ -66,7 +66,7 @@ export default async function LessonDetailPage({ params }: PageProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 編集フォーム */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
           <LessonForm
             lesson={typedLesson}
             teachers={(teachers as Teacher[]) ?? []}
@@ -80,53 +80,53 @@ export default async function LessonDetailPage({ params }: PageProps) {
         </div>
 
         {/* コマ情報サマリー */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 h-fit">
-          <h3 className="font-semibold text-gray-700 mb-3 text-sm">コマ情報</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 h-fit">
+          <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3 text-sm">コマ情報</h3>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-gray-500">時間帯</dt>
-              <dd className="font-medium text-gray-800">
+              <dt className="text-gray-500 dark:text-gray-400">時間帯</dt>
+              <dd className="font-medium text-gray-800 dark:text-gray-100">
                 {getSlotLabel(typedLesson.slot_index, typedLesson.day_of_week, typedLesson.term_type)}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gray-500">科目</dt>
-              <dd className="font-medium text-gray-800">{typedLesson.subject}</dd>
+              <dt className="text-gray-500 dark:text-gray-400">科目</dt>
+              <dd className="font-medium text-gray-800 dark:text-gray-100">{typedLesson.subject}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gray-500">担当講師</dt>
-              <dd className="font-medium text-gray-800">
+              <dt className="text-gray-500 dark:text-gray-400">担当講師</dt>
+              <dd className="font-medium text-gray-800 dark:text-gray-100">
                 {typedLesson.teacher?.name ?? '未割り当て'}
               </dd>
             </div>
             {typedLesson.type === 'individual' && (
               <div className="flex justify-between">
-                <dt className="text-gray-500">ブース</dt>
-                <dd className="font-medium text-gray-800">
+                <dt className="text-gray-500 dark:text-gray-400">ブース</dt>
+                <dd className="font-medium text-gray-800 dark:text-gray-100">
                   {typedLesson.booth?.name ?? '未割り当て'}
                 </dd>
               </div>
             )}
             <div className="flex justify-between">
-              <dt className="text-gray-500">定員</dt>
-              <dd className="font-medium text-gray-800">{typedLesson.capacity}名</dd>
+              <dt className="text-gray-500 dark:text-gray-400">定員</dt>
+              <dd className="font-medium text-gray-800 dark:text-gray-100">{typedLesson.capacity}名</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gray-500">受講生徒数</dt>
-              <dd className="font-medium text-gray-800">{enrolledStudentIds.length}名</dd>
+              <dt className="text-gray-500 dark:text-gray-400">受講生徒数</dt>
+              <dd className="font-medium text-gray-800 dark:text-gray-100">{enrolledStudentIds.length}名</dd>
             </div>
           </dl>
 
           {enrolledStudentIds.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-xs font-medium text-gray-500 mb-2">受講生徒</p>
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">受講生徒</p>
               <div className="space-y-1">
                 {typedEnrollments.map((e) => (
-                  <div key={e.id} className="text-xs text-gray-700 flex items-center gap-1">
+                  <div key={e.id} className="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
                     <span>{e.student?.name ?? '—'}</span>
                     {e.subject && (
-                      <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{e.subject}</span>
+                      <span className="text-[10px] text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">{e.subject}</span>
                     )}
                   </div>
                 ))}

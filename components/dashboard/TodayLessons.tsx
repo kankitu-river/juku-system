@@ -55,9 +55,9 @@ const STATUS_LABEL: Record<string, string> = {
   makeup_used: '振替',
 }
 const STATUS_COLOR: Record<string, string> = {
-  present: 'bg-green-100 text-green-700 border-green-300',
-  absent: 'bg-red-100 text-red-700 border-red-300',
-  makeup_used: 'bg-amber-100 text-amber-700 border-amber-300',
+  present: 'bg-green-100 dark:bg-green-900/60 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800',
+  absent: 'bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800',
+  makeup_used: 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800',
 }
 
 export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(), termType = 'regular' }: TodayLessonsProps) {
@@ -147,10 +147,10 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
       {slotGroups.map((group, gi) => (
         <div key={group.slotIndex}>
           <div className={[
-            'px-5 py-2 border-y border-gray-100 flex items-center gap-2 text-xs font-semibold',
+            'px-5 py-2 border-y border-gray-100 dark:border-gray-700 flex items-center gap-2 text-xs font-semibold',
             gi === currentIdx
-              ? 'bg-amber-50 border-l-4 border-l-amber-brand text-amber-900'
-              : 'bg-gray-50 text-gray-600',
+              ? 'bg-amber-50 dark:bg-amber-950/40 border-l-4 border-l-amber-brand text-amber-900'
+              : 'bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-300',
           ].join(' ')}>
             第{group.slotIndex}コマ
             {group.start && (
@@ -160,10 +160,10 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
               <span className="bg-amber-brand text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">進行中</span>
             )}
             {gi === nextIdx && gi !== currentIdx && (
-              <span className="bg-gray-200 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">次</span>
+              <span className="bg-gray-200 text-gray-500 dark:text-gray-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">次</span>
             )}
           </div>
-          <ul className="divide-y divide-gray-50">
+          <ul className="divide-y divide-gray-50 dark:divide-gray-700">
         {group.lessons.map((lesson) => {
           const students = lesson.enrollments.map((e) => e.student).filter(Boolean) as Student[]
           return (
@@ -174,19 +174,19 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
                   lesson.type === 'group' ? 'bg-purple-400' : 'bg-teal-400',
                 ].join(' ')} />
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {lesson.type === 'group' ? '集団授業' : '個別指導'}
                   </p>
                   {lesson.notes && (
-                    <p className="text-xs text-amber-700 mt-0.5">📝 {lesson.notes}</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">📝 {lesson.notes}</p>
                   )}
                 </div>
                 <Link
                   href={`/attendance/${lesson.id}`}
-                  className="text-xs text-navy hover:underline flex-shrink-0"
+                  className="text-xs text-navy dark:text-blue-300 hover:underline flex-shrink-0"
                 >
                   詳細 →
                 </Link>
@@ -198,7 +198,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
                     const status = getStatus(lesson.id, student.id, lesson.attendances)
                     return (
                       <div key={student.id} className="flex items-center gap-2">
-                        <span className="text-sm text-gray-700 w-28 truncate">{student.name}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300 w-28 truncate">{student.name}</span>
                         <span className="text-xs text-gray-400">{getDisplayGrade(student.grade)}</span>
                         <div className="flex items-center gap-1 ml-auto">
                           {status ? (
@@ -216,7 +216,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
                               'text-xs px-2.5 py-1 rounded-lg border transition-colors',
                               status === 'present'
                                 ? 'bg-green-500 text-white border-green-500'
-                                : 'bg-white text-green-700 border-green-300 hover:bg-green-50',
+                                : 'bg-white dark:bg-gray-800 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 hover:bg-green-50',
                             ].join(' ')}
                           >
                             出席
@@ -228,7 +228,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
                               'text-xs px-2.5 py-1 rounded-lg border transition-colors',
                               status === 'absent'
                                 ? 'bg-red-500 text-white border-red-500'
-                                : 'bg-white text-red-600 border-red-300 hover:bg-red-50',
+                                : 'bg-white dark:bg-gray-800 text-red-600 dark:text-red-300 border-red-300 dark:border-red-800 hover:bg-red-50',
                             ].join(' ')}
                           >
                             欠席
@@ -251,9 +251,9 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
       {/* 欠席確認ダイアログ */}
       {absentDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4">
-            <p className="font-semibold text-gray-900 mb-1">欠席を記録</p>
-            <p className="text-sm text-gray-600 mb-5">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-80 mx-4">
+            <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">欠席を記録</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-5">
               <span className="font-medium">{absentDialog.studentName}</span> さんの振替クレジットを追加しますか？
             </p>
             <div className="flex flex-col gap-2">
@@ -265,7 +265,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
               </button>
               <button
                 onClick={() => confirmAbsent(false)}
-                className="w-full py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="w-full py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 追加しない（欠席のみ）
               </button>

@@ -103,22 +103,22 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
   return (
     <div className="max-w-xl mx-auto space-y-5">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
       )}
       {savedMsg && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">{savedMsg}</div>
+        <div className="rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 px-4 py-3 text-sm text-green-700 dark:text-green-300">{savedMsg}</div>
       )}
 
       {/* 先生・月の選択 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
-        <h2 className="font-semibold text-gray-800">シフト情報の入力</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-4">
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100">シフト情報の入力</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">先生</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">先生</label>
             <select
               value={teacherId}
               onChange={(e) => { setTeacherId(e.target.value); setSelectedDates({}); setEditingDate(null) }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             >
               <option value="">選択してください</option>
               {teachers.map((t) => (
@@ -127,38 +127,38 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">対象月</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">対象月</label>
             <input
               type="month"
               value={ym}
               onChange={(e) => { setYm(e.target.value); setSelectedDates({}); setEditingDate(null) }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
         </div>
 
         {/* デフォルト時間 */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">デフォルト時間</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">デフォルト時間</label>
           <div className="flex items-center gap-2">
             <input
               type="time"
               value={defaultStart}
               onChange={(e) => setDefaultStart(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
             <span className="text-gray-400 text-sm">〜</span>
             <input
               type="time"
               value={defaultEnd}
               onChange={(e) => setDefaultEnd(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
             {selectedCount > 0 && (
               <button
                 type="button"
                 onClick={applyDefaultToAll}
-                className="text-xs text-navy hover:underline whitespace-nowrap"
+                className="text-xs text-navy dark:text-blue-300 hover:underline whitespace-nowrap"
               >
                 全日に適用
               </button>
@@ -169,12 +169,12 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
       </div>
 
       {/* カレンダー */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
         <div className="flex items-center justify-between mb-3">
-          <p className="font-semibold text-gray-800">{y}年{m}月</p>
+          <p className="font-semibold text-gray-800 dark:text-gray-100">{y}年{m}月</p>
           {teacherId && (
-            <span className="text-xs text-gray-500">
-              {teacherName} · <span className="font-bold text-navy">{selectedCount}</span>日選択中
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {teacherName} · <span className="font-bold text-navy dark:text-blue-300">{selectedCount}</span>日選択中
             </span>
           )}
         </div>
@@ -183,7 +183,7 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
           {DAY_NAMES.map((d, i) => (
             <div key={d} className={[
               'text-center text-xs font-medium py-1',
-              i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-500' : 'text-gray-500',
+              i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400',
             ].join(' ')}>{d}</div>
           ))}
         </div>
@@ -217,7 +217,7 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
                           ? 'bg-navy text-white shadow-sm'
                           : dow === 6
                             ? 'text-blue-500 hover:bg-blue-50'
-                            : 'text-gray-700 hover:bg-gray-100',
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
                   isToday && !isSelected && !isEditing && !disabled ? 'ring-2 ring-navy ring-offset-1' : '',
                 ].join(' ')}
               >
@@ -239,9 +239,9 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
 
       {/* 選択日の時間調整 */}
       {editingDate && editingSlot && (
-        <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+        <div className="bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900 p-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-blue-800">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">
               {new Date(editingDate + 'T12:00:00').toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })}の時間
             </p>
             <button onClick={() => setEditingDate(null)} className="text-xs text-gray-400 hover:text-gray-600">閉じる</button>
@@ -251,14 +251,14 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
               type="time"
               value={editingSlot.start}
               onChange={(e) => updateTime(editingDate, 'start', e.target.value)}
-              className="border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              className="border border-blue-300 dark:border-blue-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800"
             />
             <span className="text-gray-400">〜</span>
             <input
               type="time"
               value={editingSlot.end}
               onChange={(e) => updateTime(editingDate, 'end', e.target.value)}
-              className="border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              className="border border-blue-300 dark:border-blue-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800"
             />
           </div>
         </div>
@@ -266,9 +266,9 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
 
       {/* 選択リスト */}
       {selectedCount > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-gray-700">選択した出勤日（{selectedCount}日）</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">選択した出勤日（{selectedCount}日）</p>
             <button
               type="button"
               onClick={() => { setSelectedDates({}); setEditingDate(null) }}
@@ -289,15 +289,15 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
                     key={ds}
                     className={[
                       'flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-colors',
-                      isEditing ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 hover:bg-gray-100',
+                      isEditing ? 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900' : 'bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-700',
                     ].join(' ')}
                     onClick={() => setEditingDate(isEditing ? null : ds)}
                   >
-                    <span className="text-sm text-gray-700">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
                       {d.getMonth() + 1}/{d.getDate()}（{DAY_NAMES[dow]}）
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 font-medium">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                         {times.start}〜{times.end}
                       </span>
                       <button

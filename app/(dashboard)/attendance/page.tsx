@@ -66,34 +66,34 @@ export default async function AttendancePage({ searchParams }: PageProps) {
       <div className="flex items-center gap-3 mb-6">
         <Link
           href={`/attendance?date=${prevDate.toISOString().split('T')[0]}`}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600"
+          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
         >
           ‹ 前日
         </Link>
         <Link
           href="/attendance"
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500"
+          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-500 dark:text-gray-400"
         >
           今日
         </Link>
         <Link
           href={`/attendance?date=${nextDate.toISOString().split('T')[0]}`}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600"
+          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
         >
           翌日 ›
         </Link>
         <div className="ml-auto flex items-center gap-3">
-          <Link href="/attendance/report" className="text-sm text-navy font-medium hover:underline">
+          <Link href="/attendance/report" className="text-sm text-navy dark:text-blue-300 font-medium hover:underline">
             集計レポート →
           </Link>
-          <Link href="/attendance/makeup" className="text-sm text-navy font-medium hover:underline">
+          <Link href="/attendance/makeup" className="text-sm text-navy dark:text-blue-300 font-medium hover:underline">
             振替管理 →
           </Link>
         </div>
       </div>
 
       {typedLessons.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
           <p className="text-gray-400 text-sm">この日のコマはありません</p>
         </div>
       ) : (
@@ -110,8 +110,8 @@ export default async function AttendancePage({ searchParams }: PageProps) {
                 key={lesson.id}
                 href={`/attendance/${lesson.id}?date=${dateStr}`}
                 className={[
-                  'flex items-center gap-4 bg-white rounded-xl border shadow-sm px-5 py-4 hover:border-navy transition-colors',
-                  allDone ? 'border-green-200 bg-green-50/30' : 'border-gray-100',
+                  'flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl border shadow-sm px-5 py-4 hover:border-navy transition-colors',
+                  allDone ? 'border-green-200 dark:border-green-900 bg-green-50/30' : 'border-gray-100 dark:border-gray-700',
                 ].join(' ')}
               >
                 <div className={[
@@ -120,10 +120,10 @@ export default async function AttendancePage({ searchParams }: PageProps) {
                 ].join(' ')} />
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     {lesson.type === 'group' ? '集団授業' : '個別指導'}
                   </p>
                 </div>
@@ -133,7 +133,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
                     <div className="text-right">
                       <p className={[
                         'text-sm font-bold',
-                        allDone ? 'text-green-600' : 'text-gray-700',
+                        allDone ? 'text-green-600 dark:text-green-300' : 'text-gray-700 dark:text-gray-300',
                       ].join(' ')}>
                         {present}/{total}
                       </p>

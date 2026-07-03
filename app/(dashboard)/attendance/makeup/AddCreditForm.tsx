@@ -48,7 +48,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
     <div className="mb-6">
       <button
         onClick={() => { setOpen((v) => !v); setError(''); setSuccess('') }}
-        className="flex items-center gap-2 text-sm font-medium text-navy border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
+        className="flex items-center gap-2 text-sm font-medium text-navy dark:text-blue-300 border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -57,24 +57,24 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
       </button>
 
       {open && (
-        <div className="mt-3 bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">振替クレジット 手動追加</h3>
+        <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">振替クレジット 手動追加</h3>
 
           {error && (
-            <div className="mb-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+            <div className="mb-3 text-xs text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">{error}</div>
           )}
           {success && (
-            <div className="mb-3 text-xs text-teal-700 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">{success}</div>
+            <div className="mb-3 text-xs text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900 rounded-lg px-3 py-2">{success}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">生徒</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">生徒</label>
               <select
                 required
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               >
                 <option value="">選択してください</option>
                 {students.map((s) => (
@@ -87,7 +87,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
 
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">追加件数</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">追加件数</label>
                 <input
                   type="number"
                   min={1}
@@ -95,15 +95,15 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
                   required
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">有効期限</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">有効期限</label>
                 <select
                   value={expiresMonths}
                   onChange={(e) => setExpiresMonths(Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
                 >
                   <option value={1}>1ヶ月後</option>
                   <option value={2}>2ヶ月後</option>
@@ -125,7 +125,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="px-4 text-sm text-gray-500 border border-gray-300 rounded-lg py-2 hover:bg-gray-50 transition-colors"
+                className="px-4 text-sm text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 閉じる
               </button>

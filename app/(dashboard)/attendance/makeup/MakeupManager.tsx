@@ -135,7 +135,7 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
 
   if (credits.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
         <p className="text-gray-400 text-sm">振替クレジットが残っている生徒はいません</p>
       </div>
     )
@@ -145,7 +145,7 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* 振替クレジット一覧 */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-600 mb-3">振替クレジット残数</h2>
+        <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">振替クレジット残数</h2>
         <div className="space-y-2">
           {credits.map((credit) => {
             const remaining = credit.total_credits - credit.used_credits
@@ -160,17 +160,17 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
                 className={[
                   'w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors',
                   isSelected
-                    ? 'border-navy bg-blue-50'
-                    : 'border-gray-100 bg-white hover:border-navy shadow-sm',
+                    ? 'border-navy bg-blue-50 dark:bg-blue-950/40'
+                    : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-navy shadow-sm',
                 ].join(' ')}
               >
                 <div>
-                  <p className="font-medium text-gray-900">{credit.student?.name}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{credit.student?.name}</p>
                   <p className="text-xs text-gray-400">{credit.student?.grade ? getDisplayGrade(credit.student.grade) : ''}</p>
                   {(credit.student?.subjects?.length ?? 0) > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {credit.student?.subjects?.map((s) => (
-                        <span key={s} className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">{s}</span>
+                        <span key={s} className="text-[10px] bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full">{s}</span>
                       ))}
                     </div>
                   )}
@@ -202,34 +202,34 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
 
       {/* 振替コマ割り当て */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-600 mb-3">
+        <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">
           {selectedCredit
             ? `${selectedCredit.student?.name}さんの振替コマを割り当て`
             : '生徒を選択してください'}
         </h2>
 
         {selectedCredit ? (
-          <form onSubmit={handleAssign} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <form onSubmit={handleAssign} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-4">
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-3 py-2 text-sm text-red-700 dark:text-red-300">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">振替日</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">振替日</label>
               <input
                 type="date"
                 required
                 value={assignedDate}
                 onChange={(e) => { setAssignedDate(e.target.value); setSelectedLessonId('') }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-medium text-gray-600">振替コマ</label>
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300">振替コマ</label>
                 {student && (
                   <span className="text-[10px] text-gray-400">
                     {student.ng_teacher_ids.length > 0 && 'NG先生のコマを除外 '}
@@ -258,33 +258,33 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
                           className={[
                             'w-full flex items-start justify-between px-3 py-2 rounded-lg border text-left text-sm transition-colors',
                             isFull
-                              ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+                              ? 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 opacity-50 cursor-not-allowed'
                               : isSelected
-                                ? 'border-navy bg-blue-50'
+                                ? 'border-navy bg-blue-50 dark:bg-blue-950/40'
                                 : isPreferred
-                                  ? 'border-amber-200 bg-amber-50 hover:border-amber-400'
-                                  : 'border-gray-100 hover:border-gray-300',
+                                  ? 'border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 hover:border-amber-400'
+                                  : 'border-gray-100 dark:border-gray-700 hover:border-gray-300',
                           ].join(' ')}
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
                               {isPreferred && <span title="任せたい先生">⭐</span>}
-                              <span className="font-medium text-gray-800">
+                              <span className="font-medium text-gray-800 dark:text-gray-100">
                                 第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               {lesson.booth?.name && (
-                                <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{lesson.booth.name}</span>
+                                <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full">{lesson.booth.name}</span>
                               )}
                               {subjectMatch && (
-                                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">✓ 科目一致</span>
+                                <span className="text-[10px] bg-green-100 dark:bg-green-900/60 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded-full">✓ 科目一致</span>
                               )}
                               {hasShift && (
-                                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">シフトあり</span>
+                                <span className="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full">シフトあり</span>
                               )}
                               {isFull && (
-                                <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">定員満</span>
+                                <span className="text-[10px] bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-300 px-1.5 py-0.5 rounded-full">定員満</span>
                               )}
                             </div>
                           </div>
@@ -300,7 +300,7 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
                       <>
                         {recommended.length > 0 && (
                           <div>
-                            <p className="text-[10px] font-semibold text-amber-600 mb-1 flex items-center gap-1">
+                            <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-300 mb-1 flex items-center gap-1">
                               ⭐ おすすめ（{recommended.length}件）
                             </p>
                             <div className="space-y-1">
@@ -344,7 +344,7 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
             </div>
           </form>
         ) : (
-          <div className="bg-gray-50 rounded-xl border border-dashed border-gray-200 p-10 text-center text-gray-400 text-sm">
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-10 text-center text-gray-400 text-sm">
             左から生徒を選択すると<br />振替コマを割り当てられます
           </div>
         )}

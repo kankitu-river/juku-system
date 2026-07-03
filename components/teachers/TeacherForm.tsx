@@ -106,14 +106,14 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             氏名 <span className="text-red-500">*</span>
           </label>
           <input
@@ -122,12 +122,12 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="例：山田 太郎"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             メールアドレス
             <span className="ml-1.5 text-xs text-gray-400 font-normal">任意・シフトメール送信に使用</span>
           </label>
@@ -136,16 +136,16 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="teacher@juku.com"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">権限</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">権限</label>
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value as 'admin' | 'staff' })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           >
             <option value="staff">スタッフ</option>
             <option value="admin">管理者</option>
@@ -155,15 +155,15 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
 
       {/* 担当科目と対応学年 */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">担当科目と対応学年</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">担当科目と対応学年</label>
         <p className="text-xs text-gray-400 mb-3">科目を選択し、その科目で担当できる学年を選んでください</p>
 
-        <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
           {SUBJECT_OPTIONS.map((subject) => {
             const selected = isSubjectSelected(subject)
             const grades = getGradesForSubject(subject)
             return (
-              <div key={subject} className={['px-4 py-3 transition-colors', selected ? 'bg-blue-50' : 'bg-white'].join(' ')}>
+              <div key={subject} className={['px-4 py-3 transition-colors', selected ? 'bg-blue-50 dark:bg-blue-950/40' : 'bg-white dark:bg-gray-800'].join(' ')}>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
@@ -172,7 +172,7 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
                       'shrink-0 w-20 py-1.5 rounded-lg text-sm font-medium border transition-colors',
                       selected
                         ? 'bg-navy text-white border-navy'
-                        : 'bg-white text-gray-500 border-gray-300 hover:border-navy',
+                        : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-navy',
                     ].join(' ')}
                   >
                     {subject}
@@ -189,7 +189,7 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
                             'px-2 py-1 rounded text-xs font-medium border transition-colors',
                             grades.includes(grade)
                               ? 'bg-amber-brand text-white border-amber-brand'
-                              : 'bg-white text-gray-400 border-gray-200 hover:border-amber-brand hover:text-amber-brand',
+                              : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 hover:border-amber-brand hover:text-amber-brand',
                           ].join(' ')}
                         >
                           {grade}
@@ -205,11 +205,11 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
 
                 {selected && grades.length > 0 && (
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-xs text-gray-500">〜まで一括：</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">〜まで一括：</span>
                     <select
                       value=""
                       onChange={(e) => e.target.value && setGradeRange(subject, e.target.value)}
-                      className="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600"
+                      className="text-xs border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-gray-600 dark:text-gray-300"
                     >
                       <option value="">学年を選ぶ</option>
                       {GRADE_OPTIONS.map((g) => (
@@ -220,7 +220,7 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
                 )}
 
                 {selected && grades.length === 0 && (
-                  <p className="mt-1.5 text-xs text-amber-600">学年が選択されていません</p>
+                  <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-300">学年が選択されていません</p>
                 )}
               </div>
             )
@@ -228,12 +228,12 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
         </div>
 
         {selectedSubjects.length > 0 && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-            <p className="text-xs font-medium text-gray-600 mb-1.5">登録内容まとめ</p>
+          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">登録内容まとめ</p>
             <div className="flex flex-wrap gap-2">
               {selectedSubjects.map((sg) => (
-                <span key={sg.subject} className="text-xs bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-gray-700">
-                  <span className="font-medium text-navy">{sg.subject}</span>
+                <span key={sg.subject} className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1 text-gray-700 dark:text-gray-300">
+                  <span className="font-medium text-navy dark:text-blue-300">{sg.subject}</span>
                   {sg.grades.length > 0
                     ? `：${sg.grades[0]}〜${sg.grades[sg.grades.length - 1]}`
                     : <span className="text-amber-500 ml-1">（学年未設定）</span>

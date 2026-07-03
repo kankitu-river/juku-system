@@ -157,12 +157,12 @@ const lessonMap = useMemo(() => {
       {/* ナビ */}
       <div className="flex items-center justify-between mb-3">
         <a href={`/schedule?date=${toDateStr(prevWeekDate)}`}
-          className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">
+          className="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
           ‹ 前の週
         </a>
-        <span className="text-sm font-semibold text-gray-700">{monthStr} {weekRange}</span>
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{monthStr} {weekRange}</span>
         <a href={`/schedule?date=${toDateStr(nextWeekDate)}`}
-          className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">
+          className="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
           次の週 ›
         </a>
       </div>
@@ -172,7 +172,7 @@ const lessonMap = useMemo(() => {
         {(['weekday', 'saturday'] as DayView[]).map(v => (
           <button key={v} onClick={() => setDayView(v)}
             className={['px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              dayView === v ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              dayView === v ? 'bg-navy text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200',
             ].join(' ')}>
             {v === 'weekday' ? '月〜金' : '土曜日'}
           </button>
@@ -185,7 +185,7 @@ const lessonMap = useMemo(() => {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="w-36 border border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs text-gray-500 font-medium">
+                <th className="w-36 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-3 text-left text-xs text-gray-500 dark:text-gray-400 font-medium">
                   時間帯
                 </th>
                 {weekdays.map((day, i) => {
@@ -197,12 +197,12 @@ const lessonMap = useMemo(() => {
                   return (
                     <th key={day.value}
                       className={['border px-3 py-3 text-center font-semibold relative',
-                        isClosed ? 'bg-red-50 text-red-400 border-gray-200' :
-                        isToday ? 'bg-amber-100 text-amber-900 border-amber-300 border-2' :
-                        'bg-gray-50 text-gray-700 border-gray-200',
+                        isClosed ? 'bg-red-50 dark:bg-red-950/40 text-red-400 border-gray-200 dark:border-gray-700' :
+                        isToday ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 border-amber-300 dark:border-amber-800 border-2' :
+                        'bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700',
                       ].join(' ')}>
                       {isToday && (
-                        <span className="absolute top-0.5 right-1 text-[9px] font-bold text-amber-600">TODAY</span>
+                        <span className="absolute top-0.5 right-1 text-[9px] font-bold text-amber-600 dark:text-amber-300">TODAY</span>
                       )}
                       <div className="text-sm">{day.label}曜日</div>
                       <div className="text-xs font-normal opacity-60">{dateLabel}</div>
@@ -215,8 +215,8 @@ const lessonMap = useMemo(() => {
             <tbody>
               {slots.map(slot => (
                 <tr key={slot.index}>
-                  <td className="border border-gray-200 bg-gray-50 px-3 py-2.5 whitespace-nowrap">
-                    <div className="text-xs font-semibold text-gray-600">第{slot.index}コマ</div>
+                  <td className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap">
+                    <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">第{slot.index}コマ</div>
                     <div className="text-[11px] text-gray-400 mt-0.5">{slot.start}〜{slot.end}</div>
                   </td>
                   {weekdays.map((day, i) => {
@@ -239,9 +239,9 @@ const lessonMap = useMemo(() => {
                     return (
                       <td key={day.value}
                         className={['border px-2 py-2 align-top',
-                          isClosed ? 'bg-red-50/50 border-gray-200' :
-                          isToday ? 'bg-amber-50/60 border-amber-200' :
-                          'border-gray-200',
+                          isClosed ? 'bg-red-50/50 border-gray-200 dark:border-gray-700' :
+                          isToday ? 'bg-amber-50/60 border-amber-200 dark:border-amber-900' :
+                          'border-gray-200 dark:border-gray-700',
                         ].join(' ')}
                         style={{ minWidth: '190px' }}>
                         {isClosed ? (
@@ -257,13 +257,13 @@ const lessonMap = useMemo(() => {
                               </div>
                             )}
                             {availableTeachers.length > 0 && (
-                              <div className={['flex flex-wrap gap-1', cellLessons.length > 0 ? 'pt-1 mt-1 border-t border-gray-200' : ''].join(' ')}>
+                              <div className={['flex flex-wrap gap-1', cellLessons.length > 0 ? 'pt-1 mt-1 border-t border-gray-200 dark:border-gray-700' : ''].join(' ')}>
                                 {availableTeachers.map(t => (
                                   <a
                                     key={t.id}
                                     href={`/schedule/new?teacher_id=${t.id}&date=${dateStr}&slot_index=${slot.index}&term_type=${termType}`}
                                     title="クリックして臨時コマを追加"
-                                    className="text-[10px] bg-gray-50 text-gray-400 border border-dashed border-gray-300 px-1.5 py-0.5 rounded-full whitespace-nowrap hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors cursor-pointer"
+                                    className="text-[10px] bg-gray-50 dark:bg-gray-900/50 text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 px-1.5 py-0.5 rounded-full whitespace-nowrap hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors cursor-pointer"
                                   >
                                     {t.name}
                                   </a>
@@ -286,7 +286,7 @@ const lessonMap = useMemo(() => {
       {dayView === 'saturday' && (
         <div className="overflow-x-auto">
           {isSatClosed && (
-            <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 font-medium">
+            <div className="mb-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl px-4 py-3 text-sm text-red-600 dark:text-red-300 font-medium">
               今週の土曜日（{weekDateStrings[5]?.replace(/-/g, '/')}）は休校日です
             </div>
           )}
@@ -294,9 +294,9 @@ const lessonMap = useMemo(() => {
             <table className="border-collapse text-sm" style={{ minWidth: '400px' }}>
               <thead>
                 <tr>
-                  <th className="w-36 border border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs text-gray-500 font-medium">時間帯</th>
-                  <th className={['border border-gray-200 px-3 py-3 text-center text-sm font-semibold',
-                    isSatClosed ? 'bg-red-50 text-red-400' : 'bg-purple-50 text-purple-800'].join(' ')}
+                  <th className="w-36 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-3 text-left text-xs text-gray-500 dark:text-gray-400 font-medium">時間帯</th>
+                  <th className={['border border-gray-200 dark:border-gray-700 px-3 py-3 text-center text-sm font-semibold',
+                    isSatClosed ? 'bg-red-50 dark:bg-red-950/40 text-red-400' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-200'].join(' ')}
                     style={{ minWidth: '300px' }}>
                     土曜日
                     {isSatClosed && <div className="text-[10px] font-bold text-red-500">休校</div>}
@@ -308,11 +308,11 @@ const lessonMap = useMemo(() => {
                   const cellLessons = isSatClosed ? [] : (lessonMap.get(`6-${slot.index}`) ?? [])
                   return (
                     <tr key={slot.index}>
-                      <td className="border border-gray-200 bg-gray-50 px-3 py-2.5 whitespace-nowrap">
-                        <div className="text-xs font-semibold text-gray-600">第{slot.index}コマ</div>
+                      <td className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap">
+                        <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">第{slot.index}コマ</div>
                         <div className="text-[11px] text-gray-400 mt-0.5">{slot.start}〜{slot.end}</div>
                       </td>
-                      <td className={['border border-gray-200 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
+                      <td className={['border border-gray-200 dark:border-gray-700 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                         style={{ minHeight: '80px' }}>
                         <div className="space-y-1">
                           <CellLessons lessons={cellLessons} />
@@ -334,8 +334,8 @@ const lessonMap = useMemo(() => {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th className="w-36 border border-gray-200 bg-gray-50 px-3 py-2.5 text-left text-xs text-gray-500 font-medium">時間帯</th>
-                    <th className="border border-gray-200 bg-teal-50 px-3 py-2.5 text-center text-sm font-semibold text-teal-800">個別指導</th>
+                    <th className="w-36 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 text-left text-xs text-gray-500 dark:text-gray-400 font-medium">時間帯</th>
+                    <th className="border border-gray-200 dark:border-gray-700 bg-teal-50 dark:bg-teal-950/40 px-3 py-2.5 text-center text-sm font-semibold text-teal-800 dark:text-teal-200">個別指導</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -344,11 +344,11 @@ const lessonMap = useMemo(() => {
                     const cellLessons = isSatClosed ? [] : (lessonMap.get(key) ?? [])
                     return (
                       <tr key={slot.index}>
-                        <td className="border border-gray-200 bg-gray-50 px-3 py-2.5 whitespace-nowrap">
-                          <div className="text-xs font-semibold text-gray-600">第{slot.index}コマ</div>
+                        <td className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">第{slot.index}コマ</div>
                           <div className="text-[11px] text-gray-400 mt-0.5">{slot.start}〜{slot.end}</div>
                         </td>
-                        <td className={['border border-gray-200 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
+                        <td className={['border border-gray-200 dark:border-gray-700 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                           style={{ minHeight: '72px' }}>
                           <div className="space-y-1">
                             <CellLessons lessons={cellLessons} />
@@ -369,8 +369,8 @@ const lessonMap = useMemo(() => {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th className="w-36 border border-gray-200 bg-gray-50 px-3 py-2.5 text-left text-xs text-gray-500 font-medium">時間帯</th>
-                    <th className="border border-gray-200 bg-purple-50 px-3 py-2.5 text-center text-sm font-semibold text-purple-800">集団授業</th>
+                    <th className="w-36 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 text-left text-xs text-gray-500 dark:text-gray-400 font-medium">時間帯</th>
+                    <th className="border border-gray-200 dark:border-gray-700 bg-purple-50 dark:bg-purple-950/40 px-3 py-2.5 text-center text-sm font-semibold text-purple-800 dark:text-purple-200">集団授業</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -379,11 +379,11 @@ const lessonMap = useMemo(() => {
                     const cellLessons = isSatClosed ? [] : (lessonMap.get(key) ?? [])
                     return (
                       <tr key={slot.index}>
-                        <td className="border border-gray-200 bg-gray-50 px-3 py-2.5 whitespace-nowrap">
-                          <div className="text-xs font-semibold text-gray-600">第{slot.index}コマ</div>
+                        <td className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">第{slot.index}コマ</div>
                           <div className="text-[11px] text-gray-400 mt-0.5">{slot.start}〜{slot.end}</div>
                         </td>
-                        <td className={['border border-gray-200 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
+                        <td className={['border border-gray-200 dark:border-gray-700 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                           style={{ minHeight: '72px' }}>
                           <div className="space-y-1">
                             <CellLessons lessons={cellLessons} />

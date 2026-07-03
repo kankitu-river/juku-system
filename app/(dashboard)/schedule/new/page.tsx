@@ -96,7 +96,7 @@ export default async function NewLessonPage({ searchParams }: PageProps) {
         }
       />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 max-w-2xl">
         <LessonForm
           lesson={sourceLesson}
           teachers={(teachers as Teacher[]) ?? []}

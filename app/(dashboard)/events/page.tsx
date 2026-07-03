@@ -33,25 +33,25 @@ export default async function EventsPage() {
                 key={event.id}
                 href={`/events/${event.id}`}
                 className={[
-                  'flex items-start gap-4 bg-white rounded-xl border shadow-sm px-5 py-4 hover:shadow-md transition-shadow',
-                  isPast ? 'border-gray-100 opacity-60' : 'border-amber-100',
+                  'flex items-start gap-4 bg-white dark:bg-gray-800 rounded-xl border shadow-sm px-5 py-4 hover:shadow-md transition-shadow',
+                  isPast ? 'border-gray-100 dark:border-gray-700 opacity-60' : 'border-amber-100',
                 ].join(' ')}
               >
                 {/* 日付ブロック */}
                 <div className={[
                   'flex-shrink-0 text-center rounded-xl px-3 py-2 min-w-[56px]',
-                  isPast ? 'bg-gray-100' : 'bg-amber-50',
+                  isPast ? 'bg-gray-100 dark:bg-gray-700' : 'bg-amber-50 dark:bg-amber-950/40',
                 ].join(' ')}>
-                  <p className="text-xs text-gray-500">{start.getMonth() + 1}月</p>
-                  <p className="text-2xl font-bold text-gray-800 leading-none">{start.getDate()}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{start.getMonth() + 1}月</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100 leading-none">{start.getDate()}</p>
                   <p className="text-xs text-gray-400">
                     {['日', '月', '火', '水', '木', '金', '土'][start.getDay()]}
                   </p>
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">{event.title}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                     {start.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                     {' 〜 '}
                     {end.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
@@ -70,7 +70,7 @@ export default async function EventsPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
           <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

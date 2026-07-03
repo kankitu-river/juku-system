@@ -63,16 +63,16 @@ export function ClosureCalendar({ initialClosureDates }: ClosureCalendarProps) {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           保存に失敗しました：{error}
-          <p className="mt-1 text-xs">Supabase SQL Editorで <code className="bg-red-100 px-1 rounded">SELECT * FROM school_closures LIMIT 1</code> を実行してテーブルの存在を確認してください。</p>
+          <p className="mt-1 text-xs">Supabase SQL Editorで <code className="bg-red-100 dark:bg-red-900/60 px-1 rounded">SELECT * FROM school_closures LIMIT 1</code> を実行してテーブルの存在を確認してください。</p>
         </div>
       )}
       {/* 月ナビ */}
       <div className="flex items-center justify-between">
-        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 text-lg">‹</button>
-        <span className="font-semibold text-gray-800">{year}年{month + 1}月</span>
-        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 text-lg">›</button>
+        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 text-lg">‹</button>
+        <span className="font-semibold text-gray-800 dark:text-gray-100">{year}年{month + 1}月</span>
+        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 text-lg">›</button>
       </div>
 
       {/* カレンダーグリッド */}
@@ -81,7 +81,7 @@ export function ClosureCalendar({ initialClosureDates }: ClosureCalendarProps) {
           {DAY_NAMES.map((d, i) => (
             <div key={d} className={[
               'text-center text-xs font-medium py-1',
-              i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500',
+              i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-500 dark:text-gray-400',
             ].join(' ')}>{d}</div>
           ))}
         </div>
@@ -103,10 +103,10 @@ export function ClosureCalendar({ initialClosureDates }: ClosureCalendarProps) {
                   isClosed
                     ? 'bg-red-500 text-white shadow-sm'
                     : isPast
-                      ? 'text-gray-300 hover:bg-gray-100'
+                      ? 'text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                       : dow === 0 ? 'text-red-400 hover:bg-red-50'
                       : dow === 6 ? 'text-blue-400 hover:bg-blue-50'
-                      : 'text-gray-700 hover:bg-gray-100',
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
                   isToday && !isClosed ? 'ring-2 ring-navy ring-offset-1' : '',
                 ].join(' ')}
               >
@@ -120,13 +120,13 @@ export function ClosureCalendar({ initialClosureDates }: ClosureCalendarProps) {
 
       {/* この月の休校日リスト */}
       {closureThisMonth.length > 0 ? (
-        <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-3">
-          <p className="text-xs font-semibold text-red-600 mb-2">{month + 1}月の休校日</p>
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-100 rounded-lg px-4 py-3">
+          <p className="text-xs font-semibold text-red-600 dark:text-red-300 mb-2">{month + 1}月の休校日</p>
           <div className="flex flex-wrap gap-2">
             {closureThisMonth.map(d => {
               const date = new Date(d)
               return (
-                <span key={d} className="text-xs bg-white border border-red-200 text-red-700 px-2 py-1 rounded-lg">
+                <span key={d} className="text-xs bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 px-2 py-1 rounded-lg">
                   {date.getMonth() + 1}/{date.getDate()}（{DAY_NAMES[date.getDay()]}）
                 </span>
               )

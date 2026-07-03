@@ -34,9 +34,9 @@ export function UnrecordedAlert({ lessons }: { lessons: UnrecordedLesson[] }) {
   if (overdue.length === 0) return null
 
   return (
-    <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4">
+    <div className="mb-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-red-600 font-semibold text-sm">🔔 出欠未入力のコマ</span>
+        <span className="text-red-600 dark:text-red-300 font-semibold text-sm">🔔 出欠未入力のコマ</span>
         <span className="text-xs text-red-400">終了済みなのに出欠が入力されていません</span>
       </div>
       <div className="space-y-1.5">
@@ -44,15 +44,15 @@ export function UnrecordedAlert({ lessons }: { lessons: UnrecordedLesson[] }) {
           <Link
             key={l.lessonId}
             href={`/attendance/${l.lessonId}`}
-            className="flex items-center gap-3 bg-white border border-red-200 rounded-lg px-3 py-2 hover:border-red-400 transition-colors"
+            className="flex items-center gap-3 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2 hover:border-red-400 transition-colors"
           >
-            <span className="text-sm font-medium text-gray-800">
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
               第{l.slotIndex}コマ（{l.timeLabel}）
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {l.teacherName ? `${l.teacherName}先生` : '担当未設定'}
             </span>
-            <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+            <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300">
               未入力 {l.unrecordedCount}名
             </span>
           </Link>

@@ -92,10 +92,10 @@ export default async function DashboardPage() {
 
       {/* 振替がたまりすぎ警告 */}
       {highCreditStudents.length > 0 && (
-        <div className="mb-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
+        <div className="mb-4 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-orange-600 font-semibold text-sm">📌 振替が3件以上たまっている生徒</span>
-            <Link href="/attendance/makeup" className="ml-auto text-xs text-orange-700 hover:underline">
+            <span className="text-orange-600 dark:text-orange-300 font-semibold text-sm">📌 振替が3件以上たまっている生徒</span>
+            <Link href="/attendance/makeup" className="ml-auto text-xs text-orange-700 dark:text-orange-300 hover:underline">
               振替管理へ →
             </Link>
           </div>
@@ -104,11 +104,11 @@ export default async function DashboardPage() {
               <Link
                 key={mc.student_id}
                 href={`/students/${mc.student_id}`}
-                className="flex items-center gap-1.5 bg-white border border-orange-200 rounded-lg px-3 py-1.5 hover:border-orange-400 transition-colors"
+                className="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-900 rounded-lg px-3 py-1.5 hover:border-orange-400 transition-colors"
               >
-                <span className="text-sm font-medium text-gray-800">{mc.student!.name}</span>
+                <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{mc.student!.name}</span>
                 <span className="text-xs text-gray-400">{getDisplayGrade(mc.student!.grade)}</span>
-                <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/60 text-orange-700 dark:text-orange-300">
                   残{mc.remaining}件
                 </span>
               </Link>
@@ -119,10 +119,10 @@ export default async function DashboardPage() {
 
       {/* 振替残数が少ない警告 */}
       {lowCreditStudents.length > 0 && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="mb-6 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-amber-600 font-semibold text-sm">⚠ 振替残数が少ない生徒</span>
-            <Link href="/attendance/makeup" className="ml-auto text-xs text-amber-700 hover:underline">
+            <span className="text-amber-600 dark:text-amber-300 font-semibold text-sm">⚠ 振替残数が少ない生徒</span>
+            <Link href="/attendance/makeup" className="ml-auto text-xs text-amber-700 dark:text-amber-300 hover:underline">
               振替管理へ →
             </Link>
           </div>
@@ -131,11 +131,11 @@ export default async function DashboardPage() {
               <Link
                 key={mc.student_id}
                 href={`/students/${mc.student_id}`}
-                className="flex items-center gap-1.5 bg-white border border-amber-200 rounded-lg px-3 py-1.5 hover:border-amber-400 transition-colors"
+                className="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-1.5 hover:border-amber-400 transition-colors"
               >
-                <span className="text-sm font-medium text-gray-800">{mc.student!.name}</span>
+                <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{mc.student!.name}</span>
                 <span className="text-xs text-gray-400">{getDisplayGrade(mc.student!.grade)}</span>
-                <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
                   残{mc.remaining}
                 </span>
               </Link>
@@ -147,15 +147,15 @@ export default async function DashboardPage() {
       {/* 統計カード */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
-          <p className="text-sm text-gray-500 mb-1">今日のコマ数</p>
-          <p className="text-3xl font-bold text-navy">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">今日のコマ数</p>
+          <p className="text-3xl font-bold text-navy dark:text-blue-300">
             {todayLessons.length}
-            <span className="text-base font-normal text-gray-500 ml-1">コマ</span>
+            <span className="text-base font-normal text-gray-500 dark:text-gray-400 ml-1">コマ</span>
           </p>
         </Card>
         <Card>
-          <p className="text-sm text-gray-500 mb-1">現在の期間区分</p>
-          <p className="text-xl font-bold text-navy">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">現在の期間区分</p>
+          <p className="text-xl font-bold text-navy dark:text-blue-300">
             {currentTerm ? currentTerm.name : '通常期間'}
           </p>
           {currentTerm && (
@@ -165,24 +165,24 @@ export default async function DashboardPage() {
           )}
         </Card>
         <Card>
-          <p className="text-sm text-gray-500 mb-1">本日出勤講師数</p>
-          <p className="text-3xl font-bold text-navy">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">本日出勤講師数</p>
+          <p className="text-3xl font-bold text-navy dark:text-blue-300">
             {workingTeacherCount}
-            <span className="text-base font-normal text-gray-500 ml-1">名</span>
+            <span className="text-base font-normal text-gray-500 dark:text-gray-400 ml-1">名</span>
           </p>
         </Card>
         <Card>
-          <p className="text-sm text-gray-500 mb-1">クイックリンク</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">クイックリンク</p>
           <div className="flex flex-wrap gap-2 mt-1">
-            <Link href="/schedule/new" className="text-sm text-navy hover:underline font-medium">
+            <Link href="/schedule/new" className="text-sm text-navy dark:text-blue-300 hover:underline font-medium">
               + コマ追加
             </Link>
             <span className="text-gray-300">|</span>
-            <Link href="/students/new" className="text-sm text-navy hover:underline font-medium">
+            <Link href="/students/new" className="text-sm text-navy dark:text-blue-300 hover:underline font-medium">
               + 生徒追加
             </Link>
             <span className="text-gray-300">|</span>
-            <Link href="/attendance/makeup" className="text-sm text-navy hover:underline font-medium">
+            <Link href="/attendance/makeup" className="text-sm text-navy dark:text-blue-300 hover:underline font-medium">
               振替管理
             </Link>
           </div>
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
         title="今日のコマと出欠入力"
         padding="none"
         action={
-          <Link href="/schedule" className="text-sm text-navy hover:underline">
+          <Link href="/schedule" className="text-sm text-navy dark:text-blue-300 hover:underline">
             週次カレンダー →
           </Link>
         }

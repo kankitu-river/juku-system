@@ -139,11 +139,11 @@ export function TeacherImport() {
         <button
           type="button"
           onClick={downloadSample}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
         >
           サンプルCSVをダウンロード
         </button>
-        <label className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-navy border border-navy rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+        <label className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-navy dark:text-blue-300 border border-navy rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
           CSVを選択してインポート
           <input
             ref={fileRef}
@@ -160,18 +160,18 @@ export function TeacherImport() {
       </p>
 
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
 
       {preview && (
-        <div className="border border-gray-200 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-            <p className="text-sm font-medium text-gray-700">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               プレビュー：{teacherCount}名・{preview.length}行
               {warnCount > 0 && (
-                <span className="ml-2 text-amber-600 text-xs">⚠ {warnCount}件の警告</span>
+                <span className="ml-2 text-amber-600 dark:text-amber-300 text-xs">⚠ {warnCount}件の警告</span>
               )}
             </p>
             <div className="flex items-center gap-2">
@@ -194,23 +194,23 @@ export function TeacherImport() {
           </div>
           <div className="overflow-x-auto max-h-72 overflow-y-auto">
             <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-white border-b border-gray-100">
+              <thead className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
                 <tr>
                   {['氏名', 'メール', '権限', '科目', '担当学年'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-medium text-gray-500">{h}</th>
+                    <th key={h} className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                 {preview.map((row, i) => (
-                  <tr key={i} className={row.warn ? 'bg-amber-50' : ''}>
-                    <td className="px-3 py-2 font-medium text-gray-800">{row.name}</td>
-                    <td className="px-3 py-2 text-gray-500">{row.email || '—'}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.role}</td>
-                    <td className="px-3 py-2 text-gray-600">{row.subject || '—'}</td>
-                    <td className="px-3 py-2 text-gray-600">
+                  <tr key={i} className={row.warn ? 'bg-amber-50 dark:bg-amber-950/40' : ''}>
+                    <td className="px-3 py-2 font-medium text-gray-800 dark:text-gray-100">{row.name}</td>
+                    <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{row.email || '—'}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.role}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.subject || '—'}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
                       {row.grades || '—'}
-                      {row.warn && <span className="ml-1 text-amber-600" title={row.warn}>⚠</span>}
+                      {row.warn && <span className="ml-1 text-amber-600 dark:text-amber-300" title={row.warn}>⚠</span>}
                     </td>
                   </tr>
                 ))}

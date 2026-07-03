@@ -41,9 +41,9 @@ export default async function SettingsPage() {
 
       <div className="max-w-2xl space-y-6">
         {/* アカウント管理 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">アカウント管理</h2>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">アカウント管理</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             ログインできるアカウントの追加・削除・権限変更ができます。
           </p>
           <UserManager
@@ -52,51 +52,51 @@ export default async function SettingsPage() {
           />
         </div>
         {/* 休校日設定 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">休校日の設定</h2>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">休校日の設定</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             カレンダーで休校にする日をタップすると赤くなって休校日として登録されます。スケジュール画面にも反映されます。
           </p>
           <ClosureCalendar initialClosureDates={closureDates} />
         </div>
 
         {/* 授業時間設定 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">授業時間の変更</h2>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">授業時間の変更</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             時間帯スロットの開始・終了時刻を変更できます。変更後はコマ作成画面とカレンダーに反映されます。
           </p>
           <TimeSlotEditor initialConfig={customSlots} />
         </div>
 
         {/* 講習期間コマ上限 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">講習期間のコマ数設定</h2>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">講習期間のコマ数設定</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             曜日ごとに講習期間で使用する最終コマを設定します。それ以降のコマは来塾希望入力・コマ作成から非表示になります。
           </p>
           <IntensiveSlotSettings initialLimits={intensiveSlotLimits} />
         </div>
 
         {/* 期間区分 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">期間区分の管理</h2>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">期間区分の管理</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             通常期間・講習期間（夏・冬・春）を登録します。登録した期間に基づいて時間帯スロットが自動で切り替わります。
           </p>
           <TermPeriodManager initialPeriods={(termPeriods as TermPeriod[]) ?? []} />
         </div>
 
         {/* 一括進級処理 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">一括進級処理</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">一括進級処理</h2>
           <GradeAdvancement />
         </div>
 
         {/* 重複コマの統合 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">重複コマの統合</h2>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">重複コマの統合</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             同じ先生・同じ時間帯に複数のコマが登録されている場合、1つにまとめます。生徒の科目情報は保持されます。
           </p>
           <Link
@@ -108,15 +108,15 @@ export default async function SettingsPage() {
         </div>
 
         {/* バックアップ */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">設定のバックアップ</h2>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">設定のバックアップ</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             ブース・期間区分・休校日などの設定データをJSONファイルとしてダウンロードします。
           </p>
           <a
             href="/api/export/settings"
             download
-            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

@@ -153,18 +153,18 @@ export function IntensivePlanner({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {/* 生徒一覧 */}
       <div className="lg:col-span-1">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <p className="text-sm font-semibold text-gray-700 mb-2">生徒を選択</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">生徒を選択</p>
             <input
               type="text"
               value={studentSearch}
               onChange={(e) => setStudentSearch(e.target.value)}
               placeholder="名前・学年で検索"
-              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
-          <ul className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
+          <ul className="divide-y divide-gray-50 dark:divide-gray-700 max-h-[600px] overflow-y-auto">
             {filteredStudents.map((student) => {
               const { total, enrolled, subjects } = getStudentProgress(student.id)
               const isSelected = student.id === selectedStudentId
@@ -174,11 +174,11 @@ export function IntensivePlanner({
                     onClick={() => setSelectedStudentId(isSelected ? null : student.id)}
                     className={[
                       'w-full flex items-center justify-between px-4 py-3 text-left transition-colors',
-                      isSelected ? 'bg-blue-50' : 'hover:bg-gray-50',
+                      isSelected ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50',
                     ].join(' ')}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{student.name}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{student.name}</p>
                       <p className="text-xs text-gray-400">{getDisplayGrade(student.grade)}</p>
                     </div>
                     <div className="ml-2 text-right flex-shrink-0">
@@ -186,7 +186,7 @@ export function IntensivePlanner({
                         <>
                           <p className={[
                             'text-xs font-bold',
-                            enrolled >= total ? 'text-green-600' : 'text-amber-brand',
+                            enrolled >= total ? 'text-green-600 dark:text-green-300' : 'text-amber-brand',
                           ].join(' ')}>
                             {enrolled}/{total}コマ
                           </p>
@@ -207,16 +207,16 @@ export function IntensivePlanner({
       {/* 割り振りパネル */}
       <div className="lg:col-span-2">
         {!selectedStudent ? (
-          <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-12 text-center text-gray-400 text-sm">
+          <div className="bg-gray-50 dark:bg-gray-900/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-12 text-center text-gray-400 text-sm">
             左から生徒を選択してください
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="font-bold text-gray-900 text-lg">{selectedStudent.name}</p>
-                  <p className="text-sm text-gray-500">{getDisplayGrade(selectedStudent.grade)}　{termPeriodName}</p>
+                  <p className="font-bold text-gray-900 dark:text-gray-100 text-lg">{selectedStudent.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{getDisplayGrade(selectedStudent.grade)}　{termPeriodName}</p>
                 </div>
                 {/* 科目追加フォーム */}
                 {editingPlan ? (
@@ -224,7 +224,7 @@ export function IntensivePlanner({
                     <select
                       value={editingPlan.subject}
                       onChange={(e) => setEditingPlan({ ...editingPlan, subject: e.target.value })}
-                      className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
+                      className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm"
                     >
                       {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -234,10 +234,10 @@ export function IntensivePlanner({
                       max={30}
                       value={editingPlan.count}
                       onChange={(e) => setEditingPlan({ ...editingPlan, count: e.target.value })}
-                      className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm w-20"
+                      className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm w-20"
                       placeholder="コマ数"
                     />
-                    <span className="text-sm text-gray-500">コマ</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">コマ</span>
                     <button
                       onClick={handleSavePlan}
                       disabled={isPending}
@@ -255,7 +255,7 @@ export function IntensivePlanner({
                 ) : (
                   <button
                     onClick={() => setEditingPlan({ subject: SUBJECTS[0], count: '1' })}
-                    className="px-3 py-1.5 border border-navy text-navy text-sm rounded-lg hover:bg-blue-50 transition-colors"
+                    className="px-3 py-1.5 border border-navy text-navy dark:text-blue-300 text-sm rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     + 科目を追加
                   </button>
@@ -274,20 +274,20 @@ export function IntensivePlanner({
                     const enrolledCount = enrolledCountBySubject[plan.subject] ?? 0
                     const remaining = plan.planned_count - enrolledCount
                     return (
-                      <div key={plan.subject} className="border border-gray-200 rounded-xl overflow-hidden">
+                      <div key={plan.subject} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                         <div className={[
                           'flex items-center justify-between px-4 py-2.5',
-                          remaining <= 0 ? 'bg-green-50' : 'bg-gray-50',
+                          remaining <= 0 ? 'bg-green-50 dark:bg-green-950/40' : 'bg-gray-50 dark:bg-gray-900/50',
                         ].join(' ')}>
                           <div className="flex items-center gap-3">
-                            <span className="font-semibold text-gray-800">{plan.subject}</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-100">{plan.subject}</span>
                             <span className={[
                               'text-sm font-bold px-2 py-0.5 rounded-full',
                               remaining <= 0
-                                ? 'bg-green-100 text-green-700'
+                                ? 'bg-green-100 dark:bg-green-900/60 text-green-700 dark:text-green-300'
                                 : remaining === plan.planned_count
-                                  ? 'bg-gray-200 text-gray-600'
-                                  : 'bg-amber-100 text-amber-700',
+                                  ? 'bg-gray-200 text-gray-600 dark:text-gray-300'
+                                  : 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300',
                             ].join(' ')}>
                               {enrolledCount}/{plan.planned_count}コマ
                               {remaining <= 0 && ' ✓'}
@@ -310,7 +310,7 @@ export function IntensivePlanner({
                             この科目の講習コマがまだありません
                           </p>
                         ) : (
-                          <div className="divide-y divide-gray-50">
+                          <div className="divide-y divide-gray-50 dark:divide-gray-700">
                             {subjectLessons.map((lesson) => {
                               const enrolled = isEnrolled(lesson.id)
                               const full = !enrolled && isFull(lesson)
@@ -325,18 +325,18 @@ export function IntensivePlanner({
                                   key={lesson.id}
                                   className={[
                                     'flex items-center justify-between px-4 py-2.5',
-                                    enrolled ? 'bg-teal-50' : '',
+                                    enrolled ? 'bg-teal-50 dark:bg-teal-950/40' : '',
                                     (full || overPlan) ? 'opacity-50' : '',
                                   ].join(' ')}
                                 >
                                   <div className="flex items-center gap-3 min-w-0">
-                                    <div className="text-xs text-gray-600 w-20 flex-shrink-0">
+                                    <div className="text-xs text-gray-600 dark:text-gray-300 w-20 flex-shrink-0">
                                       <p className="font-medium">{dateLabel}</p>
                                       <p className="text-gray-400">{timeLabel}</p>
                                     </div>
                                     <div className="min-w-0">
                                       {lesson.teacher?.name && (
-                                        <p className="text-xs text-gray-500 truncate">{lesson.teacher.name}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{lesson.teacher.name}</p>
                                       )}
                                       <p className="text-[10px] text-gray-400">
                                         {lesson.enrollments.length}/{lesson.capacity}名
@@ -358,8 +358,8 @@ export function IntensivePlanner({
                                         enrolled
                                           ? 'bg-teal-500 text-white border-teal-500 hover:bg-teal-600'
                                           : (full || overPlan)
-                                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                            : 'bg-white text-teal-600 border-teal-300 hover:bg-teal-50',
+                                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-gray-200 dark:border-gray-700 cursor-not-allowed'
+                                            : 'bg-white dark:bg-gray-800 text-teal-600 dark:text-teal-300 border-teal-300 dark:border-teal-800 hover:bg-teal-50',
                                       ].join(' ')}
                                     >
                                       {enrolled ? '割り当て済 ✓' : '割り当てる'}

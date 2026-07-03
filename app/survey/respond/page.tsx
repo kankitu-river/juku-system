@@ -151,7 +151,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/50">
       <div className="max-w-lg mx-auto px-4 py-8">
         <div className="bg-navy text-white rounded-xl px-6 py-5 mb-6">
           <p className="text-sm opacity-70 mb-1">塾スケジュール管理システム</p>
@@ -182,9 +182,9 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
 
 function ErrorPage({ message }: { message: string }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center max-w-sm">
-        <p className="text-lg font-semibold text-red-600">{message}</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 text-center max-w-sm">
+        <p className="text-lg font-semibold text-red-600 dark:text-red-300">{message}</p>
       </div>
     </div>
   )

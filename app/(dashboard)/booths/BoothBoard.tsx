@@ -74,31 +74,31 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
     <div className="space-y-5">
       {/* サマリー */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 text-center">
-          <p className="text-2xl font-bold text-gray-800">{activeBooths.length}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{activeBooths.length}</p>
           <p className="text-xs text-gray-400 mt-0.5">稼働中ブース</p>
         </div>
-        <div className="bg-teal-50 rounded-xl border border-teal-100 shadow-sm px-4 py-3 text-center">
-          <p className="text-2xl font-bold text-teal-600">{totalUsedToday}</p>
+        <div className="bg-teal-50 dark:bg-teal-950/40 rounded-xl border border-teal-100 shadow-sm px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-teal-600 dark:text-teal-300">{totalUsedToday}</p>
           <p className="text-xs text-gray-400 mt-0.5">本日使用中</p>
         </div>
-        <div className="bg-gray-50 rounded-xl border border-gray-100 shadow-sm px-4 py-3 text-center">
-          <p className="text-2xl font-bold text-gray-500">{activeBooths.length - totalUsedToday}</p>
+        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-gray-500 dark:text-gray-400">{activeBooths.length - totalUsedToday}</p>
           <p className="text-xs text-gray-400 mt-0.5">空きブース</p>
         </div>
       </div>
 
       {/* ブース×スロット グリッド */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr>
-                <th className="border border-gray-200 bg-navy text-white px-3 py-2 text-left font-medium whitespace-nowrap w-24">
+                <th className="border border-gray-200 dark:border-gray-700 bg-navy text-white px-3 py-2 text-left font-medium whitespace-nowrap w-24">
                   ブース
                 </th>
                 {slots.map((slot) => (
-                  <th key={slot.index} className="border border-gray-200 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap">
+                  <th key={slot.index} className="border border-gray-200 dark:border-gray-700 bg-navy text-white px-2 py-2 text-center font-medium whitespace-nowrap">
                     <div>第{slot.index}コマ</div>
                     <div className="text-[10px] opacity-70">{slot.start}〜{slot.end}</div>
                   </th>
@@ -107,8 +107,8 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
             </thead>
             <tbody>
               {activeBooths.map((booth, rowIdx) => (
-                <tr key={booth.id} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="border border-gray-200 px-3 py-2 font-semibold text-gray-700 whitespace-nowrap">
+                <tr key={booth.id} className={rowIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900/50'}>
+                  <td className="border border-gray-200 dark:border-gray-700 px-3 py-2 font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
                     {editingBooth === booth.id ? (
                       <div className="flex items-center gap-1">
                         <input
@@ -125,7 +125,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                         <button
                           onClick={() => handleBoothNameSave(booth.id)}
                           disabled={boothNamePending}
-                          className="text-teal-600 hover:text-teal-800 text-xs font-bold"
+                          className="text-teal-600 dark:text-teal-300 hover:text-teal-800 text-xs font-bold"
                         >✓</button>
                         <button
                           onClick={() => setEditingBooth(null)}
@@ -152,8 +152,8 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                       <td
                         key={slot.index}
                         className={[
-                          'border border-gray-200 px-2 py-1.5 align-top',
-                          hasPS1 ? 'bg-purple-50' : isOccupied ? 'bg-teal-50' : blockedBy ? 'bg-orange-50' : '',
+                          'border border-gray-200 dark:border-gray-700 px-2 py-1.5 align-top',
+                          hasPS1 ? 'bg-purple-50 dark:bg-purple-950/40' : isOccupied ? 'bg-teal-50 dark:bg-teal-950/40' : blockedBy ? 'bg-orange-50 dark:bg-orange-950/40' : '',
                         ].join(' ')}
                         style={{ minWidth: '130px', minHeight: '52px' }}
                       >
@@ -162,7 +162,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                             {editingLesson === lesson.id ? (
                               <div className={[
                                 'rounded border p-1.5 space-y-1',
-                                lesson.is_ps1 ? 'border-purple-300 bg-white' : 'border-teal-300 bg-white',
+                                lesson.is_ps1 ? 'border-purple-300 dark:border-purple-800 bg-white dark:bg-gray-800' : 'border-teal-300 dark:border-teal-800 bg-white dark:bg-gray-800',
                               ].join(' ')}>
                                 <div className="flex items-center gap-1">
                                   <p className={[
@@ -170,7 +170,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                                     lesson.is_ps1 ? 'text-purple-900' : 'text-teal-900',
                                   ].join(' ')}>{(lesson as any).teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
                                   {lesson.is_ps1 && (
-                                    <span className="text-[9px] bg-purple-200 text-purple-800 px-1 py-0.5 rounded font-bold flex-shrink-0">PS1</span>
+                                    <span className="text-[9px] bg-purple-200 text-purple-800 dark:text-purple-200 px-1 py-0.5 rounded font-bold flex-shrink-0">PS1</span>
                                   )}
                                 </div>
                                 <select
@@ -178,7 +178,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                                   defaultValue={getBoothId(lesson) ?? ''}
                                   onChange={(e) => handleBoothChange(lesson.id, e.target.value)}
                                   disabled={isPending}
-                                  className="w-full text-xs border border-gray-200 rounded px-1 py-0.5"
+                                  className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded px-1 py-0.5"
                                 >
                                   <option value="">— 未割り当て —</option>
                                   {allBooths.filter((b) => b.is_active).map((b) => (
@@ -198,8 +198,8 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                                 className={[
                                   'w-full text-left rounded px-1.5 py-1 border transition-colors',
                                   lesson.is_ps1
-                                    ? 'bg-purple-100 border-purple-200 hover:bg-purple-200'
-                                    : 'bg-teal-100 border-teal-200 hover:bg-teal-200',
+                                    ? 'bg-purple-100 dark:bg-purple-900/60 border-purple-200 dark:border-purple-900 hover:bg-purple-200'
+                                    : 'bg-teal-100 dark:bg-teal-900/60 border-teal-200 dark:border-teal-900 hover:bg-teal-200',
                                 ].join(' ')}
                               >
                                 <div className="flex items-center gap-1">
@@ -213,7 +213,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                                 </div>
                                 <p className={[
                                   'text-[10px]',
-                                  lesson.is_ps1 ? 'text-purple-600' : 'text-teal-600',
+                                  lesson.is_ps1 ? 'text-purple-600 dark:text-purple-300' : 'text-teal-600 dark:text-teal-300',
                                 ].join(' ')}>
                                   {(lesson.enrollments?.length ?? 0)}/{lesson.capacity}名
                                   <span className="ml-1 opacity-60">✎</span>
@@ -241,7 +241,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-gray-400 px-4 py-2 border-t border-gray-100">
+        <p className="text-[10px] text-gray-400 px-4 py-2 border-t border-gray-100 dark:border-gray-700">
           コマをクリックするとブースを変更できます
         </p>
       </div>
@@ -251,14 +251,14 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
         const unassigned = lessons.filter((l) => !getBoothId(l))
         if (!unassigned.length) return null
         return (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <p className="text-sm font-semibold text-amber-800 mb-2">⚠ ブース未割り当てのコマ</p>
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl p-4">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">⚠ ブース未割り当てのコマ</p>
             <div className="flex flex-wrap gap-2">
               {unassigned.map((l) => (
                 <Link
                   key={l.id}
                   href={`/schedule/${l.id}`}
-                  className="text-xs bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-amber-800 hover:border-amber-400 transition-colors"
+                  className="text-xs bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900 rounded-lg px-2.5 py-1.5 text-amber-800 dark:text-amber-200 hover:border-amber-400 transition-colors"
                 >
                   第{l.slot_index}コマ {l.subject}
                   {(l as any).teacher?.name && ` (${(l as any).teacher.name})`}
@@ -275,7 +275,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
           <p className="text-xs text-gray-400 mb-2">非稼働ブース</p>
           <div className="flex flex-wrap gap-2">
             {booths.filter((b) => !b.is_active).map((b) => (
-              <span key={b.id} className="text-xs bg-gray-100 text-gray-400 px-3 py-1.5 rounded-full">{b.name}</span>
+              <span key={b.id} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-400 px-3 py-1.5 rounded-full">{b.name}</span>
             ))}
           </div>
         </div>

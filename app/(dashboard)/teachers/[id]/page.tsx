@@ -26,7 +26,7 @@ export default async function TeacherDetailPage({ params }: PageProps) {
   return (
     <div>
       <Header title={typedTeacher.name} subtitle="先生の詳細・編集" />
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 max-w-2xl">
         <TeacherForm
           teacher={typedTeacher}
           onSave={updateTeacher.bind(null, id)}

@@ -51,7 +51,7 @@ export function TermPeriodManager({ initialPeriods }: TermPeriodManagerProps) {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
@@ -63,14 +63,14 @@ export function TermPeriodManager({ initialPeriods }: TermPeriodManagerProps) {
         {periods.map((period) => (
           <div
             key={period.id}
-            className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-100 bg-gray-50"
+            className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50"
           >
             <div className="flex items-center gap-3">
               <Badge variant={period.type === 'intensive' ? 'intensive' : 'regular'}>
                 {period.type === 'intensive' ? '講習' : '通常'}
               </Badge>
               <div>
-                <p className="text-sm font-medium text-gray-800">{period.name}</p>
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{period.name}</p>
                 <p className="text-xs text-gray-400">
                   {period.start_date} 〜 {period.end_date}
                 </p>
@@ -87,24 +87,24 @@ export function TermPeriodManager({ initialPeriods }: TermPeriodManagerProps) {
       </div>
 
       {showForm ? (
-        <form onSubmit={handleCreate} className="space-y-3 border border-gray-200 rounded-lg p-4 bg-white">
+        <form onSubmit={handleCreate} className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">期間名</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">期間名</label>
             <input
               type="text"
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="例：2025年夏期講習"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">種別</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">種別</label>
             <select
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value as TermType })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             >
               <option value="intensive">講習期間</option>
               <option value="regular">通常期間</option>
@@ -112,23 +112,23 @@ export function TermPeriodManager({ initialPeriods }: TermPeriodManagerProps) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">開始日</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">開始日</label>
               <input
                 type="date"
                 required
                 value={form.start_date}
                 onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">終了日</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">終了日</label>
               <input
                 type="date"
                 required
                 value={form.end_date}
                 onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
             </div>
           </div>

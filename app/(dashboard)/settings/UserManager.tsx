@@ -56,18 +56,18 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+        <div className="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">{error}</div>
       )}
       {success && (
-        <div className="text-sm text-teal-700 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">{success}</div>
+        <div className="text-sm text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900 rounded-lg px-3 py-2">{success}</div>
       )}
 
       {/* ユーザー一覧 */}
       <div className="space-y-2">
         {users.map((u) => (
-          <div key={u.id} className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border border-gray-100">
+          <div key={u.id} className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-700">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{u.email}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{u.email}</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {u.last_sign_in_at
                   ? `最終ログイン: ${new Date(u.last_sign_in_at).toLocaleDateString('ja-JP')}`
@@ -78,7 +78,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
               value={u.role}
               disabled={isPending}
               onChange={(e) => handleRoleChange(u.id, e.target.value as 'admin' | 'staff')}
-              className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-navy disabled:opacity-50"
+              className="text-xs border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-navy disabled:opacity-50"
             >
               <option value="admin">管理者</option>
               <option value="staff">スタッフ</option>
@@ -104,21 +104,21 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
 
       {/* 追加フォーム */}
       {showForm ? (
-        <form onSubmit={handleCreate} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-700">新しいアカウントを追加</h3>
+        <form onSubmit={handleCreate} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-900/50">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">新しいアカウントを追加</h3>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">メールアドレス</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">メールアドレス</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="example@email.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">初期パスワード</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">初期パスワード</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -127,7 +127,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="8文字以上"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy pr-10"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy pr-10"
               />
               <button
                 type="button"
@@ -148,11 +148,11 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">権限</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">権限</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'admin' | 'staff')}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             >
               <option value="staff">スタッフ（閲覧・基本操作）</option>
               <option value="admin">管理者（全操作）</option>
@@ -169,7 +169,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
             <button
               type="button"
               onClick={() => { setShowForm(false); setError('') }}
-              className="px-4 text-sm text-gray-500 border border-gray-300 rounded-lg py-2 hover:bg-gray-50"
+              className="px-4 text-sm text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50"
             >
               キャンセル
             </button>
@@ -178,7 +178,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
       ) : (
         <button
           onClick={() => { setShowForm(true); setSuccess('') }}
-          className="flex items-center gap-2 text-sm font-medium text-navy border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
+          className="flex items-center gap-2 text-sm font-medium text-navy dark:text-blue-300 border border-navy rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

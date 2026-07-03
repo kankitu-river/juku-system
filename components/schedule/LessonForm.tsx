@@ -200,20 +200,20 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
       )}
 
       {/* コマ種別 */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">コマ種別</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">コマ種別</label>
         <div className="flex gap-3">
           {(['regular', 'temporary'] as LessonKind[]).map((k) => (
             <button key={k} type="button" onClick={() => handleKindChange(k)}
               className={[
                 'flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left',
                 formData.lesson_kind === k
-                  ? k === 'regular' ? 'border-navy bg-blue-50 text-navy' : 'border-orange-400 bg-orange-50 text-orange-700'
-                  : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300',
+                  ? k === 'regular' ? 'border-navy bg-blue-50 dark:bg-blue-950/40 text-navy dark:text-blue-300' : 'border-orange-400 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300',
               ].join(' ')}
             >
               <span className="text-lg">{k === 'regular' ? '📅' : '⚡'}</span>
@@ -229,9 +229,9 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* 授業形式 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">授業形式 <span className="text-red-500">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">授業形式 <span className="text-red-500">*</span></label>
           <select value={formData.type} onChange={(e) => handleTypeChange(e.target.value as LessonType)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
             <option value="individual">個別指導</option>
             <option value="group">集団授業</option>
           </select>
@@ -241,19 +241,19 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         {isTemporary ? (
           <div className="md:col-span-2 space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">開催日 <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">開催日 <span className="text-red-500">*</span></label>
               <div className="flex items-center gap-3">
                 <input type="date" required value={formData.specific_date} onChange={(e) => handleDateChange(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
                 {formData.specific_date && (
-                  <span className="text-sm text-gray-600 bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg">
+                  <span className="text-sm text-gray-600 dark:text-gray-300 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 px-3 py-1.5 rounded-lg">
                     {DAY_NAMES[dowFromDate(formData.specific_date)] ?? ''}曜日
                   </span>
                 )}
               </div>
             </div>
             {onSaveRepeating && (
-              <div className="flex items-start gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 rounded-lg">
                 <input
                   type="checkbox"
                   id="repeat"
@@ -262,18 +262,18 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                   className="mt-0.5 rounded text-orange-500"
                 />
                 <div className="flex-1">
-                  <label htmlFor="repeat" className="text-sm font-medium text-orange-800 cursor-pointer">
+                  <label htmlFor="repeat" className="text-sm font-medium text-orange-800 dark:text-orange-200 cursor-pointer">
                     毎週繰り返す
                   </label>
                   {repeat && (
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="text-xs text-orange-700">終了日：</span>
+                      <span className="text-xs text-orange-700 dark:text-orange-300">終了日：</span>
                       <input
                         type="date"
                         value={repeatUntil}
                         min={formData.specific_date}
                         onChange={(e) => setRepeatUntil(e.target.value)}
-                        className="border border-orange-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        className="border border-orange-300 dark:border-orange-800 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
                       />
                     </div>
                   )}
@@ -283,9 +283,9 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           </div>
         ) : (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">曜日</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">曜日</label>
             <select value={formData.day_of_week} onChange={(e) => handleDayOrTermChange('day_of_week', Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
               {DAYS_OF_WEEK.map((d) => <option key={d.value} value={d.value}>{d.label}曜日</option>)}
             </select>
           </div>
@@ -293,9 +293,9 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
 
         {/* 期間区分 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">期間区分</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">期間区分</label>
           <select value={formData.term_type} onChange={(e) => handleDayOrTermChange('term_type', e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
             <option value="regular">通常期間</option>
             <option value="intensive">講習期間</option>
           </select>
@@ -303,9 +303,9 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
 
         {/* 時間帯スロット */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">時間帯スロット</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">時間帯スロット</label>
           <select value={formData.slot_index} onChange={(e) => setFormData({ ...formData, slot_index: Number(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
             {slots.map((slot) => (
               <option key={slot.index} value={slot.index}>第{slot.index}コマ（{slot.start}〜{slot.end}）</option>
             ))}
@@ -314,9 +314,9 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
 
         {/* 担当講師 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">担当講師</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">担当講師</label>
           <select value={formData.teacher_id} onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
             <option value="">— 未割り当て —</option>
             {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
@@ -325,9 +325,9 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         {/* ブース */}
         {formData.type === 'individual' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ブース</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ブース</label>
             <select value={formData.booth_id} onChange={(e) => setFormData({ ...formData, booth_id: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
               <option value="">— 未割り当て —</option>
               {booths.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
@@ -336,10 +336,10 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
 
         {/* 定員 */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">定員</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">定員</label>
           <input type="number" min={1} max={100} value={formData.capacity}
             onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
         </div>
 
         {/* PS1 チェックボックス */}
@@ -348,8 +348,8 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
             <label className={[
               'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
               formData.is_ps1
-                ? 'bg-purple-50 border-purple-300'
-                : 'bg-gray-50 border-gray-200 hover:bg-gray-100',
+                ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800'
+                : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700',
             ].join(' ')}>
               <input
                 type="checkbox"
@@ -362,8 +362,8 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                 className="mt-0.5 rounded accent-purple-600"
               />
               <div>
-                <span className="text-sm font-semibold text-gray-800">PS1授業（1対1）</span>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">PS1授業（1対1）</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   チェックすると定員が1名に固定され、ブース管理画面で隣のブースに他の先生を入れられなくなります
                 </p>
               </div>
@@ -374,7 +374,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
 
       {/* メモ */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           メモ
           <span className="ml-1.5 text-xs text-gray-400 font-normal">任意・当日の連絡事項など</span>
         </label>
@@ -383,21 +383,21 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           placeholder="例：今日は模試返却、テキストp.30〜"
           rows={2}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none"
         />
       </div>
 
       {/* 生徒選択 */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         {/* 現在の受講者サマリー */}
         {formData.student_ids.length > 0 && (
-          <div className="px-4 py-2.5 bg-blue-50 border-b border-blue-100">
-            <p className="text-[11px] font-semibold text-blue-600 mb-1.5">現在の受講者</p>
+          <div className="px-4 py-2.5 bg-blue-50 dark:bg-blue-950/40 border-b border-blue-100">
+            <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-300 mb-1.5">現在の受講者</p>
             <div className="flex flex-wrap gap-1.5">
               {students
                 .filter((s) => formData.student_ids.includes(s.id))
                 .map((s) => (
-                  <span key={s.id} className="inline-flex items-center gap-1 text-xs bg-white border border-blue-200 text-blue-800 px-2 py-0.5 rounded-full">
+                  <span key={s.id} className="inline-flex items-center gap-1 text-xs bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
                     {s.name}
                     <span className="text-[10px] text-blue-400">{getDisplayGrade(s.grade)}</span>
                   </span>
@@ -405,9 +405,9 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
             </div>
           </div>
         )}
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700">受講生徒</span>
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">受講生徒</span>
             {selectedCount > 0 && (
               <span className="text-xs bg-navy text-white px-2 py-0.5 rounded-full font-bold">
                 {selectedCount}/{formData.capacity}名
@@ -424,7 +424,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                   'px-2 py-1 text-[10px] rounded border transition-colors',
                   studentSort === s
                     ? 'bg-navy text-white border-navy'
-                    : 'border-gray-300 text-gray-500 hover:bg-gray-50',
+                    : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50',
                 ].join(' ')}
               >
                 {s === 'name' ? '名前' : s === 'grade' ? '学年' : s === 'subject' ? '科目一致' : '選択済み'}
@@ -436,14 +436,14 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
             placeholder="名前・学年で検索"
             value={studentSearch}
             onChange={(e) => setStudentSearch(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs w-40 focus:outline-none focus:ring-2 focus:ring-navy"
+            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-xs w-40 focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
 
         {students.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-gray-400">生徒が登録されていません</div>
         ) : (
-          <div className="divide-y divide-gray-50 max-h-56 overflow-y-auto">
+          <div className="divide-y divide-gray-50 dark:divide-gray-700 max-h-56 overflow-y-auto">
             {sortedStudents.map((student) => {
               const isSelected = formData.student_ids.includes(student.id)
               const subjectMatch = formData.subject && student.subjects.includes(formData.subject)
@@ -453,7 +453,7 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                   key={student.id}
                   className={[
                     'px-4 py-2 transition-colors',
-                    isSelected ? 'bg-blue-50' : isOver ? 'opacity-40' : 'hover:bg-gray-50',
+                    isSelected ? 'bg-blue-50 dark:bg-blue-950/40' : isOver ? 'opacity-40' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50',
                   ].join(' ')}
                 >
                   <label className="flex items-center gap-3 cursor-pointer">
@@ -462,25 +462,25 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                       checked={isSelected}
                       disabled={isOver}
                       onChange={() => toggleStudent(student.id)}
-                      className="rounded text-navy"
+                      className="rounded text-navy dark:text-blue-300"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-gray-900">{student.name}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{student.name}</span>
                       <span className="text-xs text-gray-400 ml-2">{getDisplayGrade(student.grade)}</span>
                     </div>
                     {!isSelected && subjectMatch && (
-                      <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                      <span className="text-[10px] bg-green-100 dark:bg-green-900/60 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded-full flex-shrink-0">
                         科目一致
                       </span>
                     )}
                   </label>
                   {isSelected && (
                     <div className="mt-1.5 ml-7 flex items-center gap-2">
-                      <span className="text-[11px] text-gray-500">科目:</span>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">科目:</span>
                       <select
                         value={formData.student_subjects[student.id] ?? formData.subject}
                         onChange={(e) => setStudentSubject(student.id, e.target.value)}
-                        className="text-xs border border-gray-300 rounded px-2 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-navy"
+                        className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-navy"
                       >
                         <option value="">未設定</option>
                         {SUBJECTS.map((s) => (

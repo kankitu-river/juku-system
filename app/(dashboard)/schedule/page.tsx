@@ -83,7 +83,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
             <a
               href="/api/export/lessons"
               download
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
               CSVエクスポート
             </a>
@@ -95,7 +95,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
       />
 
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex rounded-lg border border-gray-200 overflow-hidden bg-white">
+        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
           {(['week', 'month', 'day'] as const).map((v) => (
             <Link
               key={v}
@@ -104,7 +104,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
                 'px-4 py-2 text-sm font-medium transition-colors',
                 view === v
                   ? 'bg-navy text-white'
-                  : 'text-gray-600 hover:bg-gray-50',
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50',
               ].join(' ')}
             >
               {v === 'week' ? '週' : v === 'month' ? '月' : '日'}
@@ -116,7 +116,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           {activeTerm ? activeTerm.name : '通常期間'}
         </Badge>
 
-        <div className="ml-auto flex items-center gap-2 text-sm text-gray-500">
+        <div className="ml-auto flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-purple-400" />
             集団授業
@@ -128,7 +128,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         {view === 'week' && (
           <ScheduleFilter
             lessons={(lessons as Lesson[]) ?? []}
@@ -181,21 +181,21 @@ function MonthlyViewPlaceholder({ date }: { date: Date }) {
       <div className="flex items-center justify-between mb-4">
         <Link
           href={`/schedule?view=month&date=${toLocalDate(new Date(year, month - 1, 1))}`}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
         >
           ‹ 前月
         </Link>
-        <h2 className="text-lg font-semibold text-gray-900">{monthStr}</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{monthStr}</h2>
         <Link
           href={`/schedule?view=month&date=${toLocalDate(new Date(year, month + 1, 1))}`}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
         >
           次月 ›
         </Link>
       </div>
       <div className="grid grid-cols-7">
         {dayHeaders.map((d) => (
-          <div key={d} className="py-2 text-center text-xs font-medium text-gray-500 border-b border-gray-100">
+          <div key={d} className="py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
             {d}
           </div>
         ))}
@@ -209,8 +209,8 @@ function MonthlyViewPlaceholder({ date }: { date: Date }) {
             <div
               key={i}
               className={[
-                'min-h-[80px] p-1.5 border-b border-r border-gray-100',
-                day === null ? 'bg-gray-50' : 'hover:bg-gray-50 cursor-pointer',
+                'min-h-[80px] p-1.5 border-b border-r border-gray-100 dark:border-gray-700',
+                day === null ? 'bg-gray-50 dark:bg-gray-900/50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer',
                 i % 7 === 0 ? 'border-l' : '',
               ].join(' ')}
             >
@@ -222,7 +222,7 @@ function MonthlyViewPlaceholder({ date }: { date: Date }) {
                   <span
                     className={[
                       'inline-flex items-center justify-center w-7 h-7 rounded-full text-sm',
-                      isToday ? 'bg-navy text-white font-bold' : 'text-gray-700',
+                      isToday ? 'bg-navy text-white font-bold' : 'text-gray-700 dark:text-gray-300',
                     ].join(' ')}
                   >
                     {day}
@@ -300,14 +300,14 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
       <div className="flex items-center justify-between mb-4">
         <Link
           href={`/schedule?view=day&date=${toLocalDate(new Date(date.getTime() - 86400000))}`}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
         >
           ‹ 前日
         </Link>
-        <h2 className="text-lg font-semibold text-gray-900">{dateStr}</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{dateStr}</h2>
         <Link
           href={`/schedule?view=day&date=${toLocalDate(new Date(date.getTime() + 86400000))}`}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
         >
           翌日 ›
         </Link>
@@ -325,11 +325,11 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
                 href={`/schedule/${group.lessons[0].id}`}
                 className={[
                   'flex items-start gap-4 rounded-xl p-3 border transition-opacity hover:opacity-80',
-                  isGroup ? 'bg-purple-50 border-purple-200' : 'bg-teal-50 border-teal-200',
+                  isGroup ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-900' : 'bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-900',
                 ].join(' ')}
               >
                 <div className="text-center shrink-0 min-w-[48px]">
-                  <p className="text-xs font-bold text-gray-600">第{group.slotIndex}コマ</p>
+                  <p className="text-xs font-bold text-gray-600 dark:text-gray-300">第{group.slotIndex}コマ</p>
                   <p className="text-[10px] text-gray-400">{group.subject}</p>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -343,12 +343,12 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
                       </span>
                     )}
                     {group.allStudents.map((s) => (
-                      <span key={s.id} className="text-sm text-gray-700">{s.name}</span>
+                      <span key={s.id} className="text-sm text-gray-700 dark:text-gray-300">{s.name}</span>
                     ))}
                     {group.allMakeupStudents.map((s) => (
-                      <span key={s.id} className="inline-flex items-center gap-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                      <span key={s.id} className="inline-flex items-center gap-1 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 px-1.5 py-0.5 rounded-md">
                         {s.name}
-                        <span className="text-[10px] font-bold text-amber-600">振替</span>
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-300">振替</span>
                       </span>
                     ))}
                     {totalCount === 0 && (

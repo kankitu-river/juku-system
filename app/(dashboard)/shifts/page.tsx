@@ -67,13 +67,13 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
             />
             <Link
               href="/shifts/manual-entry"
-              className="text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+              className="text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
               手動シフト入力
             </Link>
             <Link
               href="/shifts/survey"
-              className="text-sm text-navy font-medium hover:underline"
+              className="text-sm text-navy dark:text-blue-300 font-medium hover:underline"
             >
               出勤アンケート →
             </Link>
@@ -85,27 +85,27 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
       <div className="flex items-center gap-4 mb-4">
         <Link
           href={`/shifts?date=${prevWeek}`}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600"
+          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
         >
           ‹ 前週
         </Link>
-        <span className="text-sm font-medium text-gray-700">{weekLabel}</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{weekLabel}</span>
         <Link
           href={`/shifts?date=${nextWeek}`}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600"
+          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
         >
           翌週 ›
         </Link>
         <Link
           href="/shifts"
-          className="ml-auto px-3 py-1.5 text-xs rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500"
+          className="ml-auto px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-500 dark:text-gray-400"
         >
           今週
         </Link>
       </div>
 
       {/* 凡例 */}
-      <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-full bg-green-400" />
           シフトあり
@@ -121,7 +121,7 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
         <span className="text-gray-400 ml-auto text-[11px]">セルをクリックしてシフトを登録</span>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         <WeeklyShiftTable
           teachers={(teachers as Teacher[]) ?? []}
           shifts={(shifts as { id: string; teacher_id: string; date: string; start_time: string; end_time: string }[]) ?? []}

@@ -40,19 +40,19 @@ export default async function StudentsPage() {
         <Card padding="none" className="overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 font-medium text-gray-600">氏名</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">学年</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">固定曜日</th>
-                <th className="text-left px-5 py-3 font-medium text-gray-600">受講科目</th>
+              <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                <th className="text-left px-5 py-3 font-medium text-gray-600 dark:text-gray-300">氏名</th>
+                <th className="text-left px-5 py-3 font-medium text-gray-600 dark:text-gray-300">学年</th>
+                <th className="text-left px-5 py-3 font-medium text-gray-600 dark:text-gray-300">固定曜日</th>
+                <th className="text-left px-5 py-3 font-medium text-gray-600 dark:text-gray-300">受講科目</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
               {sorted.map((student) => (
-                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3 font-medium text-gray-900">{student.name}</td>
-                  <td className="px-5 py-3 text-gray-600">{getDisplayGrade(student.grade)}</td>
+                <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <td className="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">{student.name}</td>
+                  <td className="px-5 py-3 text-gray-600 dark:text-gray-300">{getDisplayGrade(student.grade)}</td>
                   <td className="px-5 py-3">
                     {(student.fixed_slots as FixedSlot[] | undefined)?.length ? (
                       <div className="flex flex-wrap gap-1">
@@ -69,7 +69,7 @@ export default async function StudentsPage() {
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
                       {student.subjects.map((s) => (
-                        <span key={s} className="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                        <span key={s} className="text-[11px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
                           {s}
                         </span>
                       ))}
@@ -78,7 +78,7 @@ export default async function StudentsPage() {
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/students/${student.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-navy border border-navy rounded-lg hover:bg-blue-50 transition-colors"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-navy dark:text-blue-300 border border-navy rounded-lg hover:bg-blue-50 transition-colors"
                     >
                       編集
                     </Link>
@@ -89,12 +89,12 @@ export default async function StudentsPage() {
           </table>
         </Card>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
           <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <p className="text-gray-500 text-sm mb-4">生徒がまだ登録されていません</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">生徒がまだ登録されていません</p>
           <Link href="/students/new">
             <Button>最初の生徒を登録する</Button>
           </Link>

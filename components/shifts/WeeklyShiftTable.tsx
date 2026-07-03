@@ -114,21 +114,21 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
-              <th className="w-32 border border-gray-200 bg-gray-50 px-4 py-2 text-left text-xs font-medium text-gray-500">先生</th>
+              <th className="w-32 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">先生</th>
               {weekDates.map((d, i) => {
                 const termType = getTermTypeForDate(d, termPeriods)
                 return (
                   <th
                     key={d}
                     className={[
-                      'border border-gray-200 px-3 py-2 text-center text-xs font-semibold',
-                      i === 5 ? 'bg-purple-50 text-purple-700' : 'bg-gray-50 text-gray-700',
+                      'border border-gray-200 dark:border-gray-700 px-3 py-2 text-center text-xs font-semibold',
+                      i === 5 ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300' : 'bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300',
                     ].join(' ')}
                   >
                     <div>{DAY_LABELS[i]}</div>
                     <div className="font-normal text-gray-400">{dateToLabel(d)}</div>
                     {termType === 'intensive' && (
-                      <div className="text-[9px] font-bold text-amber-600 bg-amber-50 rounded px-1 mt-0.5 inline-block">講習</div>
+                      <div className="text-[9px] font-bold text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 rounded px-1 mt-0.5 inline-block">講習</div>
                     )}
                   </th>
                 )
@@ -138,7 +138,7 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
           <tbody>
             {teachers.map((teacher) => (
               <tr key={teacher.id} className="hover:bg-gray-50/50">
-                <td className="border border-gray-200 px-4 py-3 font-medium text-gray-800 text-sm">{teacher.name}</td>
+                <td className="border border-gray-200 dark:border-gray-700 px-4 py-3 font-medium text-gray-800 dark:text-gray-100 text-sm">{teacher.name}</td>
                 {weekDates.map((dateStr, i) => {
                   const shift = shiftMap.get(`${teacher.id}-${dateStr}`)
                   const d = new Date(dateStr + 'T12:00:00')
@@ -159,7 +159,7 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
                     <td
                       key={dateStr}
                       className={[
-                        'border border-gray-200 px-2 py-2 text-center cursor-pointer transition-colors',
+                        'border border-gray-200 dark:border-gray-700 px-2 py-2 text-center cursor-pointer transition-colors',
                         i === 5 ? 'bg-purple-50/20' : '',
                         shift ? 'hover:bg-green-50' : 'hover:bg-blue-50',
                       ].join(' ')}
@@ -167,7 +167,7 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
                     >
                       {shift ? (
                         <div className="space-y-0.5">
-                          <div className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                          <div className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200 text-xs font-medium px-2 py-1 rounded-full">
                             {formatTime(shift.start_time)}〜{formatTime(shift.end_time)}
                           </div>
                           {dayLessons.length > 0 && (

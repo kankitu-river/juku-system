@@ -11,7 +11,7 @@ export default async function NewEventPage() {
   return (
     <div>
       <Header title="イベントを登録" subtitle="新しいイベント・講習会を追加します" />
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 max-w-2xl">
         <EventForm teachers={(teachers as Teacher[]) ?? []} onSave={createEvent} />
       </div>
     </div>

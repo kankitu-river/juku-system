@@ -76,12 +76,12 @@ export function ShiftModal({
 
   return (
     <Modal open={open} onClose={onClose} title={`${teacherName}のシフト`} size="sm">
-      <p className="text-sm text-gray-500 mb-4">{dateLabel}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{dateLabel}</p>
 
       {/* この日のコマ一覧 */}
       {lessons.length > 0 && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs font-medium text-gray-600 mb-2">この曜日のコマ</p>
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">この曜日のコマ</p>
           <ul className="space-y-1">
             {lessons.map((lesson) => {
               const label = lessonTimeLabel(lesson)
@@ -93,7 +93,7 @@ export function ShiftModal({
                   </span>
                   <Link
                     href={`/schedule/${lesson.id}`}
-                    className="text-gray-700 hover:text-navy hover:underline"
+                    className="text-gray-700 dark:text-gray-300 hover:text-navy hover:underline"
                   >
                     第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}　{label}
                     <span className="ml-1 text-gray-400 text-[10px]">
@@ -109,27 +109,27 @@ export function ShiftModal({
 
       <form onSubmit={handleSave} className="space-y-4">
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+          <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-3 py-2 text-sm text-red-700 dark:text-red-300">
             {error}
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">開始時刻</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">開始時刻</label>
             <input
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">終了時刻</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">終了時刻</label>
             <input
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             />
           </div>
         </div>

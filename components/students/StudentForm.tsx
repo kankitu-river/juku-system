@@ -115,14 +115,14 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             氏名 <span className="text-red-500">*</span>
           </label>
           <input
@@ -131,19 +131,19 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="例：田中 太郎"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             学年 <span className="text-red-500">*</span>
           </label>
           <select
             required
             value={form.grade}
             onChange={(e) => setForm({ ...form, grade: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           >
             <option value="">— 選択 —</option>
             {GRADE_OPTIONS.map((g) => (
@@ -156,11 +156,11 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
       {/* 受講コマ */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="block text-sm font-medium text-gray-700">受講コマ</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">受講コマ</label>
           {student?.id && (
             <Link
               href={`/schedule/new?student=${student.id}`}
-              className="inline-flex items-center gap-1 text-xs font-medium text-navy border border-navy rounded-lg px-2.5 py-1 hover:bg-blue-50 transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-medium text-navy dark:text-blue-300 border border-navy rounded-lg px-2.5 py-1 hover:bg-blue-50 transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -172,17 +172,17 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
         <p className="text-xs text-gray-400 mb-3">スケジュールに登録されているコマから選択します。選択したコマがスケジュール画面に反映されます。</p>
 
         {lessons.length === 0 ? (
-          <div className="border border-dashed border-gray-200 rounded-xl p-6 text-center text-sm text-gray-400">
+          <div className="border border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center text-sm text-gray-400">
             コマがまだ登録されていません。先に「スケジュール」画面でコマを作成してください。
           </div>
         ) : (
-          <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
             {[1, 2, 3, 4, 5, 6].map(day => {
               const dayLessons = lessonsByDay[day]
               if (!dayLessons) return null
               return (
                 <div key={day} className="px-4 py-3">
-                  <p className="text-xs font-semibold text-gray-500 mb-2">{DAY_LABELS[day]}曜日</p>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{DAY_LABELS[day]}曜日</p>
                   <div className="space-y-1.5">
                     {dayLessons.sort((a, b) => a.slot_index - b.slot_index).map(lesson => {
                       const isSelected = form.lesson_ids.includes(lesson.id)
@@ -191,26 +191,26 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
                           key={lesson.id}
                           className={[
                             'flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors',
-                            isSelected ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50 border border-transparent hover:border-gray-200',
+                            isSelected ? 'bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900' : 'bg-gray-50 dark:bg-gray-900/50 border border-transparent hover:border-gray-200',
                           ].join(' ')}
                         >
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleLesson(lesson.id)}
-                            className="rounded text-navy"
+                            className="rounded text-navy dark:text-blue-300"
                           />
                           <div className="flex-1 min-w-0">
-                            <span className="text-xs font-semibold text-gray-700">第{lesson.slot_index}コマ</span>
+                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">第{lesson.slot_index}コマ</span>
                             <span className="mx-1.5 text-gray-300">|</span>
-                            <span className="text-xs text-gray-700">{lesson.subject}</span>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">{lesson.subject}</span>
                             {lesson.teacher && (
                               <span className="ml-1.5 text-xs text-gray-400">{lesson.teacher.name}</span>
                             )}
                           </div>
                           <span className={[
                             'text-[10px] px-1.5 py-0.5 rounded font-medium',
-                            lesson.type === 'group' ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700',
+                            lesson.type === 'group' ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300' : 'bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300',
                           ].join(' ')}>
                             {lesson.type === 'group' ? '集団' : '個別'}
                           </span>
@@ -225,13 +225,13 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
         )}
 
         {form.lesson_ids.length > 0 && (
-          <p className="mt-2 text-xs text-teal-600 font-medium">{form.lesson_ids.length}コマ選択中</p>
+          <p className="mt-2 text-xs text-teal-600 dark:text-teal-300 font-medium">{form.lesson_ids.length}コマ選択中</p>
         )}
       </div>
 
       {/* 受講科目 */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">受講科目</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">受講科目</label>
         <div className="flex flex-wrap gap-2">
           {SUBJECT_OPTIONS.map((subject) => (
             <button
@@ -242,7 +242,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
                 'px-3 py-1.5 rounded-full text-sm border transition-colors',
                 form.subjects.includes(subject)
                   ? 'bg-navy text-white border-navy'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-navy',
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-navy',
               ].join(' ')}
             >
               {subject}
@@ -253,18 +253,18 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
 
       {/* 先生との相性 */}
       {teachers.length > 0 && (
-        <div className="border border-gray-200 rounded-xl p-4 space-y-4">
-          <p className="text-sm font-semibold text-gray-700">先生との相性設定</p>
-          <p className="text-xs text-gray-500 -mt-2">先生名をクリックして「任せたい」または「NG」を設定します</p>
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">先生との相性設定</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">先生名をクリックして「任せたい」または「NG」を設定します</p>
 
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {teachers.map((teacher) => {
               const isPreferred = form.preferred_teacher_ids.includes(teacher.id)
               const isNg = form.ng_teacher_ids.includes(teacher.id)
               return (
                 <div key={teacher.id} className="flex items-center justify-between py-2.5">
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{teacher.name}</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{teacher.name}</p>
                     {teacher.subjects?.length > 0 && (
                       <p className="text-xs text-gray-400">{teacher.subjects.join('・')}</p>
                     )}
@@ -277,7 +277,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
                         'inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
                         isPreferred
                           ? 'bg-amber-400 text-white border-amber-400'
-                          : 'bg-white text-gray-500 border-gray-300 hover:border-amber-400 hover:text-amber-600',
+                          : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-amber-400 hover:text-amber-600',
                       ].join(' ')}
                     >
                       ⭐ 任せたい
@@ -289,7 +289,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
                         'inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
                         isNg
                           ? 'bg-red-500 text-white border-red-500'
-                          : 'bg-white text-gray-500 border-gray-300 hover:border-red-400 hover:text-red-600',
+                          : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-red-400 hover:text-red-600',
                       ].join(' ')}
                     >
                       ❌ NG
