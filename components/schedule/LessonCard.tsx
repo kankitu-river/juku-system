@@ -40,6 +40,9 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [] }: Les
         {lesson.lesson_kind === 'temporary' && (
           <span className="flex-shrink-0 text-[10px] font-bold px-1 rounded bg-orange-400 text-white">臨時</span>
         )}
+        {lesson.is_ps1 && (
+          <span className="flex-shrink-0 text-[10px] font-bold px-1 rounded bg-purple-500 text-white">1対1</span>
+        )}
         {teacherName && (
           <span className={[
             'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
