@@ -9,26 +9,28 @@ const PAPER_SIZES = [
   { value: 'A4 portrait', label: 'A4 縦' },
 ] as const
 
+// 用紙サイズ指定の @page スタイルを差し込んでその場で印刷する
+function printWithPageSize(size: string) {
+  const style = document.createElement('style')
+  style.id = '__print_page_size'
+  style.textContent = `@page { size: ${size}; margin: 10mm; }`
+  document.head.appendChild(style)
+  window.print()
+  setTimeout(() => document.getElementById('__print_page_size')?.remove(), 500)
+}
+
 export function WeekPrintClient() {
   const [paperSize, setPaperSize] = useState<string>('A3 landscape')
 
+  // 旧リンク互換: autoprint=1 付きで開かれたら自動印刷
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('autoprint') !== '1') return
-    const size = params.get('paperSize') ?? paperSize
-    const style = document.createElement('style')
-    style.id = '__print_page_size'
-    style.textContent = `@page { size: ${size}; margin: 10mm; }`
-    document.head.appendChild(style)
-    window.print()
-    setTimeout(() => document.getElementById('__print_page_size')?.remove(), 500)
+    printWithPageSize(params.get('paperSize') ?? paperSize)
   }, [])
 
   function handlePrint() {
-    const url = new URL(window.location.href)
-    url.searchParams.set('autoprint', '1')
-    url.searchParams.set('paperSize', paperSize)
-    window.open(url.toString(), '_blank')
+    printWithPageSize(paperSize)
   }
 
   return (
