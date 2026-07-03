@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { addMakeupCredit } from '@/app/(dashboard)/attendance/actions'
+import { addMakeupCredit, removeMakeupCredit } from '@/app/(dashboard)/attendance/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
 
 interface Student {
@@ -19,6 +19,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [studentId, setStudentId] = useState('')
+  const [mode, setMode] = useState<'add' | 'remove'>('add')
   const [amount, setAmount] = useState(1)
   const [expiresMonths, setExpiresMonths] = useState(3)
   const [error, setError] = useState('')
@@ -31,13 +32,19 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
     setError('')
     setSuccess('')
     startTransition(async () => {
-      const res = await addMakeupCredit(studentId, expiresMonths, amount)
+      const res = mode === 'add'
+        ? await addMakeupCredit(studentId, expiresMonths, amount)
+        : await removeMakeupCredit(studentId, amount)
       if (res.error) {
         setError(res.error)
         return
       }
       const student = students.find((s) => s.id === studentId)
-      setSuccess(`${student?.name}さんに振替クレジットを${amount}件追加しました`)
+      setSuccess(
+        mode === 'add'
+          ? `${student?.name}さんに振替クレジットを${amount}件追加しました`
+          : `${student?.name}さんの振替クレジットを${amount}件減らしました`
+      )
       setStudentId('')
       setAmount(1)
       router.refresh()
@@ -53,12 +60,31 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
-        振替クレジットを手動で追加
+        振替クレジットを手動で追加・修正
       </button>
 
       {open && (
         <div className="mt-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">振替クレジット 手動追加</h3>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">振替クレジット 手動追加・修正</h3>
+
+          {/* 追加 / 減らす 切り替え */}
+          <div className="flex gap-1 mb-4">
+            {([['add', '追加する'], ['remove', '減らす（誤追加の取り消し）']] as const).map(([m, label]) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => { setMode(m); setError(''); setSuccess('') }}
+                className={[
+                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                  mode === m
+                    ? m === 'add' ? 'bg-navy text-white' : 'bg-red-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200',
+                ].join(' ')}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
           {error && (
             <div className="mb-3 text-xs text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">{error}</div>
@@ -87,7 +113,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
 
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">追加件数</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{mode === 'add' ? '追加件数' : '減らす件数'}</label>
                 <input
                   type="number"
                   min={1}
@@ -98,7 +124,7 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
                 />
               </div>
-              <div className="flex-1">
+              <div className={mode === 'remove' ? 'hidden' : 'flex-1'}>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">有効期限</label>
                 <select
                   value={expiresMonths}
@@ -118,9 +144,12 @@ export function AddCreditForm({ students }: AddCreditFormProps) {
               <button
                 type="submit"
                 disabled={!studentId || isPending}
-                className="flex-1 bg-navy text-white text-sm rounded-lg py-2 font-medium hover:bg-navy-light disabled:opacity-40 transition-colors"
+                className={[
+                  'flex-1 text-white text-sm rounded-lg py-2 font-medium disabled:opacity-40 transition-colors',
+                  mode === 'add' ? 'bg-navy hover:bg-navy-light' : 'bg-red-500 hover:bg-red-600',
+                ].join(' ')}
               >
-                {isPending ? '追加中...' : `${amount}件追加する`}
+                {isPending ? '処理中...' : mode === 'add' ? `${amount}件追加する` : `${amount}件減らす`}
               </button>
               <button
                 type="button"

@@ -71,6 +71,76 @@ export async function markAbsentNoCredit(
   return recordAttendance(studentId, lessonId, date, 'absent', false)
 }
 
+// 振替クレジットを減算（誤って追加した分の取り消し用）
+export async function removeMakeupCredit(studentId: string, amount = 1): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  const { data: existing } = await supabase
+    .from('makeup_credits')
+    .select('id, total_credits, used_credits')
+    .eq('student_id', studentId)
+    .single()
+
+  if (!existing) return { error: 'この生徒の振替クレジット記録がありません' }
+
+  const remaining = existing.total_credits - existing.used_credits
+  if (remaining < amount) {
+    return { error: `未使用の残数（${remaining}件）より多くは減らせません` }
+  }
+
+  const { error } = await supabase
+    .from('makeup_credits')
+    .update({ total_credits: existing.total_credits - amount, updated_at: new Date().toISOString() })
+    .eq('student_id', studentId)
+  if (error) return { error: error.message }
+  return {}
+}
+
+// 振替割り当てを取消（クレジットを1件戻し、振替の出欠記録も削除）
+export async function cancelMakeupAssignment(assignmentId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  const { data: assignment } = await supabase
+    .from('makeup_assignments')
+    .select('id, student_id, lesson_id, assigned_date')
+    .eq('id', assignmentId)
+    .single()
+
+  if (!assignment) return { error: '割り当てが見つかりません' }
+
+  const { error: delError } = await supabase
+    .from('makeup_assignments')
+    .delete()
+    .eq('id', assignmentId)
+  if (delError) return { error: delError.message }
+
+  // クレジットを戻す
+  const { data: credits } = await supabase
+    .from('makeup_credits')
+    .select('id, used_credits')
+    .eq('student_id', assignment.student_id)
+    .single()
+  if (credits && credits.used_credits > 0) {
+    const { error } = await supabase
+      .from('makeup_credits')
+      .update({ used_credits: credits.used_credits - 1, updated_at: new Date().toISOString() })
+      .eq('student_id', assignment.student_id)
+    if (error) return { error: error.message }
+  }
+
+  // 振替として作成した出欠記録を削除
+  const { error: attError } = await supabase
+    .from('attendances')
+    .delete()
+    .eq('student_id', assignment.student_id)
+    .eq('lesson_id', assignment.lesson_id)
+    .eq('date', assignment.assigned_date)
+    .eq('status', 'makeup_used')
+  if (attError) return { error: attError.message }
+
+  return {}
+}
+
 // 振替コマを割り当て（クレジットを1消費）
 export async function assignMakeup(
   studentId: string,

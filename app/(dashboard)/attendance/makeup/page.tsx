@@ -2,11 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { MakeupManager } from './MakeupManager'
 import { AddCreditForm } from './AddCreditForm'
+import { MakeupAssignmentList, type MakeupAssignment } from './MakeupAssignmentList'
+import { getJstTodayStr } from '@/lib/utils/datetime'
 
 export default async function MakeupPage() {
   const supabase = await createClient()
+  const todayStr = getJstTodayStr()
 
-  const [{ data: credits }, { data: lessons }, { data: teachers }, { data: shifts }, { data: students }] = await Promise.all([
+  const [{ data: credits }, { data: lessons }, { data: teachers }, { data: shifts }, { data: students }, { data: assignments }] = await Promise.all([
     supabase
       .from('makeup_credits')
       .select('*, student:students(id, name, grade, subjects, preferred_teacher_ids, ng_teacher_ids)')
@@ -31,6 +34,11 @@ export default async function MakeupPage() {
       .select('id, name, grade')
       .order('grade')
       .order('name'),
+    supabase
+      .from('makeup_assignments')
+      .select('id, assigned_date, created_at, student:students(id, name, grade), lesson:lessons(id, slot_index, day_of_week, term_type, type, subject, teacher:teachers(id, name))')
+      .order('assigned_date', { ascending: false })
+      .limit(200),
   ])
 
   const activeCredits = (credits ?? []).filter(
@@ -48,6 +56,10 @@ export default async function MakeupPage() {
         credits={activeCredits}
         lessons={lessons ?? []}
         shifts={shifts ?? []}
+      />
+      <MakeupAssignmentList
+        assignments={(assignments ?? []) as unknown as MakeupAssignment[]}
+        todayStr={todayStr}
       />
     </div>
   )
