@@ -50,7 +50,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   const nextDay = new Date(refDate); nextDay.setDate(refDate.getDate() + 1)
 
   const supabase = await createClient()
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }, { data: makeupData }] = await Promise.all([
     supabase
       .from('lessons')
       .select(`
@@ -65,7 +65,16 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
     supabase.from('teachers').select('id, name').order('name'),
     supabase.from('shifts').select('teacher_id, date, start_time, end_time').eq('date', dateStr),
     supabase.from('daily_notes').select('content').eq('date', dateStr).maybeSingle(),
+    supabase.from('makeup_assignments').select('lesson_id, student:students(id, name)').eq('assigned_date', dateStr),
   ])
+
+  // lesson_id -> 振替生徒リスト
+  const makeupByLesson = new Map<string, { id: string; name: string }[]>()
+  for (const m of (makeupData ?? []) as unknown as { lesson_id: string; student: { id: string; name: string } | null }[]) {
+    if (!m.student) continue
+    if (!makeupByLesson.has(m.lesson_id)) makeupByLesson.set(m.lesson_id, [])
+    makeupByLesson.get(m.lesson_id)!.push(m.student)
+  }
 
   const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
     (t) => t.start_date <= dateStr && t.end_date >= dateStr
@@ -308,7 +317,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
                         return ba.localeCompare(bb, 'ja')
                       })
                       .map((lesson) => (
-                        <LessonPosterCard key={lesson.id} lesson={lesson} />
+                        <LessonPosterCard key={lesson.id} lesson={lesson} makeupStudents={makeupByLesson.get(lesson.id) ?? []} />
                       ))
                   ) : (
                     <div className="dpp-empty flex-1 flex items-center justify-center text-gray-300 text-sm print:text-xs">
@@ -345,7 +354,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   )
 }
 
-function LessonPosterCard({ lesson }: { lesson: Lesson }) {
+function LessonPosterCard({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStudents?: { id: string; name: string }[] }) {
   const isGroup = lesson.type === 'group'
   const isPS1 = Boolean((lesson as { is_ps1?: boolean }).is_ps1)
   const isPurple = isGroup || isPS1
@@ -397,9 +406,15 @@ function LessonPosterCard({ lesson }: { lesson: Lesson }) {
                 <span className="text-gray-500 ml-1 text-xs print:text-[8px]">（{lesson.subject}）</span>
               </p>
             ))
-          ) : (
+          ) : makeupStudents.length === 0 ? (
             <p className="text-xs text-gray-400">生徒未登録</p>
-          )}
+          ) : null}
+          {makeupStudents.map((m) => (
+            <p key={m.id} className="dpp-card-student text-sm print:text-[10px] leading-snug font-bold text-amber-800 bg-amber-100 rounded px-1 -mx-0.5">
+              {m.name}
+              <span className="ml-1 text-xs print:text-[8px] font-bold text-amber-600">振替</span>
+            </p>
+          ))}
         </div>
       </div>
     </div>

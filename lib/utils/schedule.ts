@@ -29,6 +29,23 @@ export function expandLessonsForMonth(
   const result: { date: Date; dateStr: string; lesson: Lesson; timeLabel: string }[] = []
 
   for (const lesson of lessons) {
+    // 臨時コマ（特定日のみ）: その日付が対象月に含まれる場合だけ1件展開する
+    if (lesson.lesson_kind === 'temporary' || lesson.specific_date) {
+      const ds = lesson.specific_date
+      if (!ds) continue
+      const d = new Date(`${ds}T12:00:00`)
+      if (d.getFullYear() !== year || d.getMonth() !== month - 1) continue
+      const termType = getTermTypeForDate(ds, termPeriods)
+      const slots =
+        termType === 'intensive' ? INTENSIVE_SLOTS
+        : lesson.day_of_week === 6 && lesson.type === 'group' ? GROUP_SATURDAY_SLOTS
+        : lesson.day_of_week === 6 ? SATURDAY_INDIVIDUAL_SLOTS
+        : REGULAR_SLOTS
+      const slot = slots.find((s) => s.index === lesson.slot_index)
+      result.push({ date: d, dateStr: ds, lesson, timeLabel: slot ? `${slot.start}〜${slot.end}` : '' })
+      continue
+    }
+
     const dates = getDatesForDayOfWeek(year, month, lesson.day_of_week)
     for (const date of dates) {
       const dateStr = toDateStr(date)

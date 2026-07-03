@@ -314,8 +314,7 @@ const lessonMap = useMemo(() => {
                           </div>
                         ) : (
                           <div className="space-y-1">
-                            <CellLessons lessons={cellLessons} />
-                            <MakeupChips lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} />
+                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} />
                             {cellLessons.length === 0 && availableTeachers.length === 0 && (
                               <div className="h-10 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-300">—</span>
@@ -381,8 +380,7 @@ const lessonMap = useMemo(() => {
                       <td className={['border border-gray-200 dark:border-gray-700 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                         style={{ minHeight: '80px' }}>
                         <div className="space-y-1">
-                          <CellLessons lessons={cellLessons} />
-                          <MakeupChips lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} />
+                          <CellLessons lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} />
                           {cellLessons.length === 0 && !isSatClosed && (
                             <div className="h-10 flex items-center justify-center">
                               <span className="text-[10px] text-gray-300">—</span>
@@ -475,36 +473,23 @@ const lessonMap = useMemo(() => {
   )
 }
 
-// その日のセルに割り当てられた振替生徒のチップ表示
-function MakeupChips({ lessons, dateStr, makeups }: {
+function CellLessons({ lessons, dateStr, makeups = [] }: {
   lessons: Lesson[]
-  dateStr: string
-  makeups: MakeupAssignment[]
+  dateStr?: string
+  makeups?: MakeupAssignment[]
 }) {
-  const chips = makeups.filter(
-    (m) => m.assigned_date === dateStr && m.student && lessons.some((l) => l.id === m.lesson_id)
-  )
-  if (chips.length === 0) return null
-  return (
-    <div className="flex flex-wrap gap-1 pt-0.5">
-      {chips.map((m) => (
-        <span
-          key={m.id}
-          className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-1.5 py-0.5 rounded-full whitespace-nowrap"
-        >
-          振替 {m.student!.name}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-function CellLessons({ lessons }: { lessons: Lesson[] }) {
   const compact = lessons.length >= 3
   return (
     <>
       {lessons.map(lesson => (
-        <LessonCard key={lesson.id} lesson={lesson} compact={compact} />
+        <LessonCard
+          key={lesson.id}
+          lesson={lesson}
+          compact={compact}
+          makeupStudents={makeups
+            .filter((m) => m.lesson_id === lesson.id && m.assigned_date === dateStr && m.student)
+            .map((m) => m.student!)}
+        />
       ))}
     </>
   )

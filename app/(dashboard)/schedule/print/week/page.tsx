@@ -34,7 +34,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     const d = new Date(start); d.setDate(start.getDate() + i); return toLocalDate(d)
   })
 
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: makeupData }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, subject, student:students(id, name))')
@@ -43,7 +43,17 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     supabase.from('term_periods').select('*').order('start_date'),
     supabase.from('teachers').select('id, name').order('name'),
     supabase.from('shifts').select('teacher_id, date, start_time, end_time').in('date', weekDateStrs),
+    supabase.from('makeup_assignments').select('lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDateStrs),
   ])
+
+  // `${lesson_id}__${date}` -> 振替生徒リスト
+  const makeupByLessonDate = new Map<string, { id: string; name: string }[]>()
+  for (const m of (makeupData ?? []) as unknown as { lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]) {
+    if (!m.student) continue
+    const k = `${m.lesson_id}__${m.assigned_date}`
+    if (!makeupByLessonDate.has(k)) makeupByLessonDate.set(k, [])
+    makeupByLessonDate.get(k)!.push(m.student)
+  }
   const dateStr = toLocalDate(start)
   const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
     (t) => t.start_date <= dateStr && t.end_date >= dateStr
@@ -81,8 +91,13 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   const lessonMap: LessonMap = new Map()
 
   for (const lesson of typedLessons) {
-    // Skip lessons not matching current term type
-    if (lesson.term_type !== currentTermType) continue
+    if (lesson.lesson_kind === 'temporary') {
+      // 臨時コマは今週の日付のものだけ
+      if (!lesson.specific_date || !weekDateStrs.includes(lesson.specific_date)) continue
+    } else if (lesson.term_type !== currentTermType) {
+      // 通常コマは期間区分が一致するもののみ
+      continue
+    }
     const key = `${lesson.day_of_week}-${lesson.slot_index}-${lesson.type}`
     const existing = lessonMap.get(key) ?? []
     lessonMap.set(key, [...existing, lesson])
@@ -224,7 +239,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                       return (
                         <td key={dow} className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${dateStr2}`) ?? []} />
                           ))}
                           {waitingTeachers.length > 0 && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
@@ -273,7 +288,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         </td>
                         <td className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} />
                           ))}
                         </td>
                       </tr>
@@ -305,7 +320,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         </td>
                         <td className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} />
                           ))}
                         </td>
                       </tr>
@@ -329,7 +344,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   )
 }
 
-function LessonCell({ lesson }: { lesson: Lesson }) {
+function LessonCell({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStudents?: { id: string; name: string }[] }) {
   const isGroup = lesson.type === 'group'
   const teacher = (lesson as { teacher?: { name: string } }).teacher
   const enrollments = lesson.enrollments ?? []
@@ -361,15 +376,20 @@ function LessonCell({ lesson }: { lesson: Lesson }) {
           'ml-auto text-[8px] font-bold px-1 rounded-full flex-shrink-0',
           isGroup ? 'bg-purple-200 text-purple-800' : 'bg-teal-200 text-teal-800',
         ].join(' ')}>
-          {students.length}/{lesson.capacity}名
+          {students.length + makeupStudents.length}/{lesson.capacity}名
         </span>
       </div>
       {/* 生徒一覧（全員表示、名前を切り捨てない） */}
-      {students.length > 0 ? (
+      {students.length > 0 || makeupStudents.length > 0 ? (
         <div className="text-[10px] text-gray-800">
           {students.map(({ student: s, subject }, i) => (
             <p key={i} className="whitespace-nowrap">
               {s.name}{subject ? `（${subject}）` : ''}
+            </p>
+          ))}
+          {makeupStudents.map((m) => (
+            <p key={m.id} className="whitespace-nowrap font-bold text-amber-800 bg-amber-100 rounded px-0.5">
+              {m.name}<span className="text-[8px] ml-0.5">振替</span>
             </p>
           ))}
         </div>

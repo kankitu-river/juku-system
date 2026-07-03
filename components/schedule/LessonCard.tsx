@@ -1,12 +1,18 @@
 import Link from 'next/link'
 import type { Lesson } from '@/types'
 
+interface MakeupStudent {
+  id: string
+  name: string
+}
+
 interface LessonCardProps {
   lesson: Lesson
   compact?: boolean
+  makeupStudents?: MakeupStudent[]  // その日にこのコマへ振替で入る生徒（アンバー表示）
 }
 
-export function LessonCard({ lesson, compact = false }: LessonCardProps) {
+export function LessonCard({ lesson, compact = false, makeupStudents = [] }: LessonCardProps) {
   const isGroup = lesson.type === 'group'
   const enrollmentStudents = (lesson.enrollments ?? [])
     .filter(e => e.student != null)
@@ -18,6 +24,7 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
   const displayStudents = students.slice(0, 2)
   const extraCount = students.length - 2
   const hasPerStudentSubjects = enrollmentStudents.some(s => s.enrollmentSubject)
+  const totalCount = students.length + makeupStudents.length
 
   if (compact) {
     return (
@@ -45,11 +52,16 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
           {displayStudents.map((s) => s.enrollmentSubject ? `${s.name}(${s.enrollmentSubject})` : s.name).join('・')}
           {extraCount > 0 && ` +${extraCount}`}
         </span>
+        {makeupStudents.length > 0 && (
+          <span className="flex-shrink-0 truncate text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 rounded">
+            振替 {makeupStudents.map((m) => m.name).join('・')}
+          </span>
+        )}
         <span className={[
           'flex-shrink-0 ml-auto text-[10px] font-bold px-1 rounded-full',
           isGroup ? 'bg-purple-200 text-purple-800 dark:text-purple-200' : 'bg-teal-200 text-teal-800 dark:text-teal-200',
         ].join(' ')}>
-          {students.length}/{lesson.capacity}
+          {totalCount}/{lesson.capacity}
         </span>
       </Link>
     )
@@ -59,7 +71,8 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
     <Link
       href={`/schedule/${lesson.id}`}
       className={[
-        'block rounded-md px-2 py-2 text-xs transition-opacity hover:opacity-80 overflow-hidden h-[72px]',
+        'block rounded-md px-2 py-2 text-xs transition-opacity hover:opacity-80 overflow-hidden',
+        makeupStudents.length > 0 ? 'min-h-[72px]' : 'h-[72px]',
         isGroup
           ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-900 border border-purple-200 dark:border-purple-900'
           : 'bg-teal-100 dark:bg-teal-900/60 text-teal-900 border border-teal-200 dark:border-teal-900',
@@ -90,12 +103,12 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
           'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
           isGroup ? 'bg-purple-200 text-purple-800 dark:text-purple-200' : 'bg-teal-200 text-teal-800 dark:text-teal-200',
         ].join(' ')}>
-          {students.length}/{lesson.capacity}名
+          {totalCount}/{lesson.capacity}名
         </span>
       </div>
 
       {/* 生徒（生徒ごとの科目を表示） */}
-      {displayStudents.length > 0 ? (
+      {displayStudents.length > 0 || makeupStudents.length > 0 ? (
         <div className="leading-snug">
           {displayStudents.map((s, i) => (
             <p key={i} className="truncate text-[11px] text-gray-800 dark:text-gray-100">
@@ -103,6 +116,11 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
             </p>
           ))}
           {extraCount > 0 && <p className="text-gray-400 text-[10px]">+{extraCount}名</p>}
+          {makeupStudents.map((m) => (
+            <p key={m.id} className="truncate text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-900/40 rounded px-1 -mx-1">
+              {m.name}<span className="text-[9px] font-bold ml-1">振替</span>
+            </p>
+          ))}
         </div>
       ) : (
         <p className="text-[10px] opacity-40">生徒未登録</p>

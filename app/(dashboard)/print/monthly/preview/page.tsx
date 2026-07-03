@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { expandLessonsForMonth } from '@/lib/utils/schedule'
+import { getSlotLabel } from '@/lib/constants/timeSlots'
 import type { Lesson, TermPeriod } from '@/types'
 import { PrintButton } from '@/components/print/PrintButton'
 import { AutoPrint } from '@/components/print/AutoPrint'
@@ -42,14 +43,37 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
   const supabase = await createClient()
 
-  const [{ data: termPeriods }, { data: lessons }] = await Promise.all([
+  const monthPad = (n: number) => String(n).padStart(2, '0')
+  const monthStart = `${year}-${monthPad(month)}-01`
+  const monthEnd = `${year}-${monthPad(month)}-${monthPad(new Date(year, month, 0).getDate())}`
+
+  const [{ data: termPeriods }, { data: lessons }, { data: makeupData }] = await Promise.all([
     supabase.from('term_periods').select('*').order('start_date'),
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), enrollments:lesson_enrollments(student_id, subject, student:students(id, name))')
       .order('day_of_week')
       .order('slot_index'),
+    supabase
+      .from('makeup_assignments')
+      .select('lesson_id, assigned_date, student_id, student:students(id, name), lesson:lessons(id, slot_index, day_of_week, term_type, type, subject, teacher_id, teacher:teachers(id, name))')
+      .gte('assigned_date', monthStart)
+      .lte('assigned_date', monthEnd),
   ])
+
+  type MakeupRow = {
+    lesson_id: string
+    assigned_date: string
+    student_id: string
+    student: { id: string; name: string } | null
+    lesson: {
+      id: string; slot_index: number; day_of_week: number
+      term_type: 'regular' | 'intensive'; type: 'group' | 'individual'
+      subject: string | null; teacher_id: string | null
+      teacher: { id: string; name: string } | null
+    } | null
+  }
+  const makeups = (makeupData ?? []) as unknown as MakeupRow[]
 
   const typedTermPeriods = (termPeriods as TermPeriod[]) ?? []
   const typedLessons = (lessons as Lesson[]) ?? []
@@ -85,9 +109,41 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
     byDate.get(entry.dateStr)!.push(entry)
   }
 
+  // 講師ビュー: このコマ・この日に振替で入る生徒（`${lesson_id}__${date}` -> 生徒）
+  const makeupByLessonDate = new Map<string, { id: string; name: string }[]>()
+  if (type === 'teacher') {
+    for (const m of makeups) {
+      if (!m.student || m.lesson?.teacher_id !== id) continue
+      const k = `${m.lesson_id}__${m.assigned_date}`
+      if (!makeupByLessonDate.has(k)) makeupByLessonDate.set(k, [])
+      makeupByLessonDate.get(k)!.push(m.student)
+    }
+  }
+
+  // 生徒ビュー: この生徒の振替コマ（日付 -> 一覧）
+  const studentMakeupsByDate = new Map<string, { slotIndex: number; timeLabel: string; teacherName: string | null; subject: string | null }[]>()
+  let studentMakeupCount = 0
+  if (type === 'student') {
+    for (const m of makeups) {
+      if (m.student_id !== id || !m.lesson) continue
+      const timeLabel = getSlotLabel(m.lesson.slot_index, m.lesson.day_of_week, m.lesson.term_type, m.lesson.type)
+      if (!studentMakeupsByDate.has(m.assigned_date)) studentMakeupsByDate.set(m.assigned_date, [])
+      studentMakeupsByDate.get(m.assigned_date)!.push({
+        slotIndex: m.lesson.slot_index,
+        timeLabel,
+        teacherName: m.lesson.teacher?.name ?? null,
+        subject: m.lesson.subject,
+      })
+      studentMakeupCount++
+    }
+  }
+
+  const allDates = new Set([...byDate.keys(), ...studentMakeupsByDate.keys()])
   const maxEntriesPerDay = Math.max(
     1,
-    ...Array.from(byDate.values()).map((v) => v.length)
+    ...Array.from(allDates).map((d) =>
+      (byDate.get(d)?.length ?? 0) + (studentMakeupsByDate.get(d)?.length ?? 0)
+    )
   )
   const zoomLevel =
     maxEntriesPerDay <= 3 ? 0.85 :
@@ -192,7 +248,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                   const isSat = di === 6
                   const dateStr = day ? toDateStr(day) : null
                   const dayEntries = dateStr ? (byDate.get(dateStr) ?? []) : []
-                  const hasLesson = dayEntries.length > 0
+                  const hasLesson = dayEntries.length > 0 || (dateStr ? (studentMakeupsByDate.get(dateStr)?.length ?? 0) > 0 : false)
 
                   return (
                     <td key={di} className={[
@@ -246,6 +302,11 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                     ) : (
                                       <p className="text-[9px] text-gray-400 leading-tight">{lesson.subject || '—'}</p>
                                     )}
+                                    {(makeupByLessonDate.get(`${lesson.id}__${dateStr}`) ?? []).map((mk, mi) => (
+                                      <p key={`mk-${mi}`} className="text-[9px] font-bold text-amber-800 bg-amber-100 rounded px-0.5 leading-tight truncate">
+                                        {mk.name}（振替）
+                                      </p>
+                                    ))}
                                   </div>
                                 )
                               } else {
@@ -277,6 +338,22 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                 )
                               }
                             })}
+                            {/* 生徒ビュー: 振替コマ（アンバー表示） */}
+                            {dateStr && (studentMakeupsByDate.get(dateStr) ?? []).map((mk, mi) => (
+                              <div key={`mk-${mi}`} className="bg-amber-50 border border-amber-300 rounded px-1 py-0.5">
+                                <p className="text-[9px] text-amber-700 font-bold leading-tight">
+                                  第{mk.slotIndex}コマ
+                                  <span className="ml-1 text-[8px] bg-amber-200 text-amber-800 px-0.5 rounded font-bold">振替</span>
+                                </p>
+                                <p className="text-[8px] text-amber-500 leading-none mb-0.5">{mk.timeLabel}</p>
+                                {mk.teacherName && showTeacher && (
+                                  <p className="text-[9px] text-gray-800 leading-tight truncate">{mk.teacherName}先生</p>
+                                )}
+                                {mk.subject && (
+                                  <p className="text-[9px] text-gray-500 leading-tight">{mk.subject}</p>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </>
                       )}
@@ -291,7 +368,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
         {/* Footer */}
         <div className="mt-3 flex justify-between items-center text-xs text-gray-400">
-          <span>全{entries.length}コマ</span>
+          <span>全{entries.length + studentMakeupCount}コマ{studentMakeupCount > 0 ? `（うち振替${studentMakeupCount}）` : ''}</span>
           <span className="hidden print:inline">塾スケジュール管理システム</span>
         </div>
       </div>
