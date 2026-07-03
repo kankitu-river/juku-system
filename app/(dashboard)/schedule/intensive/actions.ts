@@ -4,6 +4,47 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { generateSchedule, type DraftScheduleResult, type AvailabilityMap } from '@/lib/utils/intensiveScheduler'
 
+// 講習コマの一括作成（日付×スロットの組み合わせで臨時コマとして作成）
+export async function bulkCreateIntensiveLessons(input: {
+  subject: string
+  teacher_id: string | null
+  booth_id: string | null
+  type: 'individual' | 'group'
+  capacity: number
+  entries: { date: string; slot_index: number }[]
+}): Promise<{ count?: number; error?: string }> {
+  if (!input.subject) return { error: '科目を選択してください' }
+  if (input.entries.length === 0) return { error: '日付とコマを選択してください' }
+
+  const supabase = await createClient()
+
+  const rows = input.entries.map((e) => {
+    const dow = new Date(`${e.date}T12:00:00`).getDay()
+    return {
+      title: input.subject,
+      type: input.type,
+      lesson_kind: 'temporary' as const, // 特定日のコマとして作成（週間カレンダーにその日だけ表示される）
+      specific_date: e.date,
+      subject: input.subject,
+      teacher_id: input.teacher_id || null,
+      day_of_week: dow,
+      slot_index: e.slot_index,
+      term_type: 'intensive' as const,
+      booth_id: input.booth_id || null,
+      capacity: input.capacity,
+      is_ps1: false,
+      notes: null,
+    }
+  })
+
+  const { error } = await supabase.from('lessons').insert(rows)
+  if (error) return { error: error.message }
+
+  revalidatePath('/schedule/intensive')
+  revalidatePath('/schedule')
+  return { count: rows.length }
+}
+
 export async function upsertIntensivePlan(
   studentId: string,
   termPeriodId: string,

@@ -41,6 +41,10 @@ export default async function MakeupPage() {
       .limit(200),
   ])
 
+  const { data: termPeriods } = await supabase
+    .from('term_periods')
+    .select('type, start_date, end_date')
+
   const activeCredits = (credits ?? []).filter(
     (c) => c.total_credits - c.used_credits > 0
   )
@@ -56,6 +60,7 @@ export default async function MakeupPage() {
         credits={activeCredits}
         lessons={lessons ?? []}
         shifts={shifts ?? []}
+        termPeriods={(termPeriods ?? []) as { type: 'regular' | 'intensive'; start_date: string; end_date: string }[]}
       />
       <MakeupAssignmentList
         assignments={(assignments ?? []) as unknown as MakeupAssignment[]}

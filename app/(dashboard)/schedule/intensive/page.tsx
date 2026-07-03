@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { IntensivePlanner } from './IntensivePlanner'
+import { IntensiveBulkCreator } from './IntensiveBulkCreator'
 import Link from 'next/link'
 import type { TermPeriod } from '@/types'
+import type { IntensiveSlotLimits } from '@/lib/constants/timeSlots'
 
 interface PageProps {
   searchParams: Promise<{ term?: string }>
@@ -12,10 +14,16 @@ export default async function IntensivePage({ searchParams }: PageProps) {
   const { term } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: termPeriods }, { data: students }] = await Promise.all([
+  const [{ data: termPeriods }, { data: students }, { data: teachers }, { data: booths }, { data: slotLimitSetting }, { data: closures }] = await Promise.all([
     supabase.from('term_periods').select('*').eq('type', 'intensive').order('start_date', { ascending: false }),
     supabase.from('students').select('id, name, grade').order('grade').order('name'),
+    supabase.from('teachers').select('id, name').order('name'),
+    supabase.from('booths').select('id, name').eq('is_active', true).order('name'),
+    supabase.from('app_settings').select('value').eq('key', 'intensive_slot_limits').single(),
+    supabase.from('school_closures').select('date'),
   ])
+  const intensiveSlotLimits = (slotLimitSetting?.value as IntensiveSlotLimits) ?? null
+  const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
 
   const intensivePeriods = (termPeriods as TermPeriod[]) ?? []
   const selectedTermId = term ?? intensivePeriods[0]?.id ?? ''
@@ -99,6 +107,18 @@ export default async function IntensivePage({ searchParams }: PageProps) {
             </Link>
           ))}
         </div>
+      )}
+
+      {selectedTerm && (
+        <IntensiveBulkCreator
+          termPeriodName={selectedTerm.name}
+          startDate={selectedTerm.start_date}
+          endDate={selectedTerm.end_date}
+          teachers={(teachers ?? []) as { id: string; name: string }[]}
+          booths={(booths ?? []) as { id: string; name: string }[]}
+          intensiveSlotLimits={intensiveSlotLimits}
+          closureDates={closureDates}
+        />
       )}
 
       {selectedTerm && (

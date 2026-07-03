@@ -29,6 +29,8 @@ interface Lesson {
   title: string
   subject: string
   type: 'group' | 'individual'
+  lesson_kind?: string
+  specific_date?: string | null
   day_of_week: number
   slot_index: number
   term_type: 'regular' | 'intensive'
@@ -56,10 +58,17 @@ interface Shift {
   end_time: string
 }
 
+interface TermPeriodInfo {
+  type: 'regular' | 'intensive'
+  start_date: string
+  end_date: string
+}
+
 interface MakeupManagerProps {
   credits: Credit[]
   lessons: Lesson[]
   shifts: Shift[]
+  termPeriods?: TermPeriodInfo[]
 }
 
 // Returns a score + metadata for the lesson relative to the student
@@ -91,7 +100,7 @@ function scoreLessonForStudent(
   return { score, isPreferred, isNg, subjectMatch, hasShift }
 }
 
-export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) {
+export function MakeupManager({ credits, lessons, shifts, termPeriods = [] }: MakeupManagerProps) {
   const router = useRouter()
   const [selectedCredit, setSelectedCredit] = useState<Credit | null>(null)
   const [selectedLessonId, setSelectedLessonId] = useState('')
@@ -101,22 +110,42 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
 
   const student = selectedCredit?.student ?? null
 
+  // 振替日に実際に存在するコマだけを候補にする
+  // - 臨時コマ: specific_date が振替日に一致するもの（優先表示）
+  // - 通常コマ: 曜日一致 かつ その日の期間区分（通常/講習）に一致するもの
+  const dateLessons = useMemo(() => {
+    const dow = new Date(`${assignedDate}T12:00:00`).getDay()
+    const dateTermType = termPeriods.find(
+      (t) => t.start_date <= assignedDate && assignedDate <= t.end_date
+    )?.type ?? 'regular'
+    return lessons.filter((l) =>
+      l.lesson_kind === 'temporary'
+        ? l.specific_date === assignedDate
+        : l.day_of_week === dow && l.term_type === dateTermType
+    )
+  }, [lessons, assignedDate, termPeriods])
+
   // Compute scored lessons whenever student/date changes
   const scoredLessons = useMemo(() => {
-    if (!student) return lessons
+    if (!student) return dateLessons
       .map((l) => ({ lesson: l, score: 0, isPreferred: false, isNg: false, subjectMatch: false, hasShift: false, isFull: (l.enrollments?.length ?? 0) >= l.capacity }))
-    return lessons
-      .map((l) => ({
-        lesson: l,
-        isFull: (l.enrollments?.length ?? 0) >= l.capacity,
-        ...scoreLessonForStudent(l, student, assignedDate, shifts),
-      }))
+    return dateLessons
+      .map((l) => {
+        const base = scoreLessonForStudent(l, student, assignedDate, shifts)
+        return {
+          lesson: l,
+          isFull: (l.enrollments?.length ?? 0) >= l.capacity,
+          ...base,
+          // 振替用に作った臨時コマを最優先で提示
+          score: base.score + (l.lesson_kind === 'temporary' ? 5 : 0),
+        }
+      })
       .filter((x) => !x.isNg)
       .sort((a, b) => {
         if (a.isFull !== b.isFull) return a.isFull ? 1 : -1
         return b.score - a.score
       })
-  }, [student, assignedDate, lessons, shifts])
+  }, [student, assignedDate, dateLessons, shifts])
 
   function handleAssign(e: React.FormEvent) {
     e.preventDefault()
@@ -230,7 +259,7 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-300">振替コマ</label>
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300">振替コマ（この日にあるコマのみ表示）</label>
                 {student && (
                   <span className="text-[10px] text-gray-400">
                     {student.ng_teacher_ids.length > 0 && 'NG先生のコマを除外 '}
@@ -240,7 +269,10 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
               </div>
 
               {scoredLessons.length === 0 ? (
-                <p className="text-xs text-gray-400 py-4 text-center">条件に合うコマがありません</p>
+                <p className="text-xs text-gray-400 py-4 text-center">
+                  この日にあるコマがありません。<br />
+                  日付を変えるか、コマ作成から臨時コマを追加してください
+                </p>
               ) : (
                 <div className="max-h-96 overflow-y-auto space-y-3">
                   {(() => {
@@ -273,6 +305,9 @@ export function MakeupManager({ credits, lessons, shifts }: MakeupManagerProps) 
                               <span className="font-medium text-gray-800 dark:text-gray-100">
                                 第{lesson.slot_index}コマ　{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}
                               </span>
+                              {lesson.lesson_kind === 'temporary' && (
+                                <span className="text-[10px] bg-orange-100 dark:bg-orange-900/60 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded-full font-bold">⚡臨時</span>
+                              )}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               {lesson.booth?.name && (
