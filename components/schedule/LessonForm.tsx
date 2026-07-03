@@ -165,6 +165,9 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
     e.preventDefault()
     if (isTemporary && !formData.specific_date) { setError('日付を入力してください'); return }
     if (isTemporary && repeat && !repeatUntil) { setError('繰り返しの終了日を入力してください'); return }
+    if (formData.term_type === 'intensive' && !formData.subject) {
+      setError('講習コマには科目を設定してください（講習割り振りで科目ごとにコマを探すため）'); return
+    }
     if (formData.student_ids.length > formData.capacity) {
       setError(`定員（${formData.capacity}名）より多い生徒が選択されています`); return
     }
@@ -174,14 +177,16 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
       day_of_week: isTemporary ? dowFromDate(formData.specific_date) : formData.day_of_week,
       specific_date: isTemporary ? formData.specific_date : '',
     }
+    // 講習コマは講習割り振りに戻す（週間カレンダーは通常期間の週だと講習コマが見えないため）
+    const afterSave = formData.term_type === 'intensive' ? '/schedule/intensive' : '/schedule'
     startTransition(async () => {
       if (isTemporary && repeat && onSaveRepeating) {
         const result = await onSaveRepeating(payload, repeatUntil)
         if (result.error) { setError(result.error) }
-        else { router.push('/schedule') }
+        else { router.push(afterSave) }
       } else {
         const result = await onSave(payload)
-        if (result.error) { setError(result.error) } else { router.push('/schedule') }
+        if (result.error) { setError(result.error) } else { router.push(afterSave) }
       }
     })
   }
@@ -299,6 +304,24 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
             <option value="regular">通常期間</option>
             <option value="intensive">講習期間</option>
           </select>
+        </div>
+
+        {/* 科目 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            科目
+            {formData.term_type === 'intensive'
+              ? <span className="text-red-500"> *</span>
+              : <span className="ml-1.5 text-xs text-gray-400 font-normal">任意</span>}
+          </label>
+          <select value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+            <option value="">— 未設定 —</option>
+            {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          {formData.term_type === 'intensive' && (
+            <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">講習コマは科目が必須です（講習割り振り・自動割り振りの検索キーになります）</p>
+          )}
         </div>
 
         {/* 時間帯スロット */}

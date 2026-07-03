@@ -41,7 +41,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     supabase.from('teachers').select('id, name').order('name'),
     supabase.from('students').select('id, name, grade').order('name'),
     supabase.from('shifts').select('id, teacher_id, date, start_time, end_time').in('date', weekDates),
-    supabase.from('makeup_assignments').select('id, lesson_id, assigned_date, student:students(id, name)').eq('assigned_date', toLD(referenceDate)),
+    supabase.from('makeup_assignments').select('id, lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDates),
   ])
 
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
@@ -140,6 +140,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
             closureDates={closureDates}
             customSlots={customSlots}
             shifts={(shifts as { id: string; teacher_id: string; date: string; start_time: string; end_time: string }[]) ?? []}
+            makeupAssignments={(makeupAssignments ?? []) as unknown as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]}
           />
         )}
         {view === 'month' && (
@@ -313,8 +314,9 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
     const allStudents = group.flatMap((l) =>
       (l.enrollments ?? []).map((e) => e.student).filter((s): s is NonNullable<typeof s> => s != null)
     )
+    const dayStr = toLocalDate(date)
     const allMakeupStudents = group.flatMap((l) =>
-      makeupAssignments.filter((m) => m.lesson_id === l.id && m.student).map((m) => m.student!)
+      makeupAssignments.filter((m) => m.lesson_id === l.id && m.assigned_date === dayStr && m.student).map((m) => m.student!)
     )
     mergedGroups.push({
       key,

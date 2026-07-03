@@ -44,7 +44,7 @@ export default async function IntensivePage({ searchParams }: PageProps) {
         title="講習コマ割り振り"
         subtitle="生徒ごとに受講コマ数を設定し、具体的な日程に割り振ります"
         actions={
-          <Link href="/schedule/new" className="inline-flex items-center gap-1.5 px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark transition-colors">
+          <Link href="/schedule/new?term_type=intensive" className="inline-flex items-center gap-1.5 px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark transition-colors">
             + 講習コマを追加
           </Link>
         }

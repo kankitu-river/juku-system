@@ -67,6 +67,27 @@ export default async function NewLessonPage({ searchParams }: PageProps) {
     }
   }
 
+  // 講習割り振りの「+ 講習コマを追加」からの遷移: 講習期間を事前選択
+  if (!copySource && !prefillLesson && term_type === 'intensive') {
+    prefillLesson = {
+      id: '',
+      title: '',
+      type: 'individual',
+      lesson_kind: 'regular',
+      specific_date: null,
+      teacher_id: null,
+      day_of_week: 1,
+      slot_index: 1,
+      term_type: 'intensive',
+      booth_id: null,
+      subject: '',
+      capacity: 2,
+      is_ps1: false,
+      notes: null,
+      created_at: '',
+    } as Lesson
+  }
+
   const preselectedStudent = studentId
     ? (students as Student[] ?? []).find((s) => s.id === studentId) ?? null
     : null
@@ -83,9 +104,11 @@ export default async function NewLessonPage({ searchParams }: PageProps) {
         title={
           copySource
             ? `${(copySource.teacher as { name?: string } | null)?.name ?? copySource.subject}先生のコマをコピー`
-            : prefillLesson
+            : prefillLesson?.lesson_kind === 'temporary'
               ? '臨時コマを作成'
-              : 'コマを作成'
+              : prefillLesson?.term_type === 'intensive'
+                ? '講習コマを作成'
+                : 'コマを作成'
         }
         subtitle={
           preselectedStudent

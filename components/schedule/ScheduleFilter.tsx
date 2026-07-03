@@ -16,6 +16,13 @@ interface Shift {
   end_time: string
 }
 
+interface MakeupAssignment {
+  id: string
+  lesson_id: string
+  assigned_date: string
+  student: { id: string; name: string } | null
+}
+
 interface ScheduleFilterProps {
   lessons: Lesson[]
   teachers: Teacher[]
@@ -25,6 +32,7 @@ interface ScheduleFilterProps {
   closureDates: string[]
   customSlots: TimeSlotConfig | null
   shifts: Shift[]
+  makeupAssignments?: MakeupAssignment[]
 }
 
 function toDateStr(d: Date): string {
@@ -48,6 +56,7 @@ export function ScheduleFilter({
   closureDates,
   customSlots,
   shifts,
+  makeupAssignments = [],
 }: ScheduleFilterProps) {
   const [teacherFilter, setTeacherFilter] = useState('')
   const [studentFilter, setStudentFilter] = useState('')
@@ -135,6 +144,7 @@ export function ScheduleFilter({
         referenceDate={referenceDate}
         closureDates={closureDates}
         customSlots={customSlots}
+        makeupAssignments={makeupAssignments}
       />
 
       {/* 現在の期間区分と異なるコマ（カレンダーに出ないもの）*/}

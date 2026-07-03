@@ -27,6 +27,13 @@ interface TeacherBasic {
   name: string
 }
 
+interface MakeupAssignment {
+  id: string
+  lesson_id: string
+  assigned_date: string
+  student: { id: string; name: string } | null
+}
+
 interface WeeklyCalendarProps {
   lessons: Lesson[]
   allLessons?: Lesson[]
@@ -36,6 +43,7 @@ interface WeeklyCalendarProps {
   referenceDate: Date
   closureDates?: string[]
   customSlots?: TimeSlotConfig | null
+  makeupAssignments?: MakeupAssignment[]
 }
 
 function toDateStr(d: Date): string {
@@ -63,6 +71,7 @@ export function WeeklyCalendar({
   termPeriods, referenceDate,
   closureDates = [],
   customSlots,
+  makeupAssignments = [],
 }: WeeklyCalendarProps) {
   const router = useRouter()
   const [dayView, setDayView] = useState<DayView>('weekday')
@@ -306,6 +315,7 @@ const lessonMap = useMemo(() => {
                         ) : (
                           <div className="space-y-1">
                             <CellLessons lessons={cellLessons} />
+                            <MakeupChips lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} />
                             {cellLessons.length === 0 && availableTeachers.length === 0 && (
                               <div className="h-10 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-300">—</span>
@@ -372,6 +382,7 @@ const lessonMap = useMemo(() => {
                         style={{ minHeight: '80px' }}>
                         <div className="space-y-1">
                           <CellLessons lessons={cellLessons} />
+                          <MakeupChips lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} />
                           {cellLessons.length === 0 && !isSatClosed && (
                             <div className="h-10 flex items-center justify-center">
                               <span className="text-[10px] text-gray-300">—</span>
@@ -460,6 +471,30 @@ const lessonMap = useMemo(() => {
         </div>
       )}
 
+    </div>
+  )
+}
+
+// その日のセルに割り当てられた振替生徒のチップ表示
+function MakeupChips({ lessons, dateStr, makeups }: {
+  lessons: Lesson[]
+  dateStr: string
+  makeups: MakeupAssignment[]
+}) {
+  const chips = makeups.filter(
+    (m) => m.assigned_date === dateStr && m.student && lessons.some((l) => l.id === m.lesson_id)
+  )
+  if (chips.length === 0) return null
+  return (
+    <div className="flex flex-wrap gap-1 pt-0.5">
+      {chips.map((m) => (
+        <span
+          key={m.id}
+          className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-1.5 py-0.5 rounded-full whitespace-nowrap"
+        >
+          振替 {m.student!.name}
+        </span>
+      ))}
     </div>
   )
 }
