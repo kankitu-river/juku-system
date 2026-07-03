@@ -32,17 +32,50 @@ export interface EnrollmentInfo {
 // student_id -> subject -> teacher_id (通常授業で最も多い担当)
 export type RegularTeacherMap = Record<string, Record<string, string>>
 
+// シフトマッチング用（先生のシフトから新規コマを自動提案する）
+export interface TeacherBasicInfo {
+  id: string
+  name: string
+  subjects: string[]
+}
+
+export interface TeacherShiftInfo {
+  teacher_id: string
+  date: string        // YYYY-MM-DD
+  start_time: string  // HH:MM(:SS)
+  end_time: string
+}
+
+export interface SlotTime {
+  index: number
+  start: string
+  end: string
+}
+
+export interface ShiftMatchingOptions {
+  teachers: TeacherBasicInfo[]
+  shifts: TeacherShiftInfo[]      // 期間内のシフトのみ渡すこと
+  slotTimes: SlotTime[]           // 講習期間の時間帯定義
+  slotLimits?: Record<string, number> | null  // dow -> 最終コマ番号
+  closureDates?: string[]
+}
+
+// 新規コマ1つに入れる生徒数（個別指導のデフォルト定員）
+const NEW_LESSON_CAPACITY = 2
+
 export interface ProposedAssignment {
   studentId: string
   studentName: string
   studentGrade: string
   subject: string
-  lessonId: string
+  lessonId: string | null   // null = 新規コマを作成して割り当てる提案
   lessonLabel: string
   teacherId: string | null
   teacherName: string | null
   reasonCode: 'regular_senior' | 'regular' | 'preferred' | 'compatible'
   reasonLabel: string
+  isNew?: boolean
+  newLesson?: { teacherId: string; date: string; slotIndex: number }
 }
 
 export interface ScheduleConflict {
@@ -116,6 +149,10 @@ function dayKeyOf(l: LessonInfo): string {
   return l.specific_date ?? `dow${l.day_of_week}`
 }
 
+function timeHM(t: string): string {
+  return t.slice(0, 5)
+}
+
 export function generateSchedule(
   students: StudentInfo[],
   lessons: LessonInfo[],
@@ -123,6 +160,7 @@ export function generateSchedule(
   currentEnrollments: EnrollmentInfo[],
   regularTeacherMap: RegularTeacherMap,
   availabilityMap: AvailabilityMap = {},
+  shiftOptions?: ShiftMatchingOptions,
 ): DraftScheduleResult {
   const assignments: ProposedAssignment[] = []
   const conflicts: ScheduleConflict[] = []
@@ -144,6 +182,72 @@ export function generateSchedule(
     if (!l) continue
     busySlots.add(`${e.student_id}__${slotKeyOf(l)}`)
     subjectDays.add(`${e.student_id}__${l.subject}__${dayKeyOf(l)}`)
+  }
+
+  // ===== シフトマッチング準備 =====
+  // 先生が既存コマで埋まっている時間帯: `${teacherId}__${slotKey}`
+  const teacherBusy = new Set<string>()
+  for (const l of lessons) {
+    if (l.teacher_id) teacherBusy.add(`${l.teacher_id}__${slotKeyOf(l)}`)
+  }
+  // 新規コマの登録簿: `${teacherId}__${date}__${slot}` -> { subject, remaining }
+  const newLessonRegistry = new Map<string, { subject: string; remaining: number }>()
+
+  const closureSet = new Set(shiftOptions?.closureDates ?? [])
+  const teacherMap = new Map((shiftOptions?.teachers ?? []).map((t) => [t.id, t]))
+
+  // 先生のシフトから (teacher, date, slot) の候補を作る
+  function buildVirtualCandidates(student: StudentInfo, subject: string): LessonInfo[] {
+    if (!shiftOptions) return []
+    const result: LessonInfo[] = []
+    const seen = new Set<string>()
+    const avail = availabilityMap[student.id]
+
+    for (const shift of shiftOptions.shifts) {
+      const teacher = teacherMap.get(shift.teacher_id)
+      if (!teacher) continue
+      // 科目対応チェック（担当科目が未登録の先生は全科目OKとして扱う）
+      if (teacher.subjects.length > 0 && !teacher.subjects.includes(subject)) continue
+      if (student.ng_teacher_ids.includes(teacher.id)) continue
+      if (closureSet.has(shift.date)) continue
+
+      const dow = new Date(`${shift.date}T12:00:00`).getDay()
+      if (dow === 0) continue
+      const maxSlot = shiftOptions.slotLimits?.[String(dow)]
+
+      for (const slot of shiftOptions.slotTimes) {
+        if (maxSlot && slot.index > maxSlot) continue
+        // シフトが時間帯をカバーしているか
+        if (!(timeHM(shift.start_time) <= slot.start && timeHM(shift.end_time) >= slot.end)) continue
+        // 生徒の来塾希望（入力済みの場合のみ絞り込み）
+        if (avail && avail.size > 0 && !avail.has(`${shift.date}__${slot.index}`)) continue
+
+        const key = `${teacher.id}__${shift.date}__${slot.index}`
+        if (seen.has(key)) continue
+        seen.add(key)
+
+        // 既存コマで先生が埋まっている時間帯は除外
+        if (teacherBusy.has(`${teacher.id}__${shift.date}__${slot.index}`)) continue
+        if (teacherBusy.has(`${teacher.id}__dow${dow}__${slot.index}`)) continue
+
+        // すでに別科目の新規コマが提案済み・満員なら除外
+        const reg = newLessonRegistry.get(key)
+        if (reg && (reg.subject !== subject || reg.remaining <= 0)) continue
+
+        result.push({
+          id: `new__${key}`,
+          subject,
+          teacher_id: teacher.id,
+          teacher_name: teacher.name,
+          day_of_week: dow,
+          slot_index: slot.index,
+          specific_date: shift.date,
+          capacity: NEW_LESSON_CAPACITY,
+          enrolled_count: 0,
+        })
+      }
+    }
+    return result
   }
 
   // 高3を先に処理して枠を確保
@@ -169,7 +273,8 @@ export function generateSchedule(
     const needed = plan.planned_count - alreadyEnrolled
     if (needed <= 0) continue
 
-    const candidates = lessons
+    // 既存コマの候補
+    const realCandidates = lessons
       .filter((l) => {
         if (l.subject !== plan.subject) return false
         if (enrolledSet.has(`${student.id}__${l.id}`)) return false
@@ -180,9 +285,20 @@ export function generateSchedule(
       })
       .map((l) => ({
         lesson: l,
+        isNew: false,
         score: scoreLesson(student, l.teacher_id, regularTeacherId, senior),
       }))
-      .filter((x) => x.score >= 0)
+
+    // シフトから作る新規コマの候補（既存コマをわずかに優先するため -1）
+    const virtualCandidates = buildVirtualCandidates(student, plan.subject)
+      .map((l) => ({
+        lesson: l,
+        isNew: true,
+        score: scoreLesson(student, l.teacher_id, regularTeacherId, senior) - 1,
+      }))
+
+    const candidates = [...realCandidates, ...virtualCandidates]
+      .filter((x) => x.score >= -1 && x.score > -9000)
       // 同点なら日付の早いコマから（期間の前半に寄せて後半を調整余地に残す）
       .sort((a, b) =>
         b.score - a.score ||
@@ -193,14 +309,29 @@ export function generateSchedule(
     // 1周目: 同一科目は1日1コマまでに分散して割り当て
     // 2周目: それでも足りない場合のみ同日複数コマを許可（時間帯の重複は常に不可）
     for (const allowSameDay of [false, true]) {
-      for (const { lesson } of candidates) {
+      for (const { lesson, isNew } of candidates) {
         if (assigned >= needed) break
         if (pending.has(`${student.id}__${lesson.id}`)) continue
-        if ((vacancyMap.get(lesson.id) ?? 0) <= 0) continue
         // 同じ日・同じ時間帯に別のコマが入っていたら不可
         if (busySlots.has(`${student.id}__${slotKeyOf(lesson)}`)) continue
         // 分散: 同一科目の同日重複は1周目では避ける
         if (!allowSameDay && subjectDays.has(`${student.id}__${plan.subject}__${dayKeyOf(lesson)}`)) continue
+
+        if (isNew) {
+          // 新規コマの空き状況を登録簿でチェック・更新
+          const key = `${lesson.teacher_id}__${lesson.specific_date}__${lesson.slot_index}`
+          const reg = newLessonRegistry.get(key)
+          if (reg) {
+            if (reg.subject !== plan.subject || reg.remaining <= 0) continue
+            reg.remaining--
+          } else {
+            if (teacherBusy.has(`${lesson.teacher_id}__${lesson.specific_date}__${lesson.slot_index}`)) continue
+            newLessonRegistry.set(key, { subject: plan.subject, remaining: NEW_LESSON_CAPACITY - 1 })
+          }
+        } else {
+          if ((vacancyMap.get(lesson.id) ?? 0) <= 0) continue
+          vacancyMap.set(lesson.id, (vacancyMap.get(lesson.id) ?? 0) - 1)
+        }
 
         let reasonCode: ProposedAssignment['reasonCode']
         let reasonLabel: string
@@ -219,18 +350,21 @@ export function generateSchedule(
           studentName: student.name,
           studentGrade: student.grade,
           subject: plan.subject,
-          lessonId: lesson.id,
+          lessonId: isNew ? null : lesson.id,
           lessonLabel: buildLessonLabel(lesson),
           teacherId: lesson.teacher_id,
           teacherName: lesson.teacher_name,
           reasonCode,
           reasonLabel,
+          isNew,
+          newLesson: isNew && lesson.teacher_id && lesson.specific_date
+            ? { teacherId: lesson.teacher_id, date: lesson.specific_date, slotIndex: lesson.slot_index }
+            : undefined,
         })
 
         pending.add(`${student.id}__${lesson.id}`)
         busySlots.add(`${student.id}__${slotKeyOf(lesson)}`)
         subjectDays.add(`${student.id}__${plan.subject}__${dayKeyOf(lesson)}`)
-        vacancyMap.set(lesson.id, (vacancyMap.get(lesson.id) ?? 0) - 1)
         assigned++
       }
       if (assigned >= needed) break
@@ -242,7 +376,9 @@ export function generateSchedule(
         : false
 
       const regularTeacherName = regularTeacherId
-        ? lessons.find((l) => l.teacher_id === regularTeacherId)?.teacher_name ?? null
+        ? lessons.find((l) => l.teacher_id === regularTeacherId)?.teacher_name
+          ?? teacherMap.get(regularTeacherId)?.name
+          ?? null
         : null
 
       const altMap = new Map<string, { name: string; count: number }>()

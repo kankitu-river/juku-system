@@ -2,7 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { generateSchedule, type DraftScheduleResult, type AvailabilityMap } from '@/lib/utils/intensiveScheduler'
+import { generateSchedule, type DraftScheduleResult, type AvailabilityMap, type SlotTime } from '@/lib/utils/intensiveScheduler'
+import { INTENSIVE_SLOTS, type IntensiveSlotLimits } from '@/lib/constants/timeSlots'
 
 // 講習コマの一括作成（日付×スロットの組み合わせで臨時コマとして作成）
 export async function bulkCreateIntensiveLessons(input: {
@@ -115,6 +116,13 @@ export async function generateDraftSchedule(
 ): Promise<{ result?: DraftScheduleResult; error?: string }> {
   const supabase = await createClient()
 
+  const { data: termPeriod } = await supabase
+    .from('term_periods')
+    .select('id, start_date, end_date')
+    .eq('id', termPeriodId)
+    .single()
+  if (!termPeriod) return { error: '講習期間が見つかりません' }
+
   const [
     { data: students },
     { data: lessons },
@@ -122,7 +130,11 @@ export async function generateDraftSchedule(
     { data: currentEnrollments },
     { data: availabilityRows },
     { data: regularEnrollments },
-    { data: termPeriod },
+    { data: teachers },
+    { data: shifts },
+    { data: slotSetting },
+    { data: slotLimitSetting },
+    { data: closures },
   ] = await Promise.all([
     supabase.from('students').select('id, name, grade, preferred_teacher_ids, ng_teacher_ids'),
     supabase
@@ -136,7 +148,13 @@ export async function generateDraftSchedule(
       .from('lesson_enrollments')
       .select('student_id, lesson:lessons(subject, teacher_id, term_type)')
       .not('lesson', 'is', null),
-    supabase.from('term_periods').select('id, start_date, end_date').eq('id', termPeriodId).single(),
+    supabase.from('teachers').select('id, name, subjects'),
+    supabase.from('shifts').select('teacher_id, date, start_time, end_time')
+      .gte('date', termPeriod.start_date)
+      .lte('date', termPeriod.end_date),
+    supabase.from('app_settings').select('value').eq('key', 'time_slots').single(),
+    supabase.from('app_settings').select('value').eq('key', 'intensive_slot_limits').single(),
+    supabase.from('school_closures').select('date'),
   ])
 
   if (!students || !lessons || !plans) return { error: 'データ取得に失敗しました' }
@@ -187,6 +205,11 @@ export async function generateDraftSchedule(
       (l.specific_date >= termPeriod.start_date && l.specific_date <= termPeriod.end_date)
     )
 
+  // 講習の時間帯定義（カスタム設定があれば優先）
+  const customSlots = (slotSetting?.value as { intensive?: SlotTime[] } | null)?.intensive
+  const slotTimes: SlotTime[] = customSlots && customSlots.length > 0 ? customSlots : INTENSIVE_SLOTS
+  const slotLimits = (slotLimitSetting?.value as IntensiveSlotLimits) ?? null
+
   const result = generateSchedule(
     (students as any[]).map((s) => ({
       id: s.id,
@@ -207,22 +230,100 @@ export async function generateDraftSchedule(
     })),
     regularTeacherMap,
     availabilityMap,
+    {
+      teachers: ((teachers as any[]) ?? []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        subjects: (t.subjects as string[] | null) ?? [],
+      })),
+      shifts: ((shifts as any[]) ?? []).map((s) => ({
+        teacher_id: s.teacher_id,
+        date: s.date,
+        start_time: s.start_time,
+        end_time: s.end_time,
+      })),
+      slotTimes,
+      slotLimits,
+      closureDates: ((closures as any[]) ?? []).map((c) => c.date),
+    },
   )
 
   return { result }
 }
 
 export async function applyDraftSchedule(
-  enrollments: { studentId: string; lessonId: string }[]
+  items: {
+    studentId: string
+    lessonId: string | null
+    subject?: string
+    newLesson?: { teacherId: string; date: string; slotIndex: number }
+  }[]
 ): Promise<{ count: number; error?: string }> {
-  if (enrollments.length === 0) return { count: 0 }
+  if (items.length === 0) return { count: 0 }
   const supabase = await createClient()
-  const rows = enrollments.map((e) => ({ student_id: e.studentId, lesson_id: e.lessonId }))
-  const { error } = await supabase
-    .from('lesson_enrollments')
-    .upsert(rows, { onConflict: 'student_id,lesson_id', ignoreDuplicates: true })
-  if (error) return { count: 0, error: error.message }
+  let count = 0
+
+  // 既存コマへの割り当て
+  const existing = items.filter((i) => i.lessonId)
+  if (existing.length > 0) {
+    const rows = existing.map((e) => ({
+      student_id: e.studentId,
+      lesson_id: e.lessonId!,
+      ...(e.subject ? { subject: e.subject } : {}),
+    }))
+    const { error } = await supabase
+      .from('lesson_enrollments')
+      .upsert(rows, { onConflict: 'student_id,lesson_id', ignoreDuplicates: true })
+    if (error) return { count: 0, error: error.message }
+    count += existing.length
+  }
+
+  // 新規コマの作成 + 割り当て（同じ先生・日付・コマの提案は1つのコマにまとめる）
+  const newItems = items.filter((i) => !i.lessonId && i.newLesson)
+  const groups = new Map<string, typeof newItems>()
+  for (const item of newItems) {
+    const key = `${item.newLesson!.teacherId}__${item.newLesson!.date}__${item.newLesson!.slotIndex}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(item)
+  }
+
+  for (const group of groups.values()) {
+    const { teacherId, date, slotIndex } = group[0].newLesson!
+    const subject = group[0].subject ?? ''
+    const dow = new Date(`${date}T12:00:00`).getDay()
+
+    const { data: lesson, error: lessonError } = await supabase
+      .from('lessons')
+      .insert({
+        title: subject,
+        type: 'individual',
+        lesson_kind: 'temporary',
+        specific_date: date,
+        subject: subject || null,
+        teacher_id: teacherId,
+        day_of_week: dow,
+        slot_index: slotIndex,
+        term_type: 'intensive',
+        booth_id: null,
+        capacity: Math.max(2, group.length),
+        is_ps1: false,
+        notes: null,
+      })
+      .select('id')
+      .single()
+    if (lessonError) return { count, error: `コマ作成エラー: ${lessonError.message}` }
+
+    const rows = group.map((g) => ({
+      student_id: g.studentId,
+      lesson_id: lesson.id,
+      subject: g.subject ?? null,
+    }))
+    const { error: enrollError } = await supabase.from('lesson_enrollments').insert(rows)
+    if (enrollError) return { count, error: `割り当てエラー: ${enrollError.message}` }
+    count += group.length
+  }
+
   revalidatePath('/schedule/intensive')
   revalidatePath('/schedule')
-  return { count: enrollments.length }
+  return { count }
 }

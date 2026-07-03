@@ -29,7 +29,8 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
 
   function assignmentKey(a: ProposedAssignment) {
-    return `${a.studentId}__${a.lessonId}`
+    const target = a.lessonId ?? `new_${a.newLesson?.teacherId}_${a.newLesson?.date}_${a.newLesson?.slotIndex}`
+    return `${a.studentId}__${target}`
   }
 
   function handleGenerate() {
@@ -60,7 +61,12 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
     if (!result) return
     const toApply = result.assignments
       .filter((a) => !excluded.has(assignmentKey(a)))
-      .map((a) => ({ studentId: a.studentId, lessonId: a.lessonId }))
+      .map((a) => ({
+        studentId: a.studentId,
+        lessonId: a.lessonId,
+        subject: a.subject,
+        newLesson: a.newLesson,
+      }))
 
     startApplying(async () => {
       const res = await applyDraftSchedule(toApply)
@@ -98,16 +104,16 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
           <div>
             <p className="font-bold text-gray-900 dark:text-gray-100 text-base mb-1">自動割り振り</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              通常授業の担当先生・来塾希望・相性情報を元に、講習コマへの割り振り案を自動生成します。
-              生成後に個別調整してから「適用」できます。
+              <span className="font-semibold text-gray-700 dark:text-gray-200">先生のシフト × 生徒の来塾希望</span>をマッチングして割り振り案を自動生成します。
+              コマが未作成でも、シフトに入っている先生との新規コマを提案し、適用時に自動でコマを作成します。
             </p>
             <ul className="mt-2 text-xs text-gray-400 space-y-0.5">
+              <li>・ 先生がシフトに入っている日時 × 生徒の来塾希望が一致する枠に割り振り</li>
+              <li>・ 既存の講習コマがあればそちらを優先して埋める</li>
               <li>・ 高3（受験生）は通常担当の先生を優先して確保</li>
-              <li>・ 来塾希望が入力済みの生徒は、希望コマ外は候補から除外</li>
-              <li>・ NG先生には割り振らない</li>
-              <li>・ 同じ日・同じ時間帯への重複割り当てはしない</li>
-              <li>・ 同一科目はなるべく別の日に分散（足りない場合のみ同日複数コマ）</li>
-              <li>・ この講習期間内のコマだけが対象</li>
+              <li>・ NG先生には割り振らない・担当科目外の先生には割り振らない</li>
+              <li>・ 同じ日・同じ時間帯への重複なし、同一科目はなるべく別の日に分散</li>
+              <li>・ 新規コマは1コマ最大2名（同一科目のみ同席）</li>
             </ul>
           </div>
           <button
@@ -190,7 +196,12 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
                             className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-teal-500 focus:ring-teal-400"
                           />
                           <div className="flex-1 grid grid-cols-3 gap-2 text-xs">
-                            <span className="text-gray-700 dark:text-gray-300 font-medium">{a.subject}</span>
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">
+                              {a.subject}
+                              {a.isNew && (
+                                <span className="ml-1.5 text-[9px] bg-orange-100 dark:bg-orange-900/60 text-orange-600 dark:text-orange-300 px-1 py-0.5 rounded font-bold align-middle">新規コマ</span>
+                              )}
+                            </span>
                             <span className="text-gray-500 dark:text-gray-400">{a.lessonLabel}</span>
                             <span className="text-gray-500 dark:text-gray-400">{a.teacherName ?? '先生未定'}</span>
                           </div>
