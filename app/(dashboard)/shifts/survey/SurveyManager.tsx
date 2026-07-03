@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
 import { createSurvey, deleteSurvey, sendSurveyEmails, importSurveyToShifts } from './actions'
 
 interface Token {
@@ -94,6 +95,7 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
 
 export function SurveyManager({ surveys: initialSurveys, teacherCount, intensivePeriods, responsesBySurvey = {} }: SurveyManagerProps) {
   const router = useRouter()
+  const toast = useToast()
   const [surveys, setSurveys] = useState(initialSurveys)
   const [showForm, setShowForm] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -162,7 +164,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
 
   function handleImportToShifts(surveyId: string, respondedCount: number) {
     if (respondedCount === 0) {
-      alert('まだ誰も回答していません')
+      toast.error('まだ誰も回答していません')
       return
     }
     if (!confirm(`回答済み${respondedCount}名分のコマ選択をシフトに反映します。同じ日の既存シフトは上書きされます。続けますか？`)) return
@@ -172,7 +174,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
       if (result.error) {
         setError(`反映エラー: ${result.error}`)
       } else {
-        alert(`${result.imported}件のシフトを登録しました${result.skipped > 0 ? `（コマ未選択の日 ${result.skipped} 件はスキップ）` : ''}`)
+        toast.success(`${result.imported}件のシフトを登録しました${result.skipped > 0 ? `（コマ未選択の日 ${result.skipped} 件はスキップ）` : ''}`)
       }
     })
   }
@@ -185,7 +187,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
       if (result.errors.length > 0) {
         setError(`送信エラー: ${result.errors.join(', ')}`)
       } else {
-        alert(`${result.sent}名にメールを送信しました`)
+        toast.success(`${result.sent}名にメールを送信しました`)
       }
     })
   }
@@ -371,7 +373,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                                 onClick={() => {
                                   const url = `${baseUrl}/survey/respond?token=${token.token}`
                                   navigator.clipboard.writeText(url)
-                                  alert('リンクをコピーしました')
+                                  toast.success('リンクをコピーしました')
                                 }}
                                 className="text-[10px] text-navy dark:text-blue-300 hover:underline"
                               >
@@ -405,7 +407,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                         onClick={() => {
                           const url = `${baseUrl}/survey/respond?id=${survey.id}`
                           navigator.clipboard.writeText(url)
-                          alert('共有リンクをコピーしました\nLINEやチャットで先生全員に送ってください')
+                          toast.success('共有リンクをコピーしました。LINEやチャットで先生全員に送ってください')
                         }}
                       >
                         📋 共有リンクをコピー

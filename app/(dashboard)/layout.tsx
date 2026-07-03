@@ -1,4 +1,5 @@
 import { TopNav } from '@/components/layout/TopNav'
+import { ToastProvider } from '@/components/ui/Toast'
 
 export default function DashboardLayout({
   children,
@@ -8,9 +9,11 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex flex-col">
       <TopNav />
-      <main className="flex-1">
-        <div className="p-6 max-w-7xl mx-auto">{children}</div>
-      </main>
+      <ToastProvider>
+        <main className="flex-1">
+          <div className="p-6 max-w-7xl mx-auto">{children}</div>
+        </main>
+      </ToastProvider>
     </div>
   )
 }
