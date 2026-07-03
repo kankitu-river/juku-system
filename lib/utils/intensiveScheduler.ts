@@ -91,9 +91,29 @@ export interface ScheduleConflict {
   alternatives: { teacherId: string; teacherName: string; availableCount: number }[]
 }
 
+// 入れ替え提案: 満員コマに適合度の高い生徒を入れ、既存生徒を別の枠へ移す
+export interface SwapProposal {
+  lessonId: string
+  lessonLabel: string
+  teacherName: string | null
+  subject: string
+  inStudentId: string
+  inStudentName: string
+  inReason: string
+  outStudentId: string
+  outStudentName: string
+  outAlt: {
+    lessonId: string | null
+    label: string
+    teacherName: string | null
+    newLesson?: { teacherId: string; date: string; slotIndex: number }
+  }
+}
+
 export interface DraftScheduleResult {
   assignments: ProposedAssignment[]
   conflicts: ScheduleConflict[]
+  swaps: SwapProposal[]
 }
 
 const SENIOR_GRADES = ['高3']
@@ -164,9 +184,17 @@ export function generateSchedule(
 ): DraftScheduleResult {
   const assignments: ProposedAssignment[] = []
   const conflicts: ScheduleConflict[] = []
+  const swaps: SwapProposal[] = []
 
   const vacancyMap = new Map<string, number>()
   for (const l of lessons) vacancyMap.set(l.id, l.capacity - l.enrolled_count)
+
+  const studentById = new Map(students.map((s) => [s.id, s]))
+  const lessonStudents = new Map<string, string[]>()
+  for (const e of currentEnrollments) {
+    if (!lessonStudents.has(e.lesson_id)) lessonStudents.set(e.lesson_id, [])
+    lessonStudents.get(e.lesson_id)!.push(e.student_id)
+  }
 
   const enrolledSet = new Set<string>()
   for (const e of currentEnrollments) enrolledSet.add(`${e.student_id}__${e.lesson_id}`)
@@ -406,8 +434,91 @@ export function generateSchedule(
           .sort((a, b) => b.availableCount - a.availableCount)
           .slice(0, 3),
       })
+
+      // ===== 入れ替え提案 =====
+      // 満員コマのうち、この生徒の方が明確に適合度が高い（通常担当・任せたい先生など）枠があれば、
+      // 既存生徒の移動先とセットで入れ替えを提案する
+      let best: { gain: number; proposal: SwapProposal } | null = null
+      for (const L of lessons) {
+        if (L.subject !== plan.subject) continue
+        if ((vacancyMap.get(L.id) ?? 0) > 0) continue // 空きがあれば通常割り当てで入れるので対象外
+        if (!L.teacher_id) continue
+        if (student.ng_teacher_ids.includes(L.teacher_id)) continue
+        if (!isStudentAvailable(student.id, L, availabilityMap)) continue
+        if (busySlots.has(`${student.id}__${slotKeyOf(L)}`)) continue
+
+        const scoreNew = scoreLesson(student, L.teacher_id, regularTeacherId, senior)
+        if (scoreNew < 5) continue // 明確な理由がある場合のみ提案
+
+        for (const eid of lessonStudents.get(L.id) ?? []) {
+          if (eid === student.id) continue
+          const eStudent = studentById.get(eid)
+          if (!eStudent) continue
+          const eSenior = isSenior(eStudent.grade)
+          const eRegular = regularTeacherMap[eid]?.[plan.subject] ?? null
+          const scoreE = scoreLesson(eStudent, L.teacher_id, eRegular, eSenior)
+          if (scoreNew < scoreE + 5) continue // 入れ替えるほどの差がない
+
+          // 既存生徒 E の他の受講時間帯（L を除く）
+          const eBusy = new Set<string>()
+          for (const en of currentEnrollments) {
+            if (en.student_id !== eid) continue
+            const el = lessonById.get(en.lesson_id)
+            if (el && el.id !== L.id) eBusy.add(slotKeyOf(el))
+          }
+
+          // E の移動先候補（既存コマの空き or シフトからの新規コマ）
+          const altReal = lessons
+            .filter((al) =>
+              al.id !== L.id && al.subject === plan.subject &&
+              (vacancyMap.get(al.id) ?? 0) > 0 &&
+              !(al.teacher_id && eStudent.ng_teacher_ids.includes(al.teacher_id)) &&
+              isStudentAvailable(eid, al, availabilityMap) &&
+              !eBusy.has(slotKeyOf(al))
+            )
+            .map((al) => ({ lesson: al, score: scoreLesson(eStudent, al.teacher_id, eRegular, eSenior), isNew: false }))
+          const altVirtual = buildVirtualCandidates(eStudent, plan.subject)
+            .filter((al) => !eBusy.has(slotKeyOf(al)))
+            .map((al) => ({ lesson: al, score: scoreLesson(eStudent, al.teacher_id, eRegular, eSenior) - 1, isNew: true }))
+
+          const alt = [...altReal, ...altVirtual].sort((a, b) => b.score - a.score)[0]
+          if (!alt) continue
+
+          const gain = (scoreNew - scoreE) + Math.max(alt.score, 0)
+          if (best && gain <= best.gain) continue
+
+          const inReason =
+            L.teacher_id === regularTeacherId && senior ? '受験生・通常担当'
+            : L.teacher_id === regularTeacherId ? '通常担当'
+            : '任せたい先生'
+
+          best = {
+            gain,
+            proposal: {
+              lessonId: L.id,
+              lessonLabel: buildLessonLabel(L),
+              teacherName: L.teacher_name,
+              subject: plan.subject,
+              inStudentId: student.id,
+              inStudentName: student.name,
+              inReason,
+              outStudentId: eid,
+              outStudentName: eStudent.name,
+              outAlt: {
+                lessonId: alt.isNew ? null : alt.lesson.id,
+                label: buildLessonLabel(alt.lesson),
+                teacherName: alt.lesson.teacher_name,
+                newLesson: alt.isNew && alt.lesson.teacher_id && alt.lesson.specific_date
+                  ? { teacherId: alt.lesson.teacher_id, date: alt.lesson.specific_date, slotIndex: alt.lesson.slot_index }
+                  : undefined,
+              },
+            },
+          }
+        }
+      }
+      if (best) swaps.push(best.proposal)
     }
   }
 
-  return { assignments, conflicts }
+  return { assignments, conflicts, swaps }
 }

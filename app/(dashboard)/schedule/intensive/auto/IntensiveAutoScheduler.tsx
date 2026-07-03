@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
-import { generateDraftSchedule, applyDraftSchedule } from '../actions'
+import { generateDraftSchedule, applyDraftSchedule, applyScheduleSwap } from '../actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
-import type { DraftScheduleResult, ProposedAssignment } from '@/lib/utils/intensiveScheduler'
+import type { DraftScheduleResult, ProposedAssignment, SwapProposal } from '@/lib/utils/intensiveScheduler'
 
 interface Props {
   termPeriodId: string
@@ -27,6 +27,33 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
 
   // チェックを外した割り当てID set
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
+  // 適用済みの入れ替え提案（lessonId__inStudentId）
+  const [appliedSwaps, setAppliedSwaps] = useState<Set<string>>(new Set())
+  const [swapPendingKey, setSwapPendingKey] = useState<string | null>(null)
+
+  function swapKey(s: SwapProposal) {
+    return `${s.lessonId}__${s.inStudentId}`
+  }
+
+  function handleApplySwap(s: SwapProposal) {
+    const key = swapKey(s)
+    setSwapPendingKey(key)
+    startApplying(async () => {
+      const res = await applyScheduleSwap({
+        lessonId: s.lessonId,
+        subject: s.subject,
+        inStudentId: s.inStudentId,
+        outStudentId: s.outStudentId,
+        outAlt: { lessonId: s.outAlt.lessonId, newLesson: s.outAlt.newLesson },
+      })
+      setSwapPendingKey(null)
+      if (res.error) {
+        setError(res.error)
+      } else {
+        setAppliedSwaps((prev) => new Set(prev).add(key))
+      }
+    })
+  }
 
   function assignmentKey(a: ProposedAssignment) {
     const target = a.lessonId ?? `new_${a.newLesson?.teacherId}_${a.newLesson?.date}_${a.newLesson?.slotIndex}`
@@ -216,6 +243,55 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
                     })}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* 入れ替え提案 */}
+          {result.swaps.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-purple-100 dark:border-purple-900 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-purple-100 dark:border-purple-900 bg-purple-50 dark:bg-purple-950/40">
+                <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">
+                  🔄 入れ替え提案 ({result.swaps.length}件)
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-300 mt-0.5">
+                  満員のコマですが、こちらの生徒の方が適合度が高いため、既存の生徒の移動先とセットで入れ替えを提案します
+                </p>
+              </div>
+              <div className="divide-y divide-purple-50 dark:divide-gray-700">
+                {result.swaps.map((s) => {
+                  const key = swapKey(s)
+                  const applied = appliedSwaps.has(key)
+                  return (
+                    <div key={key} className="px-5 py-3 flex items-center gap-4">
+                      <div className="flex-1 text-xs space-y-1">
+                        <p className="text-gray-800 dark:text-gray-100">
+                          <span className="font-semibold">{s.inStudentName}</span> を
+                          <span className="font-medium text-purple-700 dark:text-purple-300"> {s.lessonLabel}（{s.teacherName ?? '未定'}先生・{s.subject}）</span> に入れる
+                          <span className="ml-1.5 text-[10px] bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">{s.inReason}</span>
+                        </p>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          ⇄ <span className="font-medium">{s.outStudentName}</span> は
+                          <span className="font-medium"> {s.outAlt.label}（{s.outAlt.teacherName ?? '未定'}先生）</span> へ移動
+                          {!s.outAlt.lessonId && (
+                            <span className="ml-1.5 text-[9px] bg-orange-100 dark:bg-orange-900/60 text-orange-600 dark:text-orange-300 px-1 py-0.5 rounded font-bold">新規コマ</span>
+                          )}
+                        </p>
+                      </div>
+                      {applied ? (
+                        <span className="text-xs font-semibold text-green-600 dark:text-green-300 shrink-0">✓ 適用済み</span>
+                      ) : (
+                        <button
+                          onClick={() => handleApplySwap(s)}
+                          disabled={swapPendingKey !== null}
+                          className="shrink-0 px-3 py-1.5 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        >
+                          {swapPendingKey === key ? '適用中...' : '入れ替えを適用'}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}

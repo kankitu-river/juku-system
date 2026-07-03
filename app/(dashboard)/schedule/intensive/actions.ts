@@ -251,6 +251,72 @@ export async function generateDraftSchedule(
   return { result }
 }
 
+// 入れ替え提案の適用: 既存生徒を別の枠へ移し、新しい生徒を満員コマに入れる
+export async function applyScheduleSwap(swap: {
+  lessonId: string
+  subject: string
+  inStudentId: string
+  outStudentId: string
+  outAlt: {
+    lessonId: string | null
+    newLesson?: { teacherId: string; date: string; slotIndex: number }
+  }
+}): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  // 1. 既存生徒を元のコマから外す
+  const { error: delError } = await supabase
+    .from('lesson_enrollments')
+    .delete()
+    .eq('student_id', swap.outStudentId)
+    .eq('lesson_id', swap.lessonId)
+  if (delError) return { error: `移動元の削除エラー: ${delError.message}` }
+
+  // 2. 既存生徒を移動先へ（新規コマの場合は作成）
+  let altLessonId = swap.outAlt.lessonId
+  if (!altLessonId && swap.outAlt.newLesson) {
+    const { teacherId, date, slotIndex } = swap.outAlt.newLesson
+    const dow = new Date(`${date}T12:00:00`).getDay()
+    const { data: lesson, error: lessonError } = await supabase
+      .from('lessons')
+      .insert({
+        title: swap.subject,
+        type: 'individual',
+        lesson_kind: 'temporary',
+        specific_date: date,
+        subject: swap.subject || null,
+        teacher_id: teacherId,
+        day_of_week: dow,
+        slot_index: slotIndex,
+        term_type: 'intensive',
+        booth_id: null,
+        capacity: 2,
+        is_ps1: false,
+        notes: null,
+      })
+      .select('id')
+      .single()
+    if (lessonError) return { error: `移動先コマの作成エラー: ${lessonError.message}` }
+    altLessonId = lesson.id
+  }
+  if (!altLessonId) return { error: '移動先が不明です' }
+
+  const { error: moveError } = await supabase
+    .from('lesson_enrollments')
+    .insert({ student_id: swap.outStudentId, lesson_id: altLessonId, subject: swap.subject || null })
+  if (moveError) return { error: `移動先への登録エラー: ${moveError.message}` }
+
+  // 3. 新しい生徒を空いた枠へ
+  const { error: inError } = await supabase
+    .from('lesson_enrollments')
+    .insert({ student_id: swap.inStudentId, lesson_id: swap.lessonId, subject: swap.subject || null })
+  if (inError) return { error: `割り当てエラー: ${inError.message}` }
+
+  revalidatePath('/schedule/intensive')
+  revalidatePath('/schedule')
+  return {}
+}
+
 export async function applyDraftSchedule(
   items: {
     studentId: string
