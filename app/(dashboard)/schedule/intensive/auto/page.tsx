@@ -22,6 +22,22 @@ export default async function IntensiveAutoPage({ searchParams }: PageProps) {
   const selectedTermId = term ?? intensivePeriods[0]?.id ?? ''
   const selectedTerm = intensivePeriods.find((t) => t.id === selectedTermId)
 
+  // 持ちコマが設定されている生徒（対象選択用）
+  const { data: planRows } = selectedTermId
+    ? await supabase
+        .from('intensive_plans')
+        .select('student_id, student:students(id, name, grade)')
+        .eq('term_period_id', selectedTermId)
+    : { data: [] }
+  const seen = new Set<string>()
+  const planStudents: { id: string; name: string; grade: string }[] = []
+  for (const row of (planRows ?? []) as unknown as { student_id: string; student: { id: string; name: string; grade: string } | null }[]) {
+    if (!row.student || seen.has(row.student_id)) continue
+    seen.add(row.student_id)
+    planStudents.push(row.student)
+  }
+  planStudents.sort((a, b) => a.name.localeCompare(b.name, 'ja'))
+
   return (
     <div>
       <Header
@@ -89,6 +105,7 @@ export default async function IntensiveAutoPage({ searchParams }: PageProps) {
             <IntensiveAutoScheduler
               termPeriodId={selectedTermId}
               termPeriodName={selectedTerm.name}
+              planStudents={planStudents}
             />
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400">期間を選択してください</p>

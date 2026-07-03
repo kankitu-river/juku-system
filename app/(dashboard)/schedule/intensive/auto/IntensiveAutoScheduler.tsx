@@ -5,9 +5,16 @@ import { generateDraftSchedule, applyDraftSchedule, applyScheduleSwap } from '..
 import { getDisplayGrade } from '@/lib/utils/grade'
 import type { DraftScheduleResult, ProposedAssignment, SwapProposal } from '@/lib/utils/intensiveScheduler'
 
+interface PlanStudent {
+  id: string
+  name: string
+  grade: string
+}
+
 interface Props {
   termPeriodId: string
   termPeriodName: string
+  planStudents?: PlanStudent[]
 }
 
 const REASON_COLORS: Record<string, string> = {
@@ -17,13 +24,25 @@ const REASON_COLORS: Record<string, string> = {
   compatible: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
 }
 
-export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) {
+export function IntensiveAutoScheduler({ termPeriodId, termPeriodName, planStudents = [] }: Props) {
   const [isPending, startTransition] = useTransition()
   const [isApplying, startApplying] = useTransition()
   const [result, setResult] = useState<DraftScheduleResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState(false)
   const [appliedCount, setAppliedCount] = useState(0)
+  // 対象生徒の絞り込み（空 = 全員）
+  const [targetIds, setTargetIds] = useState<Set<string>>(new Set())
+  const [showTargetPicker, setShowTargetPicker] = useState(false)
+
+  function toggleTarget(id: string) {
+    setTargetIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   // チェックを外した割り当てID set
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
@@ -65,8 +84,9 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
     setError(null)
     setApplied(false)
     setExcluded(new Set())
+    setAppliedSwaps(new Set())
     startTransition(async () => {
-      const res = await generateDraftSchedule(termPeriodId)
+      const res = await generateDraftSchedule(termPeriodId, Array.from(targetIds))
       if (res.error) {
         setError(res.error)
       } else if (res.result) {
@@ -148,9 +168,63 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
             disabled={isPending}
             className="flex-shrink-0 px-5 py-2.5 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark disabled:opacity-50 transition-colors"
           >
-            {isPending ? '生成中...' : result ? '再生成' : '割り振り案を生成'}
+            {isPending
+              ? '生成中...'
+              : targetIds.size > 0
+                ? `${targetIds.size}名分の案を生成`
+                : result ? '再生成' : '割り振り案を生成'}
           </button>
         </div>
+
+        {/* 対象生徒の絞り込み */}
+        {planStudents.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">対象:</span>
+              <button
+                onClick={() => { setTargetIds(new Set()); setShowTargetPicker(false) }}
+                className={[
+                  'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                  targetIds.size === 0
+                    ? 'bg-navy text-white border-navy'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-navy',
+                ].join(' ')}
+              >
+                全員（持ちコマあり{planStudents.length}名）
+              </button>
+              <button
+                onClick={() => setShowTargetPicker((v) => !v)}
+                className={[
+                  'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                  targetIds.size > 0
+                    ? 'bg-navy text-white border-navy'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-navy',
+                ].join(' ')}
+              >
+                生徒を選ぶ{targetIds.size > 0 ? `（${targetIds.size}名選択中）` : ''}
+              </button>
+            </div>
+            {showTargetPicker && (
+              <div className="mt-2 flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                {planStudents.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => toggleTarget(s.id)}
+                    className={[
+                      'px-2.5 py-1 rounded-full text-xs border transition-colors',
+                      targetIds.has(s.id)
+                        ? 'bg-teal-600 text-white border-teal-600'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-teal-400',
+                    ].join(' ')}
+                  >
+                    {s.name}
+                    <span className="opacity-60 ml-1">{getDisplayGrade(s.grade)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && (

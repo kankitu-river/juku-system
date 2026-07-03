@@ -162,7 +162,8 @@ export async function unenrollIntensiveLesson(
 }
 
 export async function generateDraftSchedule(
-  termPeriodId: string
+  termPeriodId: string,
+  targetStudentIds?: string[]  // 指定時はこの生徒だけを対象に割り振る
 ): Promise<{ result?: DraftScheduleResult; error?: string }> {
   const supabase = await createClient()
 
@@ -269,11 +270,13 @@ export async function generateDraftSchedule(
       ng_teacher_ids: s.ng_teacher_ids ?? [],
     })),
     lessonInfos,
-    (plans as any[]).map((p) => ({
-      student_id: p.student_id,
-      subject: p.subject,
-      planned_count: p.planned_count,
-    })),
+    (plans as any[])
+      .filter((p) => !targetStudentIds || targetStudentIds.length === 0 || targetStudentIds.includes(p.student_id))
+      .map((p) => ({
+        student_id: p.student_id,
+        subject: p.subject,
+        planned_count: p.planned_count,
+      })),
     (currentEnrollments as any[] ?? []).map((e) => ({
       student_id: e.student_id,
       lesson_id: e.lesson_id,
