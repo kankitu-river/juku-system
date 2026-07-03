@@ -9,12 +9,14 @@ import {
   deleteIntensivePlan,
   enrollIntensiveLesson,
   unenrollIntensiveLesson,
+  saveStudentPlans,
 } from './actions'
 
 interface Student {
   id: string
   name: string
   grade: string
+  subjects?: string[]
 }
 
 interface Lesson {
@@ -61,6 +63,8 @@ export function IntensivePlanner({
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [editingPlan, setEditingPlan] = useState<{ subject: string; count: string } | null>(null)
   const [studentSearch, setStudentSearch] = useState('')
+  // 持ちコマまとめて入力
+  const [bulkRows, setBulkRows] = useState<{ subject: string; count: string }[] | null>(null)
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId)
 
@@ -141,6 +145,30 @@ export function IntensivePlanner({
     if (!selectedStudentId) return
     startTransition(async () => {
       await deleteIntensivePlan(selectedStudentId, termPeriodId, subject)
+      router.refresh()
+    })
+  }
+
+  // まとめて入力パネルを開く（既存プラン → なければ生徒の受講科目で初期化）
+  function openBulkEditor() {
+    if (studentPlans.length > 0) {
+      setBulkRows(studentPlans.map((p) => ({ subject: p.subject, count: String(p.planned_count) })))
+    } else if ((selectedStudent?.subjects?.length ?? 0) > 0) {
+      setBulkRows(selectedStudent!.subjects!.map((s) => ({ subject: s, count: '1' })))
+    } else {
+      setBulkRows([{ subject: SUBJECTS[0], count: '1' }])
+    }
+    setEditingPlan(null)
+  }
+
+  function handleSaveBulk() {
+    if (!bulkRows || !selectedStudentId) return
+    const plans = bulkRows
+      .map((r) => ({ subject: r.subject, count: parseInt(r.count) || 0 }))
+      .filter((r) => r.subject)
+    startTransition(async () => {
+      await saveStudentPlans(selectedStudentId, termPeriodId, plans)
+      setBulkRows(null)
       router.refresh()
     })
   }
@@ -253,14 +281,89 @@ export function IntensivePlanner({
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setEditingPlan({ subject: SUBJECTS[0], count: '1' })}
-                    className="px-3 py-1.5 border border-navy text-navy dark:text-blue-300 text-sm rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    + 科目を追加
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={openBulkEditor}
+                      className="px-3 py-1.5 bg-navy text-white text-sm rounded-lg hover:bg-navy-dark transition-colors"
+                    >
+                      持ちコマをまとめて設定
+                    </button>
+                    <button
+                      onClick={() => { setEditingPlan({ subject: SUBJECTS[0], count: '1' }); setBulkRows(null) }}
+                      className="px-3 py-1.5 border border-navy text-navy dark:text-blue-300 text-sm rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      + 1科目だけ追加
+                    </button>
+                  </div>
                 )}
               </div>
+
+              {/* 持ちコマまとめて入力パネル */}
+              {bulkRows && (
+                <div className="mb-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                    {selectedStudent?.name}さんの持ちコマ（{termPeriodName}）
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">
+                    科目ごとのコマ数を入力して保存すると持ちコマとしてカウントされ、自動割り振りのマッチング対象になります
+                  </p>
+                  <div className="space-y-2">
+                    {bulkRows.map((row, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <select
+                          value={row.subject}
+                          onChange={(e) => setBulkRows(bulkRows.map((r, ri) => ri === i ? { ...r, subject: e.target.value } : r))}
+                          className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm"
+                        >
+                          {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <input
+                          type="number"
+                          min={0}
+                          max={30}
+                          value={row.count}
+                          onChange={(e) => setBulkRows(bulkRows.map((r, ri) => ri === i ? { ...r, count: e.target.value } : r))}
+                          className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm w-20"
+                        />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">コマ</span>
+                        <button
+                          onClick={() => setBulkRows(bulkRows.filter((_, ri) => ri !== i))}
+                          className="text-gray-300 hover:text-red-400 text-sm px-1"
+                          title="この科目を削除"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <button
+                      onClick={() => setBulkRows([...bulkRows, { subject: SUBJECTS.find((s) => !bulkRows.some((r) => r.subject === s)) ?? SUBJECTS[0], count: '1' }])}
+                      className="text-xs text-navy dark:text-blue-300 hover:underline"
+                    >
+                      + 科目行を追加
+                    </button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        合計 {bulkRows.reduce((s, r) => s + (parseInt(r.count) || 0), 0)}コマ
+                      </span>
+                      <button
+                        onClick={handleSaveBulk}
+                        disabled={isPending}
+                        className="px-4 py-1.5 bg-navy text-white text-sm rounded-lg hover:bg-navy-dark disabled:opacity-50"
+                      >
+                        {isPending ? '保存中...' : '保存する'}
+                      </button>
+                      <button
+                        onClick={() => setBulkRows(null)}
+                        className="text-sm text-gray-400 hover:text-gray-600 px-2"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 科目別プランと割り振り */}
               {studentPlans.length === 0 ? (

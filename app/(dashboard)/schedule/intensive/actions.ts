@@ -46,6 +46,56 @@ export async function bulkCreateIntensiveLessons(input: {
   return { count: rows.length }
 }
 
+// 生徒の持ちコマ（科目×コマ数）をまとめて保存（SET方式: 渡された内容が最終状態になる）
+export async function saveStudentPlans(
+  studentId: string,
+  termPeriodId: string,
+  plans: { subject: string; count: number }[]
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  const { data: existing } = await supabase
+    .from('intensive_plans')
+    .select('subject')
+    .eq('student_id', studentId)
+    .eq('term_period_id', termPeriodId)
+
+  const valid = plans.filter((p) => p.subject && p.count >= 1)
+  const keepSubjects = new Set(valid.map((p) => p.subject))
+
+  // 入力から消えた科目のプランは削除
+  const toDelete = ((existing ?? []) as { subject: string }[])
+    .map((e) => e.subject)
+    .filter((s) => !keepSubjects.has(s))
+  if (toDelete.length > 0) {
+    const { error } = await supabase
+      .from('intensive_plans')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('term_period_id', termPeriodId)
+      .in('subject', toDelete)
+    if (error) return { error: error.message }
+  }
+
+  if (valid.length > 0) {
+    const { error } = await supabase
+      .from('intensive_plans')
+      .upsert(
+        valid.map((p) => ({
+          student_id: studentId,
+          term_period_id: termPeriodId,
+          subject: p.subject,
+          planned_count: p.count,
+        })),
+        { onConflict: 'student_id,term_period_id,subject' }
+      )
+    if (error) return { error: error.message }
+  }
+
+  revalidatePath('/schedule/intensive')
+  return {}
+}
+
 export async function upsertIntensivePlan(
   studentId: string,
   termPeriodId: string,
