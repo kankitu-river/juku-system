@@ -9,11 +9,22 @@ interface Teacher {
   name: string
 }
 
+interface IntensivePeriod {
+  id: string
+  name: string
+  start_date: string
+  end_date: string
+}
+
 interface ManualShiftEntryProps {
   teachers: Teacher[]
+  intensivePeriods?: IntensivePeriod[]
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
+
+// 講習期間のデフォルト勤務時間（第1コマ開始〜最終コマ終了）
+const INTENSIVE_DEFAULT = { start: '09:30', end: '21:20' }
 
 function toDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -30,7 +41,7 @@ function getDaysInMonth(yearMonth: string): Date[] {
   return days
 }
 
-export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
+export function ManualShiftEntry({ teachers, intensivePeriods = [] }: ManualShiftEntryProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
@@ -52,13 +63,22 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
   const firstDow = days[0].getDay()
   const [y, m] = ym.split('-').map(Number)
 
+  // その日が講習期間に含まれるか
+  function isIntensiveDate(dateStr: string): boolean {
+    return intensivePeriods.some((p) => p.start_date <= dateStr && dateStr <= p.end_date)
+  }
+
   function toggleDate(dateStr: string, dow: number) {
     if (dow === 0) return // 日曜は選択不可
     if (selectedDates[dateStr]) {
       setSelectedDates((prev) => { const n = { ...prev }; delete n[dateStr]; return n })
       if (editingDate === dateStr) setEditingDate(null)
     } else {
-      setSelectedDates((prev) => ({ ...prev, [dateStr]: { start: defaultStart, end: defaultEnd } }))
+      // 講習期間の日は講習の時間帯（9:30〜21:20）をデフォルトにする
+      const times = isIntensiveDate(dateStr)
+        ? { ...INTENSIVE_DEFAULT }
+        : { start: defaultStart, end: defaultEnd }
+      setSelectedDates((prev) => ({ ...prev, [dateStr]: times }))
       setEditingDate(dateStr)
     }
   }
@@ -197,6 +217,7 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
             const isSelected = !!selectedDates[ds]
             const isEditing = editingDate === ds
             const isToday = ds === toDateStr(new Date())
+            const isIntensive = isIntensiveDate(ds)
             const disabled = !teacherId || isSunday
 
             return (
@@ -215,22 +236,33 @@ export function ManualShiftEntry({ teachers }: ManualShiftEntryProps) {
                         ? 'bg-amber-400 text-white shadow-sm ring-2 ring-amber-500 ring-offset-1'
                         : isSelected
                           ? 'bg-navy text-white shadow-sm'
-                          : dow === 6
-                            ? 'text-blue-500 hover:bg-blue-50'
-                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
+                          : isIntensive
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100'
+                            : dow === 6
+                              ? 'text-blue-500 hover:bg-blue-50'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
                   isToday && !isSelected && !isEditing && !disabled ? 'ring-2 ring-navy ring-offset-1' : '',
                 ].join(' ')}
               >
                 <span>{d.getDate()}</span>
-                {isSelected && (
+                {isSelected ? (
                   <span className="text-[8px] leading-none font-bold text-white opacity-90">
                     {selectedDates[ds].start.slice(0, 5)}
                   </span>
-                )}
+                ) : isIntensive && !disabled ? (
+                  <span className="w-1 h-1 rounded-full bg-amber-400" />
+                ) : null}
               </button>
             )
           })}
         </div>
+
+        {intensivePeriods.length > 0 && (
+          <p className="flex items-center gap-1.5 text-xs text-gray-400 mt-3">
+            <span className="inline-block w-3 h-3 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-300" />
+            講習期間の日（選択すると 9:30〜21:20 が自動入力されます）
+          </p>
+        )}
 
         {!teacherId && (
           <p className="text-center text-xs text-gray-400 mt-3">先生を選択すると日付を選べます</p>

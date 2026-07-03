@@ -106,6 +106,16 @@ function isStudentAvailable(studentId: string, lesson: LessonInfo, availabilityM
   return avail.has(`${lesson.specific_date}__${lesson.slot_index}`)
 }
 
+// コマの「時間帯キー」（同一日・同一コマの重複割り当て防止用）
+function slotKeyOf(l: LessonInfo): string {
+  return `${l.specific_date ?? `dow${l.day_of_week}`}__${l.slot_index}`
+}
+
+// コマの「日キー」（同一科目の同日集中を避ける分散用）
+function dayKeyOf(l: LessonInfo): string {
+  return l.specific_date ?? `dow${l.day_of_week}`
+}
+
 export function generateSchedule(
   students: StudentInfo[],
   lessons: LessonInfo[],
@@ -124,6 +134,17 @@ export function generateSchedule(
   for (const e of currentEnrollments) enrolledSet.add(`${e.student_id}__${e.lesson_id}`)
 
   const pending = new Set<string>()
+
+  // 生徒が既に埋まっている時間帯（既存受講 + 提案済み）
+  const lessonById = new Map(lessons.map((l) => [l.id, l]))
+  const busySlots = new Set<string>()   // `${studentId}__${slotKey}`
+  const subjectDays = new Set<string>() // `${studentId}__${subject}__${dayKey}`
+  for (const e of currentEnrollments) {
+    const l = lessonById.get(e.lesson_id)
+    if (!l) continue
+    busySlots.add(`${e.student_id}__${slotKeyOf(l)}`)
+    subjectDays.add(`${e.student_id}__${l.subject}__${dayKeyOf(l)}`)
+  }
 
   // 高3を先に処理して枠を確保
   const sortedPlans = [...plans].sort((a, b) => {
@@ -162,40 +183,57 @@ export function generateSchedule(
         score: scoreLesson(student, l.teacher_id, regularTeacherId, senior),
       }))
       .filter((x) => x.score >= 0)
-      .sort((a, b) => b.score - a.score)
+      // 同点なら日付の早いコマから（期間の前半に寄せて後半を調整余地に残す）
+      .sort((a, b) =>
+        b.score - a.score ||
+        (a.lesson.specific_date ?? '9999').localeCompare(b.lesson.specific_date ?? '9999')
+      )
 
     let assigned = 0
-    for (const { lesson } of candidates) {
-      if (assigned >= needed) break
+    // 1周目: 同一科目は1日1コマまでに分散して割り当て
+    // 2周目: それでも足りない場合のみ同日複数コマを許可（時間帯の重複は常に不可）
+    for (const allowSameDay of [false, true]) {
+      for (const { lesson } of candidates) {
+        if (assigned >= needed) break
+        if (pending.has(`${student.id}__${lesson.id}`)) continue
+        if ((vacancyMap.get(lesson.id) ?? 0) <= 0) continue
+        // 同じ日・同じ時間帯に別のコマが入っていたら不可
+        if (busySlots.has(`${student.id}__${slotKeyOf(lesson)}`)) continue
+        // 分散: 同一科目の同日重複は1周目では避ける
+        if (!allowSameDay && subjectDays.has(`${student.id}__${plan.subject}__${dayKeyOf(lesson)}`)) continue
 
-      let reasonCode: ProposedAssignment['reasonCode']
-      let reasonLabel: string
-      if (lesson.teacher_id === regularTeacherId && senior) {
-        reasonCode = 'regular_senior'; reasonLabel = '受験生・通常担当優先'
-      } else if (lesson.teacher_id === regularTeacherId) {
-        reasonCode = 'regular'; reasonLabel = '通常担当'
-      } else if (student.preferred_teacher_ids.includes(lesson.teacher_id ?? '')) {
-        reasonCode = 'preferred'; reasonLabel = '任せたい先生'
-      } else {
-        reasonCode = 'compatible'; reasonLabel = '科目対応可'
+        let reasonCode: ProposedAssignment['reasonCode']
+        let reasonLabel: string
+        if (lesson.teacher_id === regularTeacherId && senior) {
+          reasonCode = 'regular_senior'; reasonLabel = '受験生・通常担当優先'
+        } else if (lesson.teacher_id === regularTeacherId) {
+          reasonCode = 'regular'; reasonLabel = '通常担当'
+        } else if (student.preferred_teacher_ids.includes(lesson.teacher_id ?? '')) {
+          reasonCode = 'preferred'; reasonLabel = '任せたい先生'
+        } else {
+          reasonCode = 'compatible'; reasonLabel = '科目対応可'
+        }
+
+        assignments.push({
+          studentId: student.id,
+          studentName: student.name,
+          studentGrade: student.grade,
+          subject: plan.subject,
+          lessonId: lesson.id,
+          lessonLabel: buildLessonLabel(lesson),
+          teacherId: lesson.teacher_id,
+          teacherName: lesson.teacher_name,
+          reasonCode,
+          reasonLabel,
+        })
+
+        pending.add(`${student.id}__${lesson.id}`)
+        busySlots.add(`${student.id}__${slotKeyOf(lesson)}`)
+        subjectDays.add(`${student.id}__${plan.subject}__${dayKeyOf(lesson)}`)
+        vacancyMap.set(lesson.id, (vacancyMap.get(lesson.id) ?? 0) - 1)
+        assigned++
       }
-
-      assignments.push({
-        studentId: student.id,
-        studentName: student.name,
-        studentGrade: student.grade,
-        subject: plan.subject,
-        lessonId: lesson.id,
-        lessonLabel: buildLessonLabel(lesson),
-        teacherId: lesson.teacher_id,
-        teacherName: lesson.teacher_name,
-        reasonCode,
-        reasonLabel,
-      })
-
-      pending.add(`${student.id}__${lesson.id}`)
-      vacancyMap.set(lesson.id, (vacancyMap.get(lesson.id) ?? 0) - 1)
-      assigned++
+      if (assigned >= needed) break
     }
 
     if (assigned < needed) {

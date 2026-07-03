@@ -5,7 +5,10 @@ import Link from 'next/link'
 
 export default async function ManualShiftEntryPage() {
   const supabase = await createClient()
-  const { data: teachers } = await supabase.from('teachers').select('id, name').order('name')
+  const [{ data: teachers }, { data: intensivePeriods }] = await Promise.all([
+    supabase.from('teachers').select('id, name').order('name'),
+    supabase.from('term_periods').select('id, name, start_date, end_date').eq('type', 'intensive').order('start_date'),
+  ])
 
   return (
     <div>
@@ -21,7 +24,7 @@ export default async function ManualShiftEntryPage() {
           </Link>
         }
       />
-      <ManualShiftEntry teachers={teachers ?? []} />
+      <ManualShiftEntry teachers={teachers ?? []} intensivePeriods={intensivePeriods ?? []} />
     </div>
   )
 }

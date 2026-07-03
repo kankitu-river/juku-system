@@ -105,6 +105,9 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName }: Props) 
               <li>・ 高3（受験生）は通常担当の先生を優先して確保</li>
               <li>・ 来塾希望が入力済みの生徒は、希望コマ外は候補から除外</li>
               <li>・ NG先生には割り振らない</li>
+              <li>・ 同じ日・同じ時間帯への重複割り当てはしない</li>
+              <li>・ 同一科目はなるべく別の日に分散（足りない場合のみ同日複数コマ）</li>
+              <li>・ この講習期間内のコマだけが対象</li>
             </ul>
           </div>
           <button

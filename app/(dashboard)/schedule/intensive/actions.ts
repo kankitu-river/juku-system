@@ -81,6 +81,7 @@ export async function generateDraftSchedule(
     { data: currentEnrollments },
     { data: availabilityRows },
     { data: regularEnrollments },
+    { data: termPeriod },
   ] = await Promise.all([
     supabase.from('students').select('id, name, grade, preferred_teacher_ids, ng_teacher_ids'),
     supabase
@@ -94,6 +95,7 @@ export async function generateDraftSchedule(
       .from('lesson_enrollments')
       .select('student_id, lesson:lessons(subject, teacher_id, term_type)')
       .not('lesson', 'is', null),
+    supabase.from('term_periods').select('id, start_date, end_date').eq('id', termPeriodId).single(),
   ])
 
   if (!students || !lessons || !plans) return { error: 'データ取得に失敗しました' }
@@ -126,17 +128,23 @@ export async function generateDraftSchedule(
     availabilityMap[row.student_id].add(`${row.date}__${row.slot_index}`)
   }
 
-  const lessonInfos = (lessons as any[]).map((l) => ({
-    id: l.id,
-    subject: l.subject,
-    teacher_id: l.teacher_id ?? null,
-    teacher_name: (l.teacher as any)?.name ?? null,
-    day_of_week: l.day_of_week,
-    slot_index: l.slot_index,
-    specific_date: l.specific_date ?? null,
-    capacity: l.capacity,
-    enrolled_count: ((l.enrollments as any[]) ?? []).length,
-  }))
+  const lessonInfos = (lessons as any[])
+    .map((l) => ({
+      id: l.id,
+      subject: l.subject,
+      teacher_id: l.teacher_id ?? null,
+      teacher_name: (l.teacher as any)?.name ?? null,
+      day_of_week: l.day_of_week,
+      slot_index: l.slot_index,
+      specific_date: l.specific_date ?? null,
+      capacity: l.capacity,
+      enrolled_count: ((l.enrollments as any[]) ?? []).length,
+    }))
+    // 選択した講習期間のコマだけを候補にする（過去の講習コマへの誤割り当て防止）
+    .filter((l) =>
+      !termPeriod || !l.specific_date ||
+      (l.specific_date >= termPeriod.start_date && l.specific_date <= termPeriod.end_date)
+    )
 
   const result = generateSchedule(
     (students as any[]).map((s) => ({
