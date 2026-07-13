@@ -1,4 +1,4 @@
-import { REGULAR_SLOTS, INTENSIVE_SLOTS, GROUP_SATURDAY_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
+import { getSlotsForLesson } from '@/lib/constants/timeSlots'
 import { toDateStr } from '@/lib/utils/datetime'
 import type { Lesson, TermPeriod } from '@/types'
 
@@ -39,11 +39,7 @@ export function expandLessonsForMonth(
       const d = new Date(`${ds}T12:00:00`)
       if (d.getFullYear() !== year || d.getMonth() !== month - 1) continue
       const termType = getTermTypeForDate(ds, termPeriods)
-      const slots =
-        termType === 'intensive' ? INTENSIVE_SLOTS
-        : lesson.day_of_week === 6 && lesson.type === 'group' ? GROUP_SATURDAY_SLOTS
-        : lesson.day_of_week === 6 ? SATURDAY_INDIVIDUAL_SLOTS
-        : REGULAR_SLOTS
+      const slots = getSlotsForLesson(lesson.type, lesson.day_of_week, termType)
       const slot = slots.find((s) => s.index === lesson.slot_index)
       result.push({ date: d, dateStr: ds, lesson, timeLabel: slot ? `${slot.start}〜${slot.end}` : '' })
       continue
@@ -55,12 +51,7 @@ export function expandLessonsForMonth(
       const termType = getTermTypeForDate(dateStr, termPeriods)
       if (lesson.term_type !== termType) continue
 
-      const slots =
-        termType === 'intensive' ? INTENSIVE_SLOTS
-        : lesson.day_of_week === 6 && lesson.type === 'group' ? GROUP_SATURDAY_SLOTS
-        : lesson.day_of_week === 6 ? SATURDAY_INDIVIDUAL_SLOTS
-        : REGULAR_SLOTS
-
+      const slots = getSlotsForLesson(lesson.type, lesson.day_of_week, termType)
       const slot = slots.find((s) => s.index === lesson.slot_index)
       const timeLabel = slot ? `${slot.start}〜${slot.end}` : ''
 
