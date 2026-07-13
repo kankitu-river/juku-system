@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { submitSurveyResponse } from './actions'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
+import { toDateStr } from '@/lib/utils/datetime'
 import type { TimeSlot } from '@/types'
 
 interface Token {
@@ -26,10 +27,6 @@ interface SurveyRespondProps {
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
-
-function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 function getDaysInMonth(yearMonth: string): Date[] {
   const [year, month] = yearMonth.split('-').map(Number)

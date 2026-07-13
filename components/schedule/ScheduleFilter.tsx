@@ -7,6 +7,7 @@ import { WeeklyCalendar } from './WeeklyCalendar'
 import type { TimeSlotConfig } from '@/app/(dashboard)/settings/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
 import { getSlotLabel } from '@/lib/constants/timeSlots'
+import { toDateStr } from '@/lib/utils/datetime'
 
 interface Shift {
   id: string
@@ -33,10 +34,6 @@ interface ScheduleFilterProps {
   customSlots: TimeSlotConfig | null
   shifts: Shift[]
   makeupAssignments?: MakeupAssignment[]
-}
-
-function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function getTermTypeForDate(date: Date, termPeriods: TermPeriod[]): 'regular' | 'intensive' {

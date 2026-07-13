@@ -2,13 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import Link from 'next/link'
 import { getDisplayGrade } from '@/lib/utils/grade'
+import { toDateStr } from '@/lib/utils/datetime'
 
 interface PageProps {
   searchParams: Promise<{ year?: string; month?: string }>
-}
-
-function toDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export default async function AttendanceReportPage({ searchParams }: PageProps) {

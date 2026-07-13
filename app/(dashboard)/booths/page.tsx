@@ -4,10 +4,7 @@ import { BoothBoard } from './BoothBoard'
 import { BoothSettings } from './BoothSettings'
 import Link from 'next/link'
 import type { Booth, Lesson, TermPeriod } from '@/types'
-
-function toDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+import { toDateStr } from '@/lib/utils/datetime'
 
 interface PageProps {
   searchParams: Promise<{ date?: string }>

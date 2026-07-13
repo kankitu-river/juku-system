@@ -170,7 +170,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
   const printDate = new Date().toLocaleDateString('ja-JP')
 
   const pad = (n: number) => String(n).padStart(2, '0')
-  const toDateStr = (day: number) => `${year}-${pad(month)}-${pad(day)}`
+  const dayNumToDateStr = (day: number) => `${year}-${pad(month)}-${pad(day)}`
 
   return (
     <div className="print-root bg-white min-h-screen">
@@ -246,7 +246,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                 {week.map((day, di) => {
                   const isSun = di === 0
                   const isSat = di === 6
-                  const dateStr = day ? toDateStr(day) : null
+                  const dateStr = day ? dayNumToDateStr(day) : null
                   const dayEntries = dateStr ? (byDate.get(dateStr) ?? []) : []
                   const hasLesson = dayEntries.length > 0 || (dateStr ? (studentMakeupsByDate.get(dateStr)?.length ?? 0) > 0 : false)
 

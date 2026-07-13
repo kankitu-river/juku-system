@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveManualShifts } from './actions'
+import { toDateStr } from '@/lib/utils/datetime'
 
 interface Teacher {
   id: string
@@ -25,10 +26,6 @@ const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
 
 // 講習期間のデフォルト勤務時間（第1コマ開始〜最終コマ終了）
 const INTENSIVE_DEFAULT = { start: '09:30', end: '21:20' }
-
-function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 function getDaysInMonth(yearMonth: string): Date[] {
   const [y, m] = yearMonth.split('-').map(Number)

@@ -2,16 +2,13 @@
 
 import { useState, useOptimistic, useTransition } from 'react'
 import { toggleClosure } from './actions'
+import { toDateStr } from '@/lib/utils/datetime'
 
 interface ClosureCalendarProps {
   initialClosureDates: string[]
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
-
-function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 function getDaysInMonth(year: number, month: number): (Date | null)[] {
   const firstDay = new Date(year, month, 1).getDay()

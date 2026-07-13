@@ -13,6 +13,7 @@ import {
 } from '@/lib/constants/timeSlots'
 import { LessonCard } from './LessonCard'
 import type { TimeSlotConfig } from '@/app/(dashboard)/settings/actions'
+import { toDateStr } from '@/lib/utils/datetime'
 
 interface ShiftRecord {
   id: string
@@ -44,10 +45,6 @@ interface WeeklyCalendarProps {
   closureDates?: string[]
   customSlots?: TimeSlotConfig | null
   makeupAssignments?: MakeupAssignment[]
-}
-
-function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function getTermTypeForDate(date: Date, termPeriods: TermPeriod[]): 'regular' | 'intensive' {
