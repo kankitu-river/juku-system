@@ -14,7 +14,10 @@ export function getDatesForDayOfWeek(year: number, month: number, dayOfWeek: num
 }
 
 // ある日付の期間区分を返す
-export function getTermTypeForDate(dateStr: string, termPeriods: TermPeriod[]): 'regular' | 'intensive' {
+export function getTermTypeForDate(
+  dateStr: string,
+  termPeriods: Pick<TermPeriod, 'start_date' | 'end_date' | 'type'>[]
+): 'regular' | 'intensive' {
   const match = termPeriods.find((t) => t.start_date <= dateStr && t.end_date >= dateStr)
   return match?.type ?? 'regular'
 }

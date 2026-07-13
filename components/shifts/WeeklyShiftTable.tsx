@@ -4,6 +4,8 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Teacher, Lesson } from '@/types'
 import { ShiftModal } from './ShiftModal'
+import { REGULAR_SLOTS, INTENSIVE_SLOTS } from '@/lib/constants/timeSlots'
+import { getTermTypeForDate } from '@/lib/utils/schedule'
 
 interface Shift {
   id: string
@@ -29,20 +31,10 @@ interface WeeklyShiftTableProps {
 
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土']
 
-const REGULAR_SLOT_TIMES: Record<number, { start: string; end: string }> = {
-  1: { start: '16:30', end: '18:00' },
-  2: { start: '18:10', end: '19:40' },
-  3: { start: '19:50', end: '21:20' },
-}
-const INTENSIVE_SLOT_TIMES: Record<number, { start: string; end: string }> = {
-  1: { start: '09:30', end: '11:00' },
-  2: { start: '11:10', end: '12:40' },
-  3: { start: '13:10', end: '14:40' },
-  4: { start: '14:50', end: '16:20' },
-  5: { start: '16:30', end: '18:00' },
-  6: { start: '18:10', end: '19:40' },
-  7: { start: '19:50', end: '21:20' },
-}
+const REGULAR_SLOT_TIMES: Record<number, { start: string; end: string }> =
+  Object.fromEntries(REGULAR_SLOTS.map((s) => [s.index, { start: s.start, end: s.end }]))
+const INTENSIVE_SLOT_TIMES: Record<number, { start: string; end: string }> =
+  Object.fromEntries(INTENSIVE_SLOTS.map((s) => [s.index, { start: s.start, end: s.end }]))
 
 function formatTime(t: string) {
   return t.slice(0, 5)
@@ -51,11 +43,6 @@ function formatTime(t: string) {
 function dateToLabel(dateStr: string) {
   const d = new Date(dateStr + 'T12:00:00')
   return `${d.getMonth() + 1}/${d.getDate()}`
-}
-
-function getTermTypeForDate(dateStr: string, termPeriods: TermPeriodLite[]): 'regular' | 'intensive' {
-  const found = termPeriods.find((t) => t.start_date <= dateStr && t.end_date >= dateStr)
-  return found?.type ?? 'regular'
 }
 
 interface ModalState {
