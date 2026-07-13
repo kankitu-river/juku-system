@@ -352,6 +352,7 @@ export const GROUP_SATURDAY_SLOTS = [
 - **印刷レイアウト**：`@media print` CSSでナビゲーション等を非表示にし、印刷専用レイアウトを適用
 - **月次PDF一括生成**：生徒・先生が多い場合はサーバーサイドで逐次生成しZIPでダウンロード
 - Supabase Row Level Security (RLS) を有効化し、認証済みユーザーのみデータアクセス可能にする（アンケートページはトークン照合APIのみ公開）
+- **マイグレーションのRLSルール**：新テーブルを作成するマイグレーションでは、同一ファイル内で必ずRLS有効化（`alter table xxx enable row level security`）とポリシー設定（`create policy`）までセットで行うこと。RLS未設定のままのテーブルを残さない
 - 環境変数は `.env.local` で管理
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
