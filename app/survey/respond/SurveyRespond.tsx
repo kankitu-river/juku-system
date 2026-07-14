@@ -6,7 +6,7 @@ import { REGULAR_SLOTS, INTENSIVE_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib
 import { toDateStr } from '@/lib/utils/datetime'
 import type { TimeSlot } from '@/types'
 
-interface Token {
+export interface Token {
   id: string
   teacher_id: string
   responded_at: string | null

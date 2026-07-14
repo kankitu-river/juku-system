@@ -361,7 +361,7 @@ function LessonCell({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStu
     ].join(' ')}>
       {/* 先生名 + バッジ + 定員 */}
       <div className="flex items-center gap-1 mb-0.5">
-        {(lesson as any).is_ps1 && (
+        {lesson.is_ps1 && (
           <span className="text-[7px] font-bold px-1 rounded bg-purple-500 text-white wpl-pill">1対1</span>
         )}
         {teacher?.name && (

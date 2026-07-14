@@ -3,6 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 
 const DAY = ['', '月', '火', '水', '木', '金', '土']
 
+type ExportLessonRow = {
+  subject: string | null
+  type: string
+  term_type: string
+  specific_date: string | null
+  day_of_week: number
+  slot_index: number
+  capacity: number | null
+  notes: string | null
+  teacher: { name: string } | null
+  booth: { name: string } | null
+  enrollments: { student: { name: string } | null }[]
+}
+
 export async function GET() {
   const supabase = await createClient()
   const { data: lessons, error } = await supabase
@@ -14,7 +28,7 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const header = ['科目', '授業形式', '期間区分', '曜日', '第コマ', '担当講師', 'ブース', '定員', '受講生徒数', '受講生徒', 'メモ']
-  const rows = (lessons ?? []).map((l: any) => [
+  const rows = (lessons as unknown as ExportLessonRow[] ?? []).map((l) => [
     l.subject ?? '',
     l.type === 'group' ? '集団授業' : '個別指導',
     l.term_type === 'intensive' ? '講習期間' : '通常期間',
@@ -24,7 +38,7 @@ export async function GET() {
     l.booth?.name ?? '',
     l.capacity,
     l.enrollments?.length ?? 0,
-    (l.enrollments ?? []).map((e: any) => e.student?.name).filter(Boolean).join('・'),
+    (l.enrollments ?? []).map((e) => e.student?.name).filter(Boolean).join('・'),
     l.notes ?? '',
   ])
 

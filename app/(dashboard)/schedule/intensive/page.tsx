@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
-import { IntensivePlanner } from './IntensivePlanner'
+import { IntensivePlanner, type IntensivePlannerStudent, type IntensivePlannerLesson, type IntensivePlannerPlan } from './IntensivePlanner'
 import { IntensiveBulkCreator } from './IntensiveBulkCreator'
 import Link from 'next/link'
 import type { TermPeriod } from '@/types'
@@ -123,9 +123,9 @@ export default async function IntensivePage({ searchParams }: PageProps) {
 
       {selectedTerm && (
         <IntensivePlanner
-          students={(students ?? []) as any}
-          lessons={(lessons ?? []) as any}
-          plans={(plans ?? []) as any}
+          students={(students as unknown as IntensivePlannerStudent[]) ?? []}
+          lessons={(lessons as unknown as IntensivePlannerLesson[]) ?? []}
+          plans={(plans as unknown as IntensivePlannerPlan[]) ?? []}
           termPeriodId={selectedTermId}
           termPeriodName={selectedTerm.name}
         />

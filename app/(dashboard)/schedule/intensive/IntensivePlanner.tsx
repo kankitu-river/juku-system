@@ -12,20 +12,20 @@ import {
   saveStudentPlans,
 } from './actions'
 
-interface Student {
+export interface IntensivePlannerStudent {
   id: string
   name: string
   grade: string
   subjects?: string[]
 }
 
-interface Lesson {
+export interface IntensivePlannerLesson {
   id: string
   subject: string
-  type: string
+  type: 'group' | 'individual'
   day_of_week: number
   slot_index: number
-  term_type: string
+  term_type: 'regular' | 'intensive'
   specific_date: string | null
   lesson_kind: string
   capacity: number
@@ -33,7 +33,7 @@ interface Lesson {
   enrollments: { student_id: string }[]
 }
 
-interface IntensivePlan {
+export interface IntensivePlannerPlan {
   id: string
   student_id: string
   term_period_id: string
@@ -42,9 +42,9 @@ interface IntensivePlan {
 }
 
 interface IntensivePlannerProps {
-  students: Student[]
-  lessons: Lesson[]
-  plans: IntensivePlan[]
+  students: IntensivePlannerStudent[]
+  lessons: IntensivePlannerLesson[]
+  plans: IntensivePlannerPlan[]
   termPeriodId: string
   termPeriodName: string
 }
@@ -116,7 +116,7 @@ export function IntensivePlanner({
       ?.enrollments.some((e) => e.student_id === selectedStudentId) ?? false
   }
 
-  function isFull(lesson: Lesson) {
+  function isFull(lesson: IntensivePlannerLesson) {
     return lesson.enrollments.length >= lesson.capacity
   }
 
@@ -504,7 +504,7 @@ export function IntensivePlanner({
                               const dateLabel = lesson.specific_date
                                 ? new Date(lesson.specific_date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', weekday: 'short' })
                                 : `${DAY_NAMES[lesson.day_of_week] ?? ''}曜`
-                              const timeLabel = getSlotLabel(lesson.slot_index, lesson.day_of_week, lesson.term_type as any, lesson.type as any)
+                              const timeLabel = getSlotLabel(lesson.slot_index, lesson.day_of_week, lesson.term_type, lesson.type)
 
                               return (
                                 <div

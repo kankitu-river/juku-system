@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { SurveyRespond } from './SurveyRespond'
+import { SurveyRespond, type Token } from './SurveyRespond'
 import { toDateStr } from '@/lib/utils/datetime'
 
 interface PageProps {
@@ -165,7 +165,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
           targetMonth={survey.target_month}
           deadline={survey.deadline}
           termType={termType}
-          tokens={(tokens ?? []) as any}
+          tokens={(tokens as unknown as Token[]) ?? []}
           slotsMap={slotsMap}
           closureDates={closureDates}
           intensivePeriodDates={intensivePeriodDates}
