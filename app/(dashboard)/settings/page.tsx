@@ -93,6 +93,20 @@ export default async function SettingsPage() {
           <GradeAdvancement />
         </div>
 
+        {/* 整合性チェック */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">スケジュール整合性チェック</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            既存コマデータのダブルブッキング・ブース重複などの競合を一括検査します。
+          </p>
+          <Link
+            href="/settings/validation"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm hover:bg-navy-dark transition-colors"
+          >
+            整合性を確認する
+          </Link>
+        </div>
+
         {/* 重複コマの統合 */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">重複コマの統合</h2>

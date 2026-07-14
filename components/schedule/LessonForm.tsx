@@ -20,7 +20,7 @@ interface LessonFormProps {
   enrolledStudentIds?: string[]
   enrolledStudentSubjects?: Record<string, string>
   intensiveSlotLimits?: IntensiveSlotLimits | null
-  onSave: (data: LessonFormData) => Promise<{ error?: string }>
+  onSave: (data: LessonFormData) => Promise<{ error?: string; boothWarning?: string }>
   onSaveRepeating?: (data: LessonFormData, until: string) => Promise<{ count?: number; error?: string }>
   onDelete?: () => Promise<{ error?: string }>
 }
@@ -40,6 +40,7 @@ export interface LessonFormData {
   notes: string
   student_ids: string[]
   student_subjects: Record<string, string>  // student_id -> subject
+  bypassBoothWarning?: boolean
 }
 
 const DAY_NAMES: Record<number, string> = { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土' }
@@ -186,7 +187,15 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         else { router.push(afterSave) }
       } else {
         const result = await onSave(payload)
-        if (result.error) { setError(result.error) } else { router.push(afterSave) }
+        if (result.boothWarning) {
+          if (!confirm(`${result.boothWarning}\n\nこのまま保存しますか？`)) return
+          const result2 = await onSave({ ...payload, bypassBoothWarning: true })
+          if (result2.error) { setError(result2.error) } else { router.push(afterSave) }
+        } else if (result.error) {
+          setError(result.error)
+        } else {
+          router.push(afterSave)
+        }
       }
     })
   }

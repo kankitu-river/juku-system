@@ -3,6 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { LessonFormData } from '@/components/schedule/LessonForm'
+import { validateLessonConflicts } from '@/lib/utils/scheduleValidation'
+
+type SaveResult = { error?: string; boothWarning?: string }
 
 export async function enrollStudent(lessonId: string, studentId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
@@ -24,8 +27,25 @@ export async function unenrollStudent(lessonId: string, studentId: string): Prom
   return {}
 }
 
-export async function createLesson(data: LessonFormData): Promise<{ error?: string }> {
+export async function createLesson(data: LessonFormData): Promise<SaveResult> {
   const supabase = await createClient()
+
+  if (!data.bypassBoothWarning) {
+    const conflicts = await validateLessonConflicts(supabase, {
+      lesson_kind: data.lesson_kind,
+      day_of_week: data.day_of_week,
+      slot_index: data.slot_index,
+      term_type: data.term_type,
+      specific_date: data.specific_date || null,
+      teacher_id: data.teacher_id || null,
+      booth_id: data.booth_id || null,
+      student_ids: data.student_ids,
+    })
+    const errors = conflicts.filter((c) => c.severity === 'error')
+    if (errors.length > 0) return { error: errors.map((c) => c.message).join('\n') }
+    const warnings = conflicts.filter((c) => c.severity === 'warning')
+    if (warnings.length > 0) return { boothWarning: warnings.map((c) => c.message).join('\n') }
+  }
 
   const { data: lesson, error } = await supabase
     .from('lessons')
@@ -66,8 +86,29 @@ export async function createLesson(data: LessonFormData): Promise<{ error?: stri
 export async function updateLesson(
   id: string,
   data: LessonFormData
-): Promise<{ error?: string }> {
+): Promise<SaveResult> {
   const supabase = await createClient()
+
+  if (!data.bypassBoothWarning) {
+    const conflicts = await validateLessonConflicts(
+      supabase,
+      {
+        lesson_kind: data.lesson_kind,
+        day_of_week: data.day_of_week,
+        slot_index: data.slot_index,
+        term_type: data.term_type,
+        specific_date: data.specific_date || null,
+        teacher_id: data.teacher_id || null,
+        booth_id: data.booth_id || null,
+        student_ids: data.student_ids,
+      },
+      id
+    )
+    const errors = conflicts.filter((c) => c.severity === 'error')
+    if (errors.length > 0) return { error: errors.map((c) => c.message).join('\n') }
+    const warnings = conflicts.filter((c) => c.severity === 'warning')
+    if (warnings.length > 0) return { boothWarning: warnings.map((c) => c.message).join('\n') }
+  }
 
   const { error } = await supabase
     .from('lessons')
