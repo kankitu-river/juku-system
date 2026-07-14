@@ -5,6 +5,24 @@ import { revalidatePath } from 'next/cache'
 import { generateSchedule, type DraftScheduleResult, type AvailabilityMap, type SlotTime } from '@/lib/utils/intensiveScheduler'
 import { INTENSIVE_SLOTS, type IntensiveSlotLimits } from '@/lib/constants/timeSlots'
 
+type RegularEnrollmentRow = {
+  student_id: string
+  lesson: { subject: string; teacher_id: string | null; term_type: string } | null
+}
+type IntensiveLessonRow = {
+  id: string; subject: string; teacher_id: string | null
+  teacher: { id: string; name: string } | null
+  day_of_week: number; slot_index: number; specific_date: string | null
+  capacity: number; term_type: string
+  enrollments: { student_id: string }[]
+}
+type StudentRow = { id: string; name: string; grade: string; preferred_teacher_ids: string[] | null; ng_teacher_ids: string[] | null }
+type IntensivePlanRow = { student_id: string; subject: string; planned_count: number }
+type EnrollmentRow = { student_id: string; lesson_id: string }
+type TeacherRow = { id: string; name: string; subjects: string[] | null }
+type ShiftRow = { teacher_id: string; date: string; start_time: string; end_time: string }
+type ClosureRow = { date: string }
+
 // 講習コマの一括作成（日付×スロットの組み合わせで臨時コマとして作成）
 export async function bulkCreateIntensiveLessons(input: {
   subject: string
@@ -212,8 +230,8 @@ export async function generateDraftSchedule(
 
   // regularTeacherMap: student_id -> subject -> teacher_id (出現数が最多の先生)
   const teacherCountMap: Record<string, Record<string, Record<string, number>>> = {}
-  for (const row of (regularEnrollments ?? []) as any[]) {
-    const lesson = row.lesson as { subject: string; teacher_id: string | null; term_type: string } | null
+  for (const row of (regularEnrollments ?? []) as unknown as RegularEnrollmentRow[]) {
+    const lesson = row.lesson
     if (!lesson || lesson.term_type !== 'regular' || !lesson.teacher_id) continue
     const sid = row.student_id as string
     if (!teacherCountMap[sid]) teacherCountMap[sid] = {}
@@ -238,17 +256,17 @@ export async function generateDraftSchedule(
     availabilityMap[row.student_id].add(`${row.date}__${row.slot_index}`)
   }
 
-  const lessonInfos = (lessons as any[])
+  const lessonInfos = (lessons as unknown as IntensiveLessonRow[])
     .map((l) => ({
       id: l.id,
       subject: l.subject,
       teacher_id: l.teacher_id ?? null,
-      teacher_name: (l.teacher as any)?.name ?? null,
+      teacher_name: l.teacher?.name ?? null,
       day_of_week: l.day_of_week,
       slot_index: l.slot_index,
       specific_date: l.specific_date ?? null,
       capacity: l.capacity,
-      enrolled_count: ((l.enrollments as any[]) ?? []).length,
+      enrolled_count: (l.enrollments ?? []).length,
     }))
     // 選択した講習期間のコマだけを候補にする（過去の講習コマへの誤割り当て防止）
     .filter((l) =>
@@ -262,7 +280,7 @@ export async function generateDraftSchedule(
   const slotLimits = (slotLimitSetting?.value as IntensiveSlotLimits) ?? null
 
   const result = generateSchedule(
-    (students as any[]).map((s) => ({
+    (students as StudentRow[]).map((s) => ({
       id: s.id,
       name: s.name,
       grade: s.grade,
@@ -270,26 +288,26 @@ export async function generateDraftSchedule(
       ng_teacher_ids: s.ng_teacher_ids ?? [],
     })),
     lessonInfos,
-    (plans as any[])
+    (plans as IntensivePlanRow[])
       .filter((p) => !targetStudentIds || targetStudentIds.length === 0 || targetStudentIds.includes(p.student_id))
       .map((p) => ({
         student_id: p.student_id,
         subject: p.subject,
         planned_count: p.planned_count,
       })),
-    (currentEnrollments as any[] ?? []).map((e) => ({
+    (currentEnrollments as EnrollmentRow[] ?? []).map((e) => ({
       student_id: e.student_id,
       lesson_id: e.lesson_id,
     })),
     regularTeacherMap,
     availabilityMap,
     {
-      teachers: ((teachers as any[]) ?? []).map((t) => ({
+      teachers: ((teachers as TeacherRow[]) ?? []).map((t) => ({
         id: t.id,
         name: t.name,
-        subjects: (t.subjects as string[] | null) ?? [],
+        subjects: t.subjects ?? [],
       })),
-      shifts: ((shifts as any[]) ?? []).map((s) => ({
+      shifts: ((shifts as ShiftRow[]) ?? []).map((s) => ({
         teacher_id: s.teacher_id,
         date: s.date,
         start_time: s.start_time,
@@ -297,7 +315,7 @@ export async function generateDraftSchedule(
       })),
       slotTimes,
       slotLimits,
-      closureDates: ((closures as any[]) ?? []).map((c) => c.date),
+      closureDates: ((closures as ClosureRow[]) ?? []).map((c) => c.date),
     },
   )
 
