@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
-import { StudentForm } from '@/components/students/StudentForm'
+import { StudentForm, type LessonOption } from '@/components/students/StudentForm'
 import { createStudent } from '../actions'
 import type { Teacher } from '@/types'
 
@@ -17,7 +17,7 @@ export default async function NewStudentPage() {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 max-w-2xl">
         <StudentForm
           teachers={(teachers as Teacher[]) ?? []}
-          lessons={(lessons as any[]) ?? []}
+          lessons={(lessons as unknown as LessonOption[]) ?? []}
           enrolledLessonIds={[]}
           onSave={createStudent}
         />

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
-import { StudentForm } from '@/components/students/StudentForm'
+import { StudentForm, type LessonOption } from '@/components/students/StudentForm'
 import { updateStudent, deleteStudent } from '../actions'
 import type { Student, Teacher } from '@/types'
 import { notFound } from 'next/navigation'
@@ -31,7 +31,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
         <StudentForm
           student={student as Student}
           teachers={(teachers as Teacher[]) ?? []}
-          lessons={(lessons as any[]) ?? []}
+          lessons={(lessons as unknown as LessonOption[]) ?? []}
           enrolledLessonIds={enrolledLessonIds}
           onSave={updateStudent.bind(null, id)}
           onDelete={deleteStudent.bind(null, id)}

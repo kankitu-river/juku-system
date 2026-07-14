@@ -12,7 +12,7 @@ const GRADE_OPTIONS = ['小1', '小2', '小3', '小4', '小5', '小6', '中1', '
 
 const DAY_LABELS: Record<number, string> = { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土' }
 
-interface LessonOption {
+export interface LessonOption {
   id: string
   day_of_week: number
   slot_index: number
