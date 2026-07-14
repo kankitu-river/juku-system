@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
-import { BoothBoard } from './BoothBoard'
+import { BoothBoard, type LessonWithTeacher } from './BoothBoard'
 import { BoothSettings } from './BoothSettings'
 import Link from 'next/link'
 import type { Booth, Lesson, TermPeriod } from '@/types'
@@ -77,7 +77,7 @@ export default async function BoothsPage({ searchParams }: PageProps) {
       <BoothSettings booths={(booths as Booth[]) ?? []} />
       <BoothBoard
         booths={(booths as Booth[]) ?? []}
-        lessons={dayLessons}
+        lessons={dayLessons as unknown as LessonWithTeacher[]}
         currentTermType={currentTermType}
         allBooths={(booths as Booth[]) ?? []}
       />

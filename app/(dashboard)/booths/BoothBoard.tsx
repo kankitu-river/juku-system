@@ -7,9 +7,11 @@ import type { Booth, Lesson } from '@/types'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS } from '@/lib/constants/timeSlots'
 import { updateBoothAssignment, updateBoothName } from './actions'
 
+export type LessonWithTeacher = Lesson & { teacher: { name: string } | null }
+
 interface BoothBoardProps {
   booths: Booth[]
-  lessons: Lesson[]
+  lessons: LessonWithTeacher[]
   currentTermType: 'regular' | 'intensive'
   allBooths: Booth[]
 }
@@ -168,7 +170,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                                   <p className={[
                                     'font-semibold truncate',
                                     lesson.is_ps1 ? 'text-purple-900' : 'text-teal-900',
-                                  ].join(' ')}>{(lesson as any).teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
+                                  ].join(' ')}>{lesson.teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
                                   {lesson.is_ps1 && (
                                     <span className="text-[9px] bg-purple-200 text-purple-800 dark:text-purple-200 px-1 py-0.5 rounded font-bold flex-shrink-0">PS1</span>
                                   )}
@@ -206,7 +208,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                                   <p className={[
                                     'font-semibold truncate',
                                     lesson.is_ps1 ? 'text-purple-900' : 'text-teal-900',
-                                  ].join(' ')}>{(lesson as any).teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
+                                  ].join(' ')}>{lesson.teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
                                   {lesson.is_ps1 && (
                                     <span className="text-[9px] bg-purple-300 text-purple-900 px-1 py-0.5 rounded font-bold flex-shrink-0">PS1</span>
                                   )}
@@ -261,7 +263,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
                   className="text-xs bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900 rounded-lg px-2.5 py-1.5 text-amber-800 dark:text-amber-200 hover:border-amber-400 transition-colors"
                 >
                   第{l.slot_index}コマ {l.subject}
-                  {(l as any).teacher?.name && ` (${(l as any).teacher.name})`}
+                  {l.teacher?.name && ` (${(l as any).teacher.name})`}
                 </Link>
               ))}
             </div>
