@@ -92,3 +92,22 @@ export interface TimeSlot {
   start: string
   end: string
 }
+
+// ---- Supabase join結果の共有型 ----
+export interface StudentRef {
+  id: string
+  name: string
+  grade: string
+}
+
+export interface AttendanceRef {
+  student_id: string
+  status: AttendanceStatus
+}
+
+// teacher/enrollments は join結果の実形状に合わせて Omit で上書き
+export interface LessonWithRelations extends Omit<Lesson, 'teacher' | 'enrollments'> {
+  teacher: { name: string } | null
+  enrollments: { student: StudentRef | null; subject?: string | null }[]
+  attendances?: AttendanceRef[]
+}
