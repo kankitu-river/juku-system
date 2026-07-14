@@ -7,6 +7,15 @@ interface PageProps {
   searchParams: Promise<{ q?: string }>
 }
 
+type SearchLessonRow = {
+  id: string
+  subject: string
+  type: string
+  day_of_week: number
+  slot_index: number
+  teacher: { name: string } | null
+}
+
 export default async function SearchPage({ searchParams }: PageProps) {
   const { q = '' } = await searchParams
   const query = q.trim()
@@ -116,7 +125,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
           <section>
             <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 px-1">コマ</h2>
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-50 dark:divide-gray-700">
-              {lessons!.map((l: any) => (
+              {(lessons as unknown as SearchLessonRow[]).map((l) => (
                 <Link key={l.id} href={`/schedule/${l.id}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <div className={[
