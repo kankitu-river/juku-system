@@ -20,6 +20,8 @@ function toDayPattern(slotsMap: Record<string, number[]>): Record<number, number
   )
 }
 
+type VerifyTokenRow = { id: string; survey_id: string; teacher_id: string; expires_at: string }
+
 export default async function SurveyRespondPage({ searchParams }: PageProps) {
   const { id, token } = await searchParams
   const supabase = await createClient()
@@ -28,11 +30,9 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   let preselectedTeacherId: string | null = null
 
   if (token) {
-    const { data: tokenRecord } = await supabase
-      .from('shift_survey_tokens')
-      .select('id, survey_id, teacher_id, expires_at')
-      .eq('token', token)
-      .single()
+    // P1-2: security definer RPC経由でのみ照合（全行列挙を防止）
+    const { data: tokenRows } = await supabase.rpc('verify_survey_token', { p_token: token })
+    const tokenRecord = (tokenRows as unknown as VerifyTokenRow[] | null)?.[0] ?? null
 
     if (!tokenRecord) return <ErrorPage message="リンクが無効または期限切れです" />
     if (new Date(tokenRecord.expires_at) < new Date()) {
@@ -58,13 +58,11 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
     return <ErrorPage message={`このアンケートは締め切られています（期限: ${new Date(survey.deadline).toLocaleDateString('ja-JP')}）`} />
   }
 
-  const { data: tokens } = await supabase
-    .from('shift_survey_tokens')
-    .select('id, teacher_id, responded_at, teacher:teachers(id, name)')
-    .eq('survey_id', surveyId)
-    .order('teacher_id')
+  // P1-2: security definer RPC経由でトークン一覧取得（先生選択UI用）
+  const { data: tokenRows } = await supabase.rpc('get_survey_tokens', { p_survey_id: surveyId })
+  const tokens = (tokenRows as unknown as Token[]) ?? []
 
-  const tokenIds = (tokens ?? []).map((t) => t.id)
+  const tokenIds = tokens.map((t) => t.id)
   const [{ data: responses }, { data: closures }] = await Promise.all([
     tokenIds.length > 0
       ? supabase.from('shift_survey_responses').select('teacher_id, available_slots').in('token_id', tokenIds)
@@ -112,14 +110,14 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   // 前回の回答パターンを取得（差分警告用）
   let previousDayPattern: Record<number, number[]> | null = null
   if (preselectedTeacherId) {
-    const { data: prevTokens } = await supabase
-      .from('shift_survey_tokens')
-      .select('id, survey_id')
-      .eq('teacher_id', preselectedTeacherId)
-      .not('responded_at', 'is', null)
-      .neq('survey_id', surveyId)
+    // P1-2: security definer RPC経由で前回トークン取得
+    const { data: prevTokenRows } = await supabase.rpc('get_teacher_prev_tokens', {
+      p_teacher_id: preselectedTeacherId,
+      p_current_survey_id: surveyId,
+    })
+    const prevTokens = (prevTokenRows as unknown as { id: string; survey_id: string }[] | null) ?? []
 
-    if (prevTokens && prevTokens.length > 0) {
+    if (prevTokens.length > 0) {
       const prevSurveyIds = prevTokens.map((t) => t.survey_id)
       const { data: prevSurveys } = await supabase
         .from('shift_surveys')
@@ -165,7 +163,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
           targetMonth={survey.target_month}
           deadline={survey.deadline}
           termType={termType}
-          tokens={(tokens as unknown as Token[]) ?? []}
+          tokens={tokens}
           slotsMap={slotsMap}
           closureDates={closureDates}
           intensivePeriodDates={intensivePeriodDates}
