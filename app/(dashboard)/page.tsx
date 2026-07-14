@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { getDisplayGrade } from '@/lib/utils/grade'
 import { getJstNow, getJstTodayStr } from '@/lib/utils/datetime'
 import { getSlotsForLesson } from '@/lib/constants/timeSlots'
+import type { LessonWithRelations } from '@/types'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -200,7 +201,7 @@ export default async function DashboardPage() {
         }
       >
         <TodayLessons
-          lessons={todayLessons as any}
+          lessons={todayLessons as LessonWithRelations[]}
           todayStr={todayStr}
           dayOfWeek={dayOfWeek}
           termType={termType}

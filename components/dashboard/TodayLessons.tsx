@@ -6,32 +6,10 @@ import { useRouter } from 'next/navigation'
 import { recordAttendance, markAbsentWithCredit, markAbsentNoCredit } from '@/app/(dashboard)/attendance/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
 import { getSlotsForLesson } from '@/lib/constants/timeSlots'
-
-interface Student {
-  id: string
-  name: string
-  grade: string
-}
-
-interface Attendance {
-  student_id: string
-  status: 'present' | 'absent' | 'makeup_used'
-}
-
-interface Lesson {
-  id: string
-  title: string
-  subject: string
-  type: string
-  slot_index: number
-  teacher: { name: string } | null
-  notes: string | null
-  enrollments: { student: Student | null }[]
-  attendances: Attendance[]
-}
+import type { LessonWithRelations, StudentRef, AttendanceRef } from '@/types'
 
 interface TodayLessonsProps {
-  lessons: Lesson[]
+  lessons: LessonWithRelations[]
   todayStr: string
   dayOfWeek?: number
   termType?: 'regular' | 'intensive'
@@ -74,7 +52,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
     return () => clearInterval(timer)
   }, [])
 
-  function getStatus(lessonId: string, studentId: string, attendances: Attendance[]) {
+  function getStatus(lessonId: string, studentId: string, attendances: AttendanceRef[]) {
     if (localAttendances[lessonId]?.[studentId]) return localAttendances[lessonId][studentId]
     return attendances.find((a) => a.student_id === studentId)?.status ?? null
   }
@@ -125,7 +103,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
   }
 
   // スロットごとにグループ化して「進行中」「次」を判定
-  const slotGroups: { slotIndex: number; start: string; end: string; lessons: Lesson[] }[] = []
+  const slotGroups: { slotIndex: number; start: string; end: string; lessons: LessonWithRelations[] }[] = []
   for (const lesson of lessons) {
     let group = slotGroups.find((g) => g.slotIndex === lesson.slot_index)
     if (!group) {
@@ -165,7 +143,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
           </div>
           <ul className="divide-y divide-gray-50 dark:divide-gray-700">
         {group.lessons.map((lesson) => {
-          const students = lesson.enrollments.map((e) => e.student).filter(Boolean) as Student[]
+          const students = lesson.enrollments.map((e) => e.student).filter(Boolean) as StudentRef[]
           return (
             <li key={lesson.id} className="px-5 py-4">
               <div className="flex items-center gap-3 mb-3">
@@ -195,7 +173,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
               {students.length > 0 ? (
                 <div className="ml-5 space-y-1.5">
                   {students.map((student) => {
-                    const status = getStatus(lesson.id, student.id, lesson.attendances)
+                    const status = getStatus(lesson.id, student.id, lesson.attendances ?? [])
                     return (
                       <div key={student.id} className="flex items-center gap-2">
                         <span className="text-sm text-gray-700 dark:text-gray-300 w-28 truncate">{student.name}</span>
