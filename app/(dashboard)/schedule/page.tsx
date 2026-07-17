@@ -30,7 +30,10 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     const d = new Date(mondayRef); d.setDate(mondayRef.getDate() + i); return toLD(d)
   })
 
-  const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }, { data: makeupAssignments }] = await Promise.all([
+  const weekStart = weekDates[0]
+  const weekEnd = weekDates[weekDates.length - 1]
+
+  const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }, { data: makeupAssignments }, { data: schoolEvents }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student_id, subject, student:students(id, name))')
@@ -42,6 +45,12 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     supabase.from('students').select('id, name, grade').order('name'),
     supabase.from('shifts').select('id, teacher_id, date, start_time, end_time').in('date', weekDates),
     supabase.from('makeup_assignments').select('id, lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDates),
+    supabase
+      .from('school_events')
+      .select('id, school_name, event_type, title, start_date, end_date')
+      .lte('start_date', weekEnd)
+      .gte('end_date', weekStart)
+      .order('start_date'),
   ])
 
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
@@ -128,6 +137,30 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           </span>
         </div>
       </div>
+
+      {/* 今週の学校行事 */}
+      {(schoolEvents ?? []).length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {(schoolEvents as { id: string; school_name: string; event_type: string; title: string; start_date: string; end_date: string }[]).map((ev) => {
+            const typeColors: Record<string, string> = {
+              '定期テスト': 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900 text-red-700 dark:text-red-300',
+              '行事': 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300',
+              '休校': 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400',
+              'その他': 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300',
+            }
+            const colorClass = typeColors[ev.event_type] ?? typeColors['その他']
+            const dateLabel = ev.start_date === ev.end_date ? ev.start_date : `${ev.start_date}〜${ev.end_date}`
+            return (
+              <div key={ev.id} className={`flex items-center gap-1.5 border rounded-lg px-3 py-1.5 text-xs ${colorClass}`}>
+                <span className="font-bold">{ev.event_type}</span>
+                <span className="text-[10px] opacity-70">{ev.school_name}</span>
+                <span>{ev.title}</span>
+                <span className="opacity-60">{dateLabel}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         {view === 'week' && (
