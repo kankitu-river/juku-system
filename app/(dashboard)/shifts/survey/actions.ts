@@ -158,3 +158,56 @@ export async function sendSurveyEmails(surveyId: string): Promise<{ sent: number
 
   return { sent, errors }
 }
+
+// 過去3ヶ月の出勤実績から講師ごとの推奨出勤パターンを予測
+export async function getShiftPredictions(teacherIds: string[]): Promise<
+  Record<string, { dow: number; frequency: number }[]>
+> {
+  const supabase = await createClient()
+
+  const threeMonthsAgo = new Date()
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+  const cutoff = threeMonthsAgo.toISOString().slice(0, 10)
+
+  const { data: shifts } = await supabase
+    .from('shifts')
+    .select('teacher_id, date')
+    .in('teacher_id', teacherIds)
+    .gte('date', cutoff)
+
+  if (!shifts || shifts.length === 0) return {}
+
+  // 先生ごとに曜日別出勤回数を集計
+  const byTeacher = new Map<string, Map<number, number>>()
+  const weekCountByTeacher = new Map<string, Set<string>>()
+
+  for (const s of shifts) {
+    const tid = s.teacher_id as string
+    const d = new Date((s.date as string) + 'T12:00:00')
+    const dow = d.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+
+    if (!byTeacher.has(tid)) byTeacher.set(tid, new Map())
+    const dowMap = byTeacher.get(tid)!
+    dowMap.set(dow, (dowMap.get(dow) ?? 0) + 1)
+
+    // 週の識別 (年-週番号)
+    const weekKey = `${d.getFullYear()}-${Math.floor(d.getDate() / 7)}-${d.getMonth()}`
+    if (!weekCountByTeacher.has(tid)) weekCountByTeacher.set(tid, new Set())
+    weekCountByTeacher.get(tid)!.add(weekKey)
+  }
+
+  const result: Record<string, { dow: number; frequency: number }[]> = {}
+  byTeacher.forEach((dowMap, tid) => {
+    const totalWeeks = weekCountByTeacher.get(tid)?.size ?? 1
+    const predictions: { dow: number; frequency: number }[] = []
+    dowMap.forEach((count, dow) => {
+      const freq = count / totalWeeks
+      if (freq >= 0.5) predictions.push({ dow, frequency: Math.round(freq * 100) })
+    })
+    if (predictions.length > 0) {
+      result[tid] = predictions.sort((a, b) => a.dow - b.dow)
+    }
+  })
+
+  return result
+}

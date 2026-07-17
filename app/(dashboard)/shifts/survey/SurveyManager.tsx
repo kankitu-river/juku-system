@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
-import { createSurvey, deleteSurvey, sendSurveyEmails, importSurveyToShifts } from './actions'
+import { createSurvey, deleteSurvey, sendSurveyEmails, importSurveyToShifts, getShiftPredictions } from './actions'
 
 interface Token {
   id: string
@@ -101,6 +101,18 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [predictions, setPredictions] = useState<Record<string, { dow: number; frequency: number }[]> | null>(null)
+  const [isPredicting, startPredicting] = useTransition()
+
+  function handlePredict() {
+    const allTokens = surveys.flatMap((s) => s.tokens ?? [])
+    const teacherIds = [...new Set(allTokens.map((t) => t.teacher_id))]
+    if (teacherIds.length === 0) return
+    startPredicting(async () => {
+      const result = await getShiftPredictions(teacherIds)
+      setPredictions(result)
+    })
+  }
 
   const today = new Date()
   const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, '0')}`
@@ -200,6 +212,43 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
     <div className="space-y-6 max-w-2xl">
       {error && (
         <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
+      )}
+
+      {/* 来月シフト予測 */}
+      <div className="flex items-center justify-between">
+        <Button size="sm" variant="ghost" onClick={handlePredict} loading={isPredicting}>
+          過去3ヶ月の実績から出勤パターンを予測
+        </Button>
+        {predictions && (
+          <button onClick={() => setPredictions(null)} className="text-xs text-gray-400 hover:text-gray-600">✕ 閉じる</button>
+        )}
+      </div>
+      {predictions && (
+        <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl p-4">
+          <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3">出勤パターン予測（週50%以上の曜日）</h4>
+          {Object.keys(predictions).length === 0 ? (
+            <p className="text-xs text-blue-600 dark:text-blue-400">過去3ヶ月のシフトデータが不足しています</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(predictions).map(([teacherId, preds]) => {
+                const name = surveys.flatMap((s) => s.tokens ?? []).find((t) => t.teacher_id === teacherId)?.teacher?.name ?? teacherId.slice(0, 8)
+                return (
+                  <div key={teacherId} className="bg-white dark:bg-gray-800 rounded-lg p-2">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">{name}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {preds.map(({ dow, frequency }) => (
+                        <span key={dow} className="text-[11px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">
+                          {DOW_NAMES[dow]}曜 {frequency}%
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <p className="text-[11px] text-blue-500 dark:text-blue-400 mt-2">※ 参考値です。アンケートで先生本人に確認してください。</p>
+        </div>
       )}
 
       {/* アンケート作成フォーム */}

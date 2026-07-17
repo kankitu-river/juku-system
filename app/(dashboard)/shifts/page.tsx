@@ -42,11 +42,15 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
 
   const supabase = await createClient()
 
-  const [{ data: teachers }, { data: shifts }, { data: lessons }, { data: termPeriods }] = await Promise.all([
+  const [{ data: teachers }, { data: shifts }, { data: lessons }, { data: termPeriods }, { data: unassignedLessons }] = await Promise.all([
     supabase.from('teachers').select('*').order('name'),
     supabase.from('shifts').select('*').in('date', weekDates),
     supabase.from('lessons').select('*, teacher:teachers(id, name)').not('teacher_id', 'is', null),
     supabase.from('term_periods').select('start_date, end_date, type').order('start_date'),
+    supabase
+      .from('lessons')
+      .select('id, slot_index, day_of_week, term_type, subject, lesson_kind, specific_date')
+      .is('teacher_id', null),
   ])
 
   const prevWeek = addWeeks(weekDates[0], -1)
@@ -129,6 +133,7 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
           weekDates={weekDates}
           lessons={(lessons as Lesson[]) ?? []}
           termPeriods={(termPeriods ?? []) as { start_date: string; end_date: string; type: 'regular' | 'intensive' }[]}
+          unassignedLessons={(unassignedLessons ?? []) as { id: string; slot_index: number; day_of_week: number; term_type: string; subject: string | null; lesson_kind: string | null; specific_date: string | null }[]}
         />
       </div>
     </div>
