@@ -114,6 +114,29 @@ export function SurveyRespond({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
   const [changeWarning, setChangeWarning] = useState<string[] | null>(null)
+  const [freeText, setFreeText] = useState('')
+  const [aiParsing, setAiParsing] = useState(false)
+  const [aiResult, setAiResult] = useState<{ available_days: number[]; time_preference: string; notes: string } | null>(null)
+
+  async function handleAIParse() {
+    if (!freeText.trim()) return
+    setAiParsing(true)
+    setAiResult(null)
+    try {
+      const res = await fetch('/api/ai/parse-shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: freeText }),
+      })
+      const data = await res.json()
+      if (data.error) { setError(data.error); return }
+      setAiResult(data)
+    } catch {
+      setError('AI解析に失敗しました')
+    } finally {
+      setAiParsing(false)
+    }
+  }
 
   const days = getDaysInMonth(targetMonth)
   const [year, month] = targetMonth.split('-').map(Number)
@@ -253,6 +276,38 @@ export function SurveyRespond({
 
     return (
       <div className="space-y-4">
+        {/* AI 自由記述パース */}
+        <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl p-4">
+          <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-1">
+            <span className="text-[10px] bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded font-bold">AI生成</span>
+            自由記述からカレンダーを自動入力
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={freeText}
+              onChange={(e) => setFreeText(e.target.value)}
+              placeholder="例: 火木の夕方以降なら来られます"
+              className="flex-1 text-sm border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <button
+              type="button"
+              onClick={handleAIParse}
+              disabled={aiParsing || !freeText.trim()}
+              className="px-3 py-1.5 text-sm bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {aiParsing ? '解析中…' : 'AI解析'}
+            </button>
+          </div>
+          {aiResult && (
+            <div className="mt-2 text-xs text-blue-700 dark:text-blue-300 bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
+              <p className="font-medium mb-1">解析結果（参考値 — カレンダーを確認・修正してください）:</p>
+              <p>出勤可能曜日: {aiResult.available_days.length > 0 ? aiResult.available_days.map((d) => DAY_NAMES[d]).join('・') : 'なし'}</p>
+              <p>時間帯: {aiResult.time_preference || 'なし'}</p>
+              {aiResult.notes && <p>備考: {aiResult.notes}</p>}
+            </div>
+          )}
+        </div>
         {/* 差分警告モーダル */}
         {changeWarning && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
