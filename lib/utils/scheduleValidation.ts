@@ -206,3 +206,52 @@ export async function findExistingViolations(supabase: SupabaseClient): Promise<
 
   return violations
 }
+
+export interface PairingViolation {
+  severity: 'warn' | 'block'
+  label: string
+}
+
+// pairing_rules テーブルに基づく同時指導制約チェック
+export async function checkPairingRules(
+  supabase: SupabaseClient,
+  lessonId: string,
+  studentIds: string[]
+): Promise<PairingViolation[]> {
+  if (studentIds.length < 2) return []
+
+  const [{ data: rules }, { data: students }] = await Promise.all([
+    supabase.from('pairing_rules').select('*').eq('is_active', true),
+    supabase.from('students').select('id, grade').in('id', studentIds),
+  ])
+
+  if (!rules || rules.length === 0 || !students) return []
+
+  const violations: PairingViolation[] = []
+
+  // grade_gap チェック
+  const gradeOrder: Record<string, number> = {
+    elem1: 1, elem2: 2, elem3: 3, elem4: 4, elem5: 5, elem6: 6,
+    mid1: 7, mid2: 8, mid3: 9,
+    high1: 10, high2: 11, high3: 12, other: 99,
+  }
+
+  for (const rule of rules as { rule_type: string; params: { max_gap?: number }; severity: 'warn' | 'block'; description: string | null }[]) {
+    if (rule.rule_type === 'grade_gap' && rule.params.max_gap) {
+      const grades = students.map((s) => gradeOrder[s.grade as string] ?? 99).filter((g) => g !== 99)
+      if (grades.length >= 2) {
+        const minGrade = Math.min(...grades)
+        const maxGrade = Math.max(...grades)
+        const gap = maxGrade - minGrade
+        if (gap > rule.params.max_gap) {
+          violations.push({
+            severity: rule.severity,
+            label: rule.description ?? `学年差${gap}（最大${rule.params.max_gap}）の同時指導`,
+          })
+        }
+      }
+    }
+  }
+
+  return violations
+}
