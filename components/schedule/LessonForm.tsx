@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useState, useTransition, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { UndoToast } from '@/components/ui/UndoToast'
 import type { Lesson, Teacher, Booth, Student, TermType, LessonType, LessonKind } from '@/types'
 import {
   DAYS_OF_WEEK,
@@ -20,9 +21,12 @@ interface LessonFormProps {
   enrolledStudentIds?: string[]
   enrolledStudentSubjects?: Record<string, string>
   intensiveSlotLimits?: IntensiveSlotLimits | null
-  onSave: (data: LessonFormData) => Promise<{ error?: string; boothWarning?: string }>
+  closureDates?: string[]
+  upcomingEvents?: { title: string; start_at: string; end_at: string }[]
+  onSave: (data: LessonFormData) => Promise<{ error?: string; boothWarning?: string; auditLogId?: string }>
   onSaveRepeating?: (data: LessonFormData, until: string) => Promise<{ count?: number; error?: string }>
-  onDelete?: () => Promise<{ error?: string }>
+  onDelete?: () => Promise<{ error?: string; auditLogId?: string }>
+  onGetImpact?: () => Promise<{ affectedStudents: { id: string; name: string; hasPendingCredits: boolean }[]; lessonInfo: unknown }>
 }
 
 export interface LessonFormData {
@@ -52,11 +56,13 @@ function dowFromDate(dateStr: string): number {
   return js === 0 ? 7 : js
 }
 
-export function LessonForm({ lesson, teachers, booths, students, enrolledStudentIds = [], enrolledStudentSubjects = {}, intensiveSlotLimits, onSave, onSaveRepeating, onDelete }: LessonFormProps) {
+export function LessonForm({ lesson, teachers, booths, students, enrolledStudentIds = [], enrolledStudentSubjects = {}, intensiveSlotLimits, closureDates = [], upcomingEvents = [], onSave, onSaveRepeating, onDelete, onGetImpact }: LessonFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isDeleting, startDeleting] = useTransition()
   const [error, setError] = useState<string>()
+  const [undoToast, setUndoToast] = useState<{ id: string; message: string; navTarget: string } | null>(null)
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [studentSearch, setStudentSearch] = useState('')
   const [repeat, setRepeat] = useState(false)
   const [repeatUntil, setRepeatUntil] = useState('')
@@ -190,22 +196,48 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
         if (result.boothWarning) {
           if (!confirm(`${result.boothWarning}\n\nこのまま保存しますか？`)) return
           const result2 = await onSave({ ...payload, bypassBoothWarning: true })
-          if (result2.error) { setError(result2.error) } else { router.push(afterSave) }
+          if (result2.error) { setError(result2.error) }
+          else { showUndoToast(result2.auditLogId, lesson ? 'コマを更新しました' : 'コマを作成しました', afterSave) }
         } else if (result.error) {
           setError(result.error)
         } else {
-          router.push(afterSave)
+          showUndoToast(result.auditLogId, lesson ? 'コマを更新しました' : 'コマを作成しました', afterSave)
         }
       }
     })
   }
 
-  function handleDelete() {
-    if (!onDelete || !confirm('このコマを削除しますか？')) return
+  function showUndoToast(auditLogId: string | undefined, message: string, navTarget: string) {
+    if (!auditLogId) { router.push(navTarget); return }
+    if (navTimerRef.current) clearTimeout(navTimerRef.current)
+    setUndoToast({ id: auditLogId, message, navTarget })
+    navTimerRef.current = setTimeout(() => {
+      setUndoToast(null)
+      router.push(navTarget)
+    }, 5000)
+  }
+
+  async function handleDelete() {
+    if (!onDelete) return
     setError(undefined)
+
+    let confirmMsg = 'このコマを削除しますか？'
+    if (onGetImpact) {
+      try {
+        const impact = await onGetImpact()
+        if (impact.affectedStudents.length > 0) {
+          const preview = impact.affectedStudents.slice(0, 5).map((s) => `・${s.name}${s.hasPendingCredits ? '（振替残あり）' : ''}`).join('\n')
+          const more = impact.affectedStudents.length > 5 ? `\n他${impact.affectedStudents.length - 5}名` : ''
+          confirmMsg = `このコマを削除すると ${impact.affectedStudents.length}名の生徒に影響が出ます:\n${preview}${more}\n\n削除を続けますか？`
+        }
+      } catch { /* impact check 失敗は無視 */ }
+    }
+
+    if (!confirm(confirmMsg)) return
     startDeleting(async () => {
       const result = await onDelete()
-      if (result.error) { setError(result.error) } else { router.push('/schedule') }
+      if (result.error) { setError(result.error) }
+      else { showUndoToast(result.auditLogId, 'コマを削除しました', '/schedule') }
     })
   }
 
@@ -265,6 +297,19 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
                   </span>
                 )}
               </div>
+              {/* 休校日・イベント衝突警告 */}
+              {formData.specific_date && closureDates.includes(formData.specific_date) && (
+                <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2 mt-2">
+                  ⚠ この日は休校日に設定されています（登録は可能です）
+                </p>
+              )}
+              {formData.specific_date && upcomingEvents
+                .filter((ev) => ev.start_at.slice(0, 10) <= formData.specific_date && formData.specific_date <= ev.end_at.slice(0, 10))
+                .map((ev) => (
+                  <p key={ev.title} className="text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg px-3 py-2 mt-2">
+                    ℹ この日は「{ev.title}」があります（登録は可能です）
+                  </p>
+                ))}
             </div>
             {onSaveRepeating && (
               <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 rounded-lg">
@@ -537,6 +582,23 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           <Button type="button" variant="danger" loading={isDeleting} onClick={handleDelete}>削除</Button>
         )}
       </div>
+
+      {undoToast && (
+        <UndoToast
+          auditLogId={undoToast.id}
+          message={undoToast.message}
+          onUndo={() => {
+            if (navTimerRef.current) clearTimeout(navTimerRef.current)
+            setUndoToast(null)
+            router.refresh()
+          }}
+          onDismiss={() => {
+            if (navTimerRef.current) clearTimeout(navTimerRef.current)
+            setUndoToast(null)
+            router.push(undoToast.navTarget)
+          }}
+        />
+      )}
     </form>
   )
 }

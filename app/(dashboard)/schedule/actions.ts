@@ -3,9 +3,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { LessonFormData } from '@/components/schedule/LessonForm'
-import { validateLessonConflicts } from '@/lib/utils/scheduleValidation'
+import { validateLessonConflicts, checkPairingRules } from '@/lib/utils/scheduleValidation'
+import { snapshotLesson, recordAudit } from '@/lib/audit/recorder'
 
-type SaveResult = { error?: string; boothWarning?: string }
+type SaveResult = { error?: string; boothWarning?: string; auditLogId?: string }
+
+const DAY_NAMES: Record<number, string> = { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土', 0: '日', 7: '日' }
+
+function lessonSummary(
+  subject: string | null | undefined,
+  dayOfWeek: number,
+  slotIndex: number,
+  action: string
+): string {
+  const sub = subject || '(無題)'
+  const day = DAY_NAMES[dayOfWeek] ?? ''
+  return `${sub} ${day}曜 第${slotIndex}コマ を${action}`
+}
 
 export async function enrollStudent(lessonId: string, studentId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
@@ -47,6 +61,14 @@ export async function createLesson(data: LessonFormData): Promise<SaveResult> {
     if (warnings.length > 0) return { boothWarning: warnings.map((c) => c.message).join('\n') }
   }
 
+  if (data.student_ids.length >= 2) {
+    const pairingViolations = await checkPairingRules(supabase, '', data.student_ids)
+    const blockers = pairingViolations.filter((v) => v.severity === 'block')
+    if (blockers.length > 0) return { error: blockers.map((v) => v.label).join('\n') }
+    const warns = pairingViolations.filter((v) => v.severity === 'warn')
+    if (warns.length > 0) return { boothWarning: warns.map((v) => v.label).join('\n') }
+  }
+
   const { data: lesson, error } = await supabase
     .from('lessons')
     .insert({
@@ -80,7 +102,21 @@ export async function createLesson(data: LessonFormData): Promise<SaveResult> {
   }
 
   revalidatePath('/schedule')
-  return {}
+
+  try {
+    const afterSnapshot = await snapshotLesson(supabase, lesson.id)
+    const auditLogId = await recordAudit(supabase, {
+      recordId: lesson.id,
+      action: 'create',
+      before: null,
+      after: afterSnapshot,
+      summary: lessonSummary(data.subject, data.day_of_week, data.slot_index, '作成'),
+    })
+    return { auditLogId: auditLogId ?? undefined }
+  } catch (e) {
+    console.error('Audit recording failed', e)
+    return {}
+  }
 }
 
 export async function updateLesson(
@@ -108,6 +144,22 @@ export async function updateLesson(
     if (errors.length > 0) return { error: errors.map((c) => c.message).join('\n') }
     const warnings = conflicts.filter((c) => c.severity === 'warning')
     if (warnings.length > 0) return { boothWarning: warnings.map((c) => c.message).join('\n') }
+  }
+
+  if (data.student_ids.length >= 2) {
+    const pairingViolations = await checkPairingRules(supabase, id, data.student_ids)
+    const blockers = pairingViolations.filter((v) => v.severity === 'block')
+    if (blockers.length > 0) return { error: blockers.map((v) => v.label).join('\n') }
+    const warns = pairingViolations.filter((v) => v.severity === 'warn')
+    if (warns.length > 0) return { boothWarning: warns.map((v) => v.label).join('\n') }
+  }
+
+  // 更新前スナップショットを取得（更新適用前）
+  let beforeSnapshot = null
+  try {
+    beforeSnapshot = await snapshotLesson(supabase, id)
+  } catch (e) {
+    console.error('Pre-snapshot failed', e)
   }
 
   const { error } = await supabase
@@ -144,7 +196,21 @@ export async function updateLesson(
   }
 
   revalidatePath('/schedule')
-  return {}
+
+  try {
+    const afterSnapshot = await snapshotLesson(supabase, id)
+    const auditLogId = await recordAudit(supabase, {
+      recordId: id,
+      action: 'update',
+      before: beforeSnapshot,
+      after: afterSnapshot,
+      summary: lessonSummary(data.subject, data.day_of_week, data.slot_index, '更新'),
+    })
+    return { auditLogId: auditLogId ?? undefined }
+  } catch (e) {
+    console.error('Audit recording failed', e)
+    return {}
+  }
 }
 
 export async function createRepeatingLessons(
@@ -194,10 +260,78 @@ export async function createRepeatingLessons(
   return { count: created?.length ?? 0 }
 }
 
-export async function deleteLesson(id: string): Promise<{ error?: string }> {
+export async function deleteLesson(id: string): Promise<{ error?: string; auditLogId?: string }> {
   const supabase = await createClient()
+
+  let beforeSnapshot = null
+  try {
+    beforeSnapshot = await snapshotLesson(supabase, id)
+  } catch (e) {
+    console.error('Pre-snapshot failed', e)
+  }
+
   const { error } = await supabase.from('lessons').delete().eq('id', id)
   if (error) return { error: error.message }
+
   revalidatePath('/schedule')
-  return {}
+
+  try {
+    const lesson = beforeSnapshot?.lesson
+    const summary = lesson
+      ? lessonSummary(
+          lesson.subject as string | null,
+          lesson.day_of_week as number,
+          lesson.slot_index as number,
+          '削除'
+        )
+      : '削除'
+    const auditLogId = await recordAudit(supabase, {
+      recordId: id,
+      action: 'delete',
+      before: beforeSnapshot,
+      after: null,
+      summary,
+    })
+    return { auditLogId: auditLogId ?? undefined }
+  } catch (e) {
+    console.error('Audit recording failed', e)
+    return {}
+  }
+}
+
+export interface LessonImpact {
+  affectedStudents: { id: string; name: string; grade: string; hasPendingCredits: boolean }[]
+  lessonInfo: { subject: string | null; dayOfWeek: number; slotIndex: number } | null
+}
+
+export async function getLessonImpact(lessonId: string): Promise<LessonImpact> {
+  const supabase = await createClient()
+
+  const [{ data: lesson }, { data: enrollments }, { data: makeupCredits }] = await Promise.all([
+    supabase.from('lessons').select('subject, day_of_week, slot_index').eq('id', lessonId).single(),
+    supabase
+      .from('lesson_enrollments')
+      .select('student_id, student:students(id, name, grade)')
+      .eq('lesson_id', lessonId),
+    supabase.from('makeup_credits').select('student_id, total_credits, used_credits'),
+  ])
+
+  const students = (enrollments ?? []).map((e) => {
+    const s = e.student as unknown as { id: string; name: string; grade: string } | null
+    return s ? { id: s.id, name: s.name, grade: s.grade } : null
+  }).filter(Boolean) as { id: string; name: string; grade: string }[]
+
+  const creditsMap = new Map(
+    (makeupCredits ?? []).map((mc) => [mc.student_id as string, (mc.total_credits as number) - (mc.used_credits as number)])
+  )
+
+  return {
+    affectedStudents: students.map((s) => ({
+      ...s,
+      hasPendingCredits: (creditsMap.get(s.id) ?? 0) > 0,
+    })),
+    lessonInfo: lesson
+      ? { subject: lesson.subject as string | null, dayOfWeek: lesson.day_of_week as number, slotIndex: lesson.slot_index as number }
+      : null,
+  }
 }

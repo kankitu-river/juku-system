@@ -27,11 +27,15 @@ export default async function NewLessonPage({ searchParams }: PageProps) {
   const { copy, student: studentId, teacher_id, date, slot_index, term_type } = await searchParams
   const supabase = await createClient()
 
-  const [{ data: teachers }, { data: booths }, { data: students }, { data: slotLimitSetting }] = await Promise.all([
+  const [{ data: teachers }, { data: booths }, { data: students }, { data: slotLimitSetting }, { data: closures }, { data: events }] = await Promise.all([
     supabase.from('teachers').select('*').order('name'),
     supabase.from('booths').select('*').eq('is_active', true).order('name'),
     supabase.from('students').select('*').order('name'),
     supabase.from('app_settings').select('value').eq('key', 'intensive_slot_limits').single(),
+    supabase.from('school_closures').select('date'),
+    supabase.from('events').select('title, start_at, end_at')
+      .gte('end_at', new Date().toISOString())
+      .order('start_at'),
   ])
   const intensiveSlotLimits = (slotLimitSetting?.value as IntensiveSlotLimits) ?? null
 
@@ -127,6 +131,8 @@ export default async function NewLessonPage({ searchParams }: PageProps) {
           students={(students as Student[]) ?? []}
           enrolledStudentIds={preselectedStudent ? [preselectedStudent.id] : []}
           intensiveSlotLimits={intensiveSlotLimits}
+          closureDates={(closures ?? []).map((c) => c.date)}
+          upcomingEvents={(events ?? []) as { title: string; start_at: string; end_at: string }[]}
           onSave={createLesson}
           onSaveRepeating={createRepeatingLessons}
         />
