@@ -29,7 +29,7 @@ export default async function IntensivePage({ searchParams }: PageProps) {
   const selectedTermId = term ?? intensivePeriods[0]?.id ?? ''
   const selectedTerm = intensivePeriods.find((t) => t.id === selectedTermId)
 
-  const [{ data: lessons }, { data: plans }] = await Promise.all([
+  const [{ data: lessons }, { data: plans }, { data: allIntensiveLessons }] = await Promise.all([
     selectedTermId
       ? supabase
           .from('lessons')
@@ -44,7 +44,18 @@ export default async function IntensivePage({ searchParams }: PageProps) {
           .select('*')
           .eq('term_period_id', selectedTermId)
       : Promise.resolve({ data: [] }),
+    selectedTermId
+      ? supabase.from('lessons').select('id, capacity, lesson_enrollments(id)').eq('term_type', 'intensive')
+      : Promise.resolve({ data: [] }),
   ])
+
+  // 需給サマリー
+  const demand = (plans ?? []).reduce((s, p) => s + ((p as { planned_lessons: number }).planned_lessons ?? 0), 0)
+  const supply = (allIntensiveLessons ?? []).reduce((s, l) => s + ((l as { capacity: number }).capacity ?? 0), 0)
+  const enrolled = (allIntensiveLessons ?? []).reduce(
+    (s, l) => s + ((l as { lesson_enrollments: { id: string }[] }).lesson_enrollments?.length ?? 0), 0
+  )
+  const supplyGap = supply - demand
 
   return (
     <div>
@@ -106,6 +117,46 @@ export default async function IntensivePage({ searchParams }: PageProps) {
               </span>
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* 需給サマリー */}
+      {selectedTerm && (demand > 0 || supply > 0) && (
+        <div className={[
+          'mb-5 rounded-xl border p-4',
+          supplyGap < 0
+            ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900'
+            : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900',
+        ].join(' ')}>
+          <h3 className={[
+            'text-sm font-semibold mb-3',
+            supplyGap < 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300',
+          ].join(' ')}>
+            需給サマリー — {selectedTerm.name}
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: '需要（生徒の希望コマ数合計）', value: demand, unit: 'コマ', color: 'text-gray-700 dark:text-gray-200' },
+              { label: '供給（全コマの定員合計）', value: supply, unit: 'コマ', color: 'text-gray-700 dark:text-gray-200' },
+              {
+                label: supplyGap >= 0 ? '余裕（供給 − 需要）' : '不足（需要 − 供給）',
+                value: Math.abs(supplyGap),
+                unit: 'コマ',
+                color: supplyGap < 0 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold',
+              },
+            ].map(({ label, value, unit, color }) => (
+              <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                <p className="text-xs text-gray-400 mb-1">{label}</p>
+                <p className={`text-2xl font-bold ${color}`}>{value}<span className="text-sm font-normal text-gray-400 ml-1">{unit}</span></p>
+              </div>
+            ))}
+          </div>
+          {supplyGap < 0 && (
+            <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+              ⚠ コマの定員が生徒の希望に対して{Math.abs(supplyGap)}コマ不足しています。コマを追加するか定員を増やしてください。
+            </p>
+          )}
+          <p className="mt-2 text-xs text-gray-400">現在の受講登録数: {enrolled}件</p>
         </div>
       )}
 
