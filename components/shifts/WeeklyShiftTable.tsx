@@ -21,12 +21,23 @@ interface TermPeriodLite {
   type: 'regular' | 'intensive'
 }
 
+interface UnassignedLesson {
+  id: string
+  slot_index: number
+  day_of_week: number
+  term_type: string
+  subject: string | null
+  lesson_kind: string | null
+  specific_date: string | null
+}
+
 interface WeeklyShiftTableProps {
   teachers: Teacher[]
   shifts: Shift[]
   weekDates: string[]   // ['2026-06-15', ...] Mon〜Sat
   lessons: Lesson[]
   termPeriods?: TermPeriodLite[]
+  unassignedLessons?: UnassignedLesson[]
 }
 
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土']
@@ -54,7 +65,20 @@ interface ModalState {
   lessons: Lesson[]
 }
 
-export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPeriods = [] }: WeeklyShiftTableProps) {
+// 歯抜け（間に空きコマがあるパターン）を検出
+function detectGaps(slotIndices: number[]): number[] {
+  if (slotIndices.length < 2) return []
+  const sorted = [...slotIndices].sort((a, b) => a - b)
+  const gaps: number[] = []
+  for (let i = 0; i < sorted.length - 1; i++) {
+    for (let slot = sorted[i] + 1; slot < sorted[i + 1]; slot++) {
+      gaps.push(slot)
+    }
+  }
+  return gaps
+}
+
+export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPeriods = [], unassignedLessons = [] }: WeeklyShiftTableProps) {
   const router = useRouter()
   const [modal, setModal] = useState<ModalState | null>(null)
 
@@ -72,6 +96,47 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
     if (!lessonMap.has(key)) lessonMap.set(key, [])
     lessonMap.get(key)!.push(l)
   }
+
+  // 歯抜けマップ: key = `teacherId-date`, value = gap slot numbers
+  const gapMap = new Map<string, number[]>()
+  for (const teacher of teachers) {
+    for (const dateStr of weekDates) {
+      const shift = shiftMap.get(`${teacher.id}-${dateStr}`)
+      if (!shift) continue
+      const d = new Date(dateStr + 'T12:00:00')
+      const dow = d.getDay()
+      const termType = getTermTypeForDate(dateStr, termPeriods)
+      const dayLessons = lessonMap.get(`${teacher.id}-${dow}-${termType}`) ?? []
+      if (dayLessons.length < 2) continue
+      const gaps = detectGaps(dayLessons.map((l) => l.slot_index as number))
+      if (gaps.length > 0) gapMap.set(`${teacher.id}|${dateStr}`, gaps)
+    }
+  }
+
+  // 歯抜けサマリー（表示用）
+  interface GapEntry {
+    teacher: Teacher
+    date: string
+    gaps: number[]
+    fillable: UnassignedLesson[][]  // gaps[i] -> 埋められる候補コマ
+  }
+  const gapEntries: GapEntry[] = []
+  gapMap.forEach((gaps, key) => {
+    const [teacherId, dateStr] = key.split('|')
+    const teacher = teachers.find((t) => t.id === teacherId)
+    if (!teacher) return
+    const d = new Date(dateStr + 'T12:00:00')
+    const dow = d.getDay()
+    const termType = getTermTypeForDate(dateStr, termPeriods)
+    const fillable = gaps.map((slot) =>
+      unassignedLessons.filter((ul) =>
+        ul.lesson_kind === 'temporary'
+          ? ul.specific_date === dateStr && ul.slot_index === slot
+          : ul.day_of_week === dow && ul.term_type === termType && ul.slot_index === slot
+      )
+    )
+    gapEntries.push({ teacher, date: dateStr, gaps, fillable })
+  })
 
   function openModal(teacher: Teacher, dateStr: string, dateLabel: string) {
     const shift = shiftMap.get(`${teacher.id}-${dateStr}`)
@@ -142,6 +207,9 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
                       })
                     : dayLessons.length > 0
 
+                  const gapKey = `${teacher.id}|${dateStr}`
+                  const hasGap = gapMap.has(gapKey)
+
                   return (
                     <td
                       key={dateStr}
@@ -162,6 +230,11 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
                               {hasUncovered ? '⚠ コマ外れ' : `コマ${dayLessons.length}件`}
                             </div>
                           )}
+                          {hasGap && (
+                            <div className="text-[10px] text-orange-500 dark:text-orange-400 font-medium">
+                              歯抜けあり
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="text-gray-300 text-xs">
@@ -178,6 +251,44 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
           </tbody>
         </table>
       </div>
+
+      {/* 歯抜けサマリー */}
+      {gapEntries.length > 0 && (
+        <div className="mt-4 border border-orange-200 dark:border-orange-800/50 bg-orange-50 dark:bg-orange-950/30 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-3 flex items-center gap-1.5">
+            <span>歯抜けシフト検出</span>
+            <span className="text-xs font-normal bg-orange-200 dark:bg-orange-800/60 text-orange-700 dark:text-orange-200 px-2 py-0.5 rounded-full">{gapEntries.length}件</span>
+          </h3>
+          <div className="space-y-2">
+            {gapEntries.map(({ teacher, date, gaps, fillable }) => {
+              const d = new Date(date + 'T12:00:00')
+              const dayLabel = DAY_LABELS[d.getDay() === 0 ? 6 : d.getDay() - 1] ?? ''
+              const dateLabel = `${d.getMonth() + 1}/${d.getDate()}（${dayLabel}）`
+              return (
+                <div key={`${teacher.id}|${date}`} className="text-sm text-orange-800 dark:text-orange-200">
+                  <span className="font-medium">{teacher.name}</span>
+                  <span className="text-orange-600 dark:text-orange-400 mx-1">–</span>
+                  <span>{dateLabel}</span>
+                  <div className="ml-4 mt-0.5 space-y-0.5">
+                    {gaps.map((slot, idx) => {
+                      const candidates = fillable[idx] ?? []
+                      return (
+                        <div key={slot} className="text-xs text-orange-700 dark:text-orange-300">
+                          第{slot}コマが空いています。
+                          {candidates.length > 0
+                            ? <>詰められる授業: {candidates.map((ul) => ul.subject ?? '(科目未設定)').join('、')}</>
+                            : <span className="text-orange-400">詰められる授業なし</span>
+                          }
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {modal && (
         <ShiftModal
