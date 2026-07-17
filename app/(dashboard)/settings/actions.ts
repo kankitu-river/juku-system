@@ -93,3 +93,13 @@ export async function saveIntensiveSlotLimits(limits: IntensiveSlotLimits): Prom
   revalidatePath('/schedule/intensive')
   return {}
 }
+
+export async function saveApiKey(apiKey: string): Promise<{ error?: string }> {
+  if (!apiKey.startsWith('sk-ant-')) return { error: 'Anthropic API キーは sk-ant- から始まります' }
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('app_settings')
+    .upsert({ key: 'anthropic_api_key', value: apiKey, updated_at: new Date().toISOString() })
+  if (error) return { error: error.message }
+  return {}
+}
