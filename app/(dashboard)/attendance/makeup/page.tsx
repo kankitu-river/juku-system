@@ -61,6 +61,7 @@ export default async function MakeupPage() {
         lessons={lessons ?? []}
         shifts={shifts ?? []}
         termPeriods={(termPeriods ?? []) as { type: 'regular' | 'intensive'; start_date: string; end_date: string }[]}
+        recentAssignments={(assignments ?? []) as unknown as MakeupAssignment[]}
       />
       <MakeupAssignmentList
         assignments={(assignments ?? []) as unknown as MakeupAssignment[]}
