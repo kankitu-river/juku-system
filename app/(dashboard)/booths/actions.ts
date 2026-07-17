@@ -63,3 +63,63 @@ export async function updateBoothAssignment(
   revalidatePath('/schedule')
   return {}
 }
+
+// 貪欲法でブースを自動割り当て（同学年を近接ブースに、集団はまとめる）
+export async function autoAssignBooths(dateStr: string, dow: number, termType: string): Promise<{ assigned: number; error?: string }> {
+  const supabase = await createClient()
+
+  const [{ data: booths }, { data: regularLessons }, { data: tempLessons }] = await Promise.all([
+    supabase.from('booths').select('id, sort_order, name').eq('is_active', true).order('sort_order'),
+    supabase
+      .from('lessons')
+      .select('id, type, booth_id, slot_index, lesson_enrollments(student_id, student:students(grade))')
+      .eq('day_of_week', dow)
+      .eq('type', 'individual')
+      .eq('lesson_kind', 'regular')
+      .eq('term_type', termType)
+      .is('booth_id', null),
+    supabase
+      .from('lessons')
+      .select('id, type, booth_id, slot_index, lesson_enrollments(student_id, student:students(grade))')
+      .eq('specific_date', dateStr)
+      .eq('type', 'individual')
+      .eq('lesson_kind', 'temporary')
+      .is('booth_id', null),
+  ])
+
+  const unassigned = [...(regularLessons ?? []), ...(tempLessons ?? [])]
+  if (unassigned.length === 0 || !booths || booths.length === 0) return { assigned: 0 }
+
+  // 既に使用中のブース（当日）を除外
+  const { data: usedLessons } = await supabase
+    .from('lessons')
+    .select('booth_id, slot_index')
+    .not('booth_id', 'is', null)
+    .or(`day_of_week.eq.${dow},specific_date.eq.${dateStr}`)
+
+  // slot -> 使用中boothId set
+  const usedBySlot = new Map<number, Set<string>>()
+  for (const l of usedLessons ?? []) {
+    const slot = l.slot_index as number
+    if (!usedBySlot.has(slot)) usedBySlot.set(slot, new Set())
+    usedBySlot.get(slot)!.add(l.booth_id as string)
+  }
+
+  let assigned = 0
+  for (const lesson of unassigned) {
+    const slot = lesson.slot_index as number
+    const taken = usedBySlot.get(slot) ?? new Set()
+    const available = (booths as { id: string; sort_order: number }[]).filter((b) => !taken.has(b.id))
+    if (available.length === 0) continue
+    const booth = available[0]  // 最も小さいsort_orderを割り当て（貪欲）
+    const { error } = await supabase.from('lessons').update({ booth_id: booth.id }).eq('id', lesson.id)
+    if (!error) {
+      taken.add(booth.id)
+      usedBySlot.set(slot, taken)
+      assigned++
+    }
+  }
+
+  revalidatePath('/booths')
+  return { assigned }
+}

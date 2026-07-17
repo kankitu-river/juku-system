@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Booth, Lesson } from '@/types'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS } from '@/lib/constants/timeSlots'
-import { updateBoothAssignment, updateBoothName } from './actions'
+import { updateBoothAssignment, updateBoothName, autoAssignBooths } from './actions'
 
 export type LessonWithTeacher = Lesson & { teacher: { name: string } | null }
 
@@ -14,9 +14,11 @@ interface BoothBoardProps {
   lessons: LessonWithTeacher[]
   currentTermType: 'regular' | 'intensive'
   allBooths: Booth[]
+  dateStr: string
+  dow: number
 }
 
-export function BoothBoard({ booths, lessons, currentTermType, allBooths }: BoothBoardProps) {
+export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateStr, dow }: BoothBoardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [editingLesson, setEditingLesson] = useState<string | null>(null)
@@ -24,6 +26,17 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
   const [editingBooth, setEditingBooth] = useState<string | null>(null)
   const [editingBoothName, setEditingBoothName] = useState('')
   const [boothNamePending, startBoothNameTransition] = useTransition()
+  const [autoAssigning, startAutoAssign] = useTransition()
+  const [autoResult, setAutoResult] = useState<string | null>(null)
+
+  function handleAutoAssign() {
+    if (!confirm('未割り当てのコマにブースを自動割り当てします。よろしいですか？')) return
+    startAutoAssign(async () => {
+      const result = await autoAssignBooths(dateStr, dow, currentTermType)
+      setAutoResult(result.error ? `エラー: ${result.error}` : `${result.assigned}件のコマにブースを割り当てました`)
+      setTimeout(() => { setAutoResult(null); router.refresh() }, 2000)
+    })
+  }
 
   const slots = currentTermType === 'intensive' ? INTENSIVE_SLOTS : REGULAR_SLOTS
   const activeBooths = booths.filter((b) => b.is_active)
@@ -74,6 +87,19 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths }: Boot
 
   return (
     <div className="space-y-5">
+      {/* 自動割当ボタン */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleAutoAssign}
+          disabled={autoAssigning}
+          className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors disabled:opacity-50"
+        >
+          {autoAssigning ? '割り当て中…' : '自動ブース割り当て'}
+        </button>
+        {autoResult && (
+          <span className="text-sm text-green-600 dark:text-green-400">{autoResult}</span>
+        )}
+      </div>
       {/* サマリー */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm px-4 py-3 text-center">

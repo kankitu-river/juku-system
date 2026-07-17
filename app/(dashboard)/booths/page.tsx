@@ -80,6 +80,8 @@ export default async function BoothsPage({ searchParams }: PageProps) {
         lessons={dayLessons as unknown as LessonWithTeacher[]}
         currentTermType={currentTermType}
         allBooths={(booths as Booth[]) ?? []}
+        dateStr={dateStr}
+        dow={dow}
       />
     </div>
   )
