@@ -14,7 +14,8 @@ export default async function TasksPage() {
 
   const { data: tasks } = await supabase
     .from('tasks')
-    .select('id, template_id, title, description, due_date, status, completed_at')
+    .select('id, template_id, title, description, due_date, status, completed_at, dismissed_at')
+    .is('dismissed_at', null)
     .order('due_date', { ascending: true })
 
   const { data: templates } = await supabase
@@ -71,7 +72,7 @@ export default async function TasksPage() {
       </div>
 
       <div className="mt-4 text-xs text-gray-400 dark:text-gray-500">
-        テンプレートから自動生成されたタスクは削除できません。スキップを使用してください。 |{' '}
+        削除したタスクは復元できません。 |{' '}
         <Link href="/" className="hover:underline">ダッシュボードに戻る</Link>
       </div>
     </div>

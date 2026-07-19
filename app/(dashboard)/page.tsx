@@ -200,6 +200,7 @@ export default async function DashboardPage() {
     .from('tasks')
     .select('id, title, due_date, status')
     .in('status', ['pending', 'in_progress'])
+    .is('dismissed_at', null)
     .lte('due_date', dashboardCutoffStr)
     .order('due_date', { ascending: true })
     .limit(5)

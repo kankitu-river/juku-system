@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { updateTaskStatus, createManualTask, deleteTask } from './actions'
+import { updateTaskStatus, createManualTask, deleteTask, dismissTask } from './actions'
 
 interface Task {
   id: string
@@ -63,7 +63,11 @@ function TaskRow({ task, onUpdated }: { task: Task; onUpdated: () => void }) {
   function remove() {
     if (!confirm('このタスクを削除しますか？')) return
     startTransition(async () => {
-      await deleteTask(task.id)
+      if (task.template_id) {
+        await dismissTask(task.id)
+      } else {
+        await deleteTask(task.id)
+      }
       onUpdated()
     })
   }
@@ -128,15 +132,14 @@ function TaskRow({ task, onUpdated }: { task: Task; onUpdated: () => void }) {
             スキップ
           </button>
         )}
-        {!task.template_id && (
-          <button
-            onClick={remove}
-            disabled={pending}
-            className="text-xs text-red-400 hover:text-red-600 px-1"
-          >
-            削除
-          </button>
-        )}
+        <button
+          onClick={remove}
+          disabled={pending}
+          className="text-xs text-red-400 hover:text-red-600 px-1"
+          title={task.template_id ? '一覧から非表示にする' : 'タスクを削除する'}
+        >
+          削除
+        </button>
       </div>
     </div>
   )

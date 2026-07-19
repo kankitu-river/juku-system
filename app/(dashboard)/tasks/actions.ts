@@ -36,3 +36,16 @@ export async function deleteTask(id: string) {
   revalidatePath('/')
   return {}
 }
+
+// テンプレート由来タスクの非表示化（行は残すので再生成されない）
+export async function dismissTask(id: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('tasks')
+    .update({ dismissed_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/tasks')
+  revalidatePath('/')
+  return {}
+}

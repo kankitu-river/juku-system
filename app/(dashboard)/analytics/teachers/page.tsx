@@ -5,7 +5,7 @@ import { getDisplayGrade } from '@/lib/utils/grade'
 export default async function TeachersContinuationPage() {
   const supabase = await createClient()
 
-  const [{ data: teachers }, { data: enrollments }, { data: attendances }] = await Promise.all([
+  const [{ data: teachers }, { data: enrollments }, { data: attendances }, { data: students }] = await Promise.all([
     supabase.from('teachers').select('id, name').order('name'),
     supabase
       .from('lesson_enrollments')
@@ -13,6 +13,7 @@ export default async function TeachersContinuationPage() {
     supabase
       .from('attendances')
       .select('student_id, lesson_id, date, status'),
+    supabase.from('students').select('id, name'),
   ])
 
   // 講師×生徒ペアの受講記録を集計
@@ -27,6 +28,7 @@ export default async function TeachersContinuationPage() {
   }
 
   const teacherMap = new Map((teachers ?? []).map((t) => [t.id, t.name as string]))
+  const studentMap = new Map((students ?? []).map((s) => [s.id, s.name as string]))
 
   // 受講登録から講師×生徒ペアを抽出
   const pairMap = new Map<string, { teacherId: string; studentId: string; lessonIds: Set<string> }>()
@@ -126,7 +128,7 @@ export default async function TeachersContinuationPage() {
                       const rate = p.lessonCount > 0 ? Math.round((attendedCount / p.lessonCount) * 100) : 0
                       return (
                         <tr key={p.studentId} className="border-b border-gray-50 dark:border-gray-700/50 last:border-0">
-                          <td className="py-2 text-gray-700 dark:text-gray-200">{p.studentId.slice(0, 8)}…</td>
+                          <td className="py-2 text-gray-700 dark:text-gray-200">{studentMap.get(p.studentId) ?? '不明な生徒'}</td>
                           <td className="py-2 text-center text-gray-600 dark:text-gray-300">{p.lessonCount}</td>
                           <td className="py-2 text-center text-gray-600 dark:text-gray-300">{p.absentCount}</td>
                           <td className="py-2 text-center">

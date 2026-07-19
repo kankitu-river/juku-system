@@ -18,8 +18,8 @@ interface PageProps {
 }
 
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
+const MAX_ENTRIES_PER_CELL = 4
 
-// 科目を短縮表示
 function shortSubject(s: string | null | undefined): string {
   if (!s) return ''
   const map: Record<string, string> = {
@@ -32,7 +32,7 @@ function shortSubject(s: string | null | undefined): string {
 
 export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
   const { year: yearStr, month: monthStr, type, id, showTeacher: showTeacherStr } = await searchParams
-  const showTeacher = showTeacherStr !== 'false'  // デフォルトは表示
+  const showTeacher = showTeacherStr !== 'false'
   const year = Number(yearStr ?? new Date().getFullYear())
   const month = Number(monthStr ?? new Date().getMonth() + 1)
   const monthLabel = `${year}年${month}月`
@@ -102,14 +102,12 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
   const entries = expandLessonsForMonth(filteredLessons, year, month, typedTermPeriods)
 
-  // 日付ごとにまとめる
   const byDate = new Map<string, typeof entries>()
   for (const entry of entries) {
     if (!byDate.has(entry.dateStr)) byDate.set(entry.dateStr, [])
     byDate.get(entry.dateStr)!.push(entry)
   }
 
-  // 講師ビュー: このコマ・この日に振替で入る生徒（`${lesson_id}__${date}` -> 生徒）
   const makeupByLessonDate = new Map<string, { id: string; name: string }[]>()
   if (type === 'teacher') {
     for (const m of makeups) {
@@ -120,7 +118,6 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
     }
   }
 
-  // 生徒ビュー: この生徒の振替コマ（日付 -> 一覧）
   const studentMakeupsByDate = new Map<string, { slotIndex: number; timeLabel: string; teacherName: string | null; subject: string | null }[]>()
   let studentMakeupCount = 0
   if (type === 'student') {
@@ -138,23 +135,9 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
     }
   }
 
-  const allDates = new Set([...byDate.keys(), ...studentMakeupsByDate.keys()])
-  const maxEntriesPerDay = Math.max(
-    1,
-    ...Array.from(allDates).map((d) =>
-      (byDate.get(d)?.length ?? 0) + (studentMakeupsByDate.get(d)?.length ?? 0)
-    )
-  )
-  const zoomLevel =
-    maxEntriesPerDay <= 3 ? 0.85 :
-    maxEntriesPerDay <= 5 ? 0.68 :
-    maxEntriesPerDay <= 7 ? 0.55 :
-    0.42
-
-  // カレンダー行列を構築
   const firstDay = new Date(year, month - 1, 1)
   const daysInMonth = new Date(year, month, 0).getDate()
-  const startDow = firstDay.getDay() // 0=Sun
+  const startDow = firstDay.getDay()
 
   const totalCells = Math.ceil((daysInMonth + startDow) / 7) * 7
   const cells: (number | null)[] = []
@@ -168,21 +151,57 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
   }
 
   const printDate = new Date().toLocaleDateString('ja-JP')
-
   const pad = (n: number) => String(n).padStart(2, '0')
   const dayNumToDateStr = (day: number) => `${year}-${pad(month)}-${pad(day)}`
 
   return (
     <div className="print-root bg-white min-h-screen">
       <AutoPrint />
-      {/* @page設定・印刷縮小 */}
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 0; }
+          @page { size: A4 landscape; margin: 8mm; }
           .no-print { display: none !important; }
+          body { margin: 0; padding: 0; }
           #monthly-print-area {
-            zoom: ${zoomLevel};
-            padding: 5mm;
+            width: 100%;
+            height: 194mm;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            overflow: hidden;
+            padding: 0;
+          }
+          .mpp-header {
+            flex-shrink: 0;
+            margin-bottom: 3mm;
+            padding-bottom: 3mm;
+          }
+          .mpp-calendar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+          }
+          .mpp-weekday-row {
+            flex-shrink: 0;
+            display: flex;
+          }
+          .mpp-week-row {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            overflow: hidden;
+          }
+          .mpp-day-cell {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            box-sizing: border-box;
+          }
+          .mpp-footer {
+            flex-shrink: 0;
+            margin-top: 2mm;
           }
         }
       `}</style>
@@ -214,7 +233,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
       {/* Print content */}
       <div id="monthly-print-area" className="p-6">
         {/* Header */}
-        <div className="flex items-end justify-between mb-4 pb-3 border-b-2 border-navy print:mb-3">
+        <div className="mpp-header flex items-end justify-between pb-3 border-b-2 border-navy mb-4 print:mb-0">
           <div>
             <p className="text-xs text-gray-500">月次スケジュール</p>
             <h1 className="text-2xl font-bold text-navy">{personName}</h1>
@@ -226,44 +245,48 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        {/* Calendar */}
-        <table className="w-full border-collapse text-xs table-fixed">
-          <thead>
-            <tr>
-              {DOW_LABELS.map((d, i) => (
-                <th key={d} className={[
-                  'border border-gray-300 py-1.5 text-center text-xs font-bold',
-                  i === 0 ? 'text-red-600 bg-red-50' : i === 6 ? 'text-blue-600 bg-blue-50' : 'text-gray-700 bg-gray-100',
-                ].join(' ')}>
-                  {d}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {weeks.map((week, wi) => (
-              <tr key={wi}>
-                {week.map((day, di) => {
-                  const isSun = di === 0
-                  const isSat = di === 6
-                  const dateStr = day ? dayNumToDateStr(day) : null
-                  const dayEntries = dateStr ? (byDate.get(dateStr) ?? []) : []
-                  const hasLesson = dayEntries.length > 0 || (dateStr ? (studentMakeupsByDate.get(dateStr)?.length ?? 0) > 0 : false)
+        {/* Calendar — flex-based for mm-fixed print layout */}
+        <div className="mpp-calendar w-full text-xs">
+          {/* Weekday header */}
+          <div className="mpp-weekday-row flex">
+            {DOW_LABELS.map((d, i) => (
+              <div key={d} className={[
+                'mpp-day-cell border border-gray-300 py-1.5 text-center text-xs font-bold',
+                i === 0 ? 'text-red-600 bg-red-50' : i === 6 ? 'text-blue-600 bg-blue-50' : 'text-gray-700 bg-gray-100',
+              ].join(' ')} style={{ width: '14.28%' }}>
+                {d}
+              </div>
+            ))}
+          </div>
 
-                  return (
-                    <td key={di} className={[
-                      'border border-gray-300 p-0',
-                      !day ? 'bg-gray-50' : '',
-                      isSun && day ? 'bg-red-50/30' : '',
-                      isSat && day ? 'bg-blue-50/30' : '',
-                    ].join(' ')}
-                      style={{ width: '14.28%' }}
-                    >
-                      {/* 高さ固定・はみ出し非表示のコンテナ */}
-                      <div
-                        className="print:h-auto overflow-hidden p-1 flex flex-col"
-                        style={{ minHeight: dayEntries.length > 4 ? '15rem' : '13rem' }}
-                      >
+          {/* Week rows */}
+          {weeks.map((week, wi) => (
+            <div key={wi} className="mpp-week-row flex">
+              {week.map((day, di) => {
+                const isSun = di === 0
+                const isSat = di === 6
+                const dateStr = day ? dayNumToDateStr(day) : null
+                const dayEntries = dateStr ? (byDate.get(dateStr) ?? []) : []
+                const makeupEntries = (type === 'student' && dateStr)
+                  ? (studentMakeupsByDate.get(dateStr) ?? [])
+                  : []
+                const hasLesson = dayEntries.length > 0 || makeupEntries.length > 0
+
+                const visibleDayEntries = dayEntries.slice(0, MAX_ENTRIES_PER_CELL)
+                const remainingSlots = MAX_ENTRIES_PER_CELL - visibleDayEntries.length
+                const visibleMakeupEntries = makeupEntries.slice(0, remainingSlots)
+                const hiddenCount =
+                  (dayEntries.length - visibleDayEntries.length) +
+                  (makeupEntries.length - visibleMakeupEntries.length)
+
+                return (
+                  <div key={di} className={[
+                    'mpp-day-cell border border-gray-300 p-0 overflow-hidden',
+                    !day ? 'bg-gray-50' : '',
+                    isSun && day ? 'bg-red-50/30' : '',
+                    isSat && day ? 'bg-blue-50/30' : '',
+                  ].join(' ')} style={{ width: '14.28%', minHeight: '8rem' }}>
+                    <div className="overflow-hidden p-1 flex flex-col h-full">
                       {day && (
                         <>
                           {/* 日付 */}
@@ -275,14 +298,10 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                             {day}
                           </div>
 
-                          {/* その日のコマ */}
-                          <div className="space-y-0.5 overflow-hidden">
-                            {dayEntries.map(({ lesson, timeLabel }, ei) => {
-                              // 時間（開始時刻のみ）
-                              const startTime = timeLabel.split('〜')[0]
-
+                          {/* コマ一覧（最大4件） */}
+                          <div className="space-y-0.5 overflow-hidden flex-1 min-h-0">
+                            {visibleDayEntries.map(({ lesson, timeLabel }, ei) => {
                               if (type === 'teacher') {
-                                // 先生ビュー: 生徒一覧を表示
                                 const enrolledStudents = (lesson.enrollments ?? [])
                                   .filter(e => e.student != null)
                                   .map(e => ({
@@ -310,7 +329,6 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                   </div>
                                 )
                               } else {
-                                // 生徒ビュー: 先生と科目を表示
                                 const enrollment = (lesson.enrollments ?? []).find(e => e.student_id === id)
                                 const mySubject = (enrollment as { subject?: string | null } | undefined)?.subject ?? lesson.subject
                                 const teacherName = (lesson as { teacher?: { name: string } }).teacher?.name
@@ -338,8 +356,9 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                 )
                               }
                             })}
-                            {/* 生徒ビュー: 振替コマ（アンバー表示） */}
-                            {dateStr && (studentMakeupsByDate.get(dateStr) ?? []).map((mk, mi) => (
+
+                            {/* 生徒ビュー: 振替コマ */}
+                            {visibleMakeupEntries.map((mk, mi) => (
                               <div key={`mk-${mi}`} className="bg-amber-50 border border-amber-300 rounded px-1 py-0.5">
                                 <p className="text-[9px] text-amber-700 font-bold leading-tight">
                                   第{mk.slotIndex}コマ
@@ -354,20 +373,24 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                 )}
                               </div>
                             ))}
+
+                            {/* オーバーフロー表示 */}
+                            {hiddenCount > 0 && (
+                              <p className="text-[8px] text-gray-400 text-center leading-tight">他{hiddenCount}件</p>
+                            )}
                           </div>
                         </>
                       )}
-                      </div>
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
 
         {/* Footer */}
-        <div className="mt-3 flex justify-between items-center text-xs text-gray-400">
+        <div className="mpp-footer mt-3 flex justify-between items-center text-xs text-gray-400">
           <span>全{entries.length + studentMakeupCount}コマ{studentMakeupCount > 0 ? `（うち振替${studentMakeupCount}）` : ''}</span>
           <span className="hidden print:inline">塾スケジュール管理システム</span>
         </div>
