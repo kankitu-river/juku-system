@@ -18,7 +18,7 @@ interface PageProps {
 }
 
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
-const MAX_ENTRIES_PER_CELL = 4
+const CIRCLE_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫']
 
 function shortSubject(s: string | null | undefined): string {
   if (!s) return ''
@@ -29,6 +29,9 @@ function shortSubject(s: string | null | undefined): string {
   }
   return map[s] ?? s.slice(0, 2)
 }
+
+const toCircle = (n: number) => CIRCLE_NUMS[n - 1] ?? String(n)
+const surname = (name: string) => name.slice(0, 2)
 
 export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
   const { year: yearStr, month: monthStr, type, id, showTeacher: showTeacherStr } = await searchParams
@@ -150,6 +153,8 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
     weeks.push(cells.slice(i, i + 7))
   }
 
+  const maxPerCell = weeks.length >= 6 ? 3 : 4
+
   const printDate = new Date().toLocaleDateString('ja-JP')
   const pad = (n: number) => String(n).padStart(2, '0')
   const dayNumToDateStr = (day: number) => `${year}-${pad(month)}-${pad(day)}`
@@ -199,6 +204,12 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
             overflow: hidden;
             box-sizing: border-box;
           }
+          .mpp-day-cell > div {
+            min-height: 0 !important;
+          }
+          .mpp-entry-list {
+            gap: 1px !important;
+          }
           .mpp-footer {
             flex-shrink: 0;
             margin-top: 2mm;
@@ -245,7 +256,7 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        {/* Calendar — flex-based for mm-fixed print layout */}
+        {/* Calendar */}
         <div className="mpp-calendar w-full text-xs">
           {/* Weekday header */}
           <div className="mpp-weekday-row flex">
@@ -272,8 +283,8 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                   : []
                 const hasLesson = dayEntries.length > 0 || makeupEntries.length > 0
 
-                const visibleDayEntries = dayEntries.slice(0, MAX_ENTRIES_PER_CELL)
-                const remainingSlots = MAX_ENTRIES_PER_CELL - visibleDayEntries.length
+                const visibleDayEntries = dayEntries.slice(0, maxPerCell)
+                const remainingSlots = maxPerCell - visibleDayEntries.length
                 const visibleMakeupEntries = makeupEntries.slice(0, remainingSlots)
                 const hiddenCount =
                   (dayEntries.length - visibleDayEntries.length) +
@@ -298,8 +309,8 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                             {day}
                           </div>
 
-                          {/* コマ一覧（最大4件） */}
-                          <div className="space-y-0.5 overflow-hidden flex-1 min-h-0">
+                          {/* コマ一覧 */}
+                          <div className="mpp-entry-list space-y-0.5 overflow-hidden flex-1 min-h-0 flex flex-col">
                             {visibleDayEntries.map(({ lesson, timeLabel }, ei) => {
                               if (type === 'teacher') {
                                 const enrolledStudents = (lesson.enrollments ?? [])
@@ -308,24 +319,42 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                     name: (e as { student?: { name: string } }).student?.name ?? '',
                                     subject: (e as { subject?: string | null }).subject ?? lesson.subject ?? '',
                                   }))
+                                const makeupStudents = makeupByLessonDate.get(`${lesson.id}__${dateStr}`) ?? []
+                                // 印刷用1行テキスト: ①涌井(国)/金子(算)
+                                const printLine = [
+                                  toCircle(lesson.slot_index),
+                                  enrolledStudents.length > 0
+                                    ? enrolledStudents.map(s => `${surname(s.name)}(${shortSubject(s.subject)})`).join('/')
+                                    : (shortSubject(lesson.subject) || '—'),
+                                  makeupStudents.length > 0
+                                    ? '+' + makeupStudents.map(mk => `${surname(mk.name)}振`).join('/')
+                                    : '',
+                                ].filter(Boolean).join('')
                                 return (
-                                  <div key={ei} className="bg-teal-50 border border-teal-200 rounded px-1 py-0.5">
-                                    <p className="text-[9px] text-teal-600 font-bold leading-tight">第{lesson.slot_index}コマ</p>
-                                    <p className="text-[8px] text-teal-500 leading-none mb-0.5">{timeLabel}</p>
-                                    {enrolledStudents.length > 0 ? (
-                                      enrolledStudents.map((s, si) => (
-                                        <p key={si} className="text-[9px] text-gray-800 leading-tight truncate">
-                                          {s.name}{s.subject ? `（${shortSubject(s.subject)}）` : ''}
+                                  <div key={ei} className="overflow-hidden">
+                                    {/* screen */}
+                                    <div className="print:hidden bg-teal-50 border border-teal-200 rounded px-1 py-0.5">
+                                      <p className="text-[9px] text-teal-600 font-bold leading-tight">第{lesson.slot_index}コマ</p>
+                                      <p className="text-[8px] text-teal-500 leading-none mb-0.5">{timeLabel}</p>
+                                      {enrolledStudents.length > 0 ? (
+                                        enrolledStudents.map((s, si) => (
+                                          <p key={si} className="text-[9px] text-gray-800 leading-tight truncate">
+                                            {s.name}{s.subject ? `（${shortSubject(s.subject)}）` : ''}
+                                          </p>
+                                        ))
+                                      ) : (
+                                        <p className="text-[9px] text-gray-400 leading-tight">{lesson.subject || '—'}</p>
+                                      )}
+                                      {makeupStudents.map((mk, mi) => (
+                                        <p key={`mk-${mi}`} className="text-[9px] font-bold text-amber-800 bg-amber-100 rounded px-0.5 leading-tight truncate">
+                                          {mk.name}（振替）
                                         </p>
-                                      ))
-                                    ) : (
-                                      <p className="text-[9px] text-gray-400 leading-tight">{lesson.subject || '—'}</p>
-                                    )}
-                                    {(makeupByLessonDate.get(`${lesson.id}__${dateStr}`) ?? []).map((mk, mi) => (
-                                      <p key={`mk-${mi}`} className="text-[9px] font-bold text-amber-800 bg-amber-100 rounded px-0.5 leading-tight truncate">
-                                        {mk.name}（振替）
-                                      </p>
-                                    ))}
+                                      ))}
+                                    </div>
+                                    {/* print: 1行圧縮 */}
+                                    <p className="hidden print:block truncate text-[8px] leading-tight text-gray-800 font-medium">
+                                      {printLine}
+                                    </p>
                                   </div>
                                 )
                               } else {
@@ -333,50 +362,78 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                 const mySubject = (enrollment as { subject?: string | null } | undefined)?.subject ?? lesson.subject
                                 const teacherName = (lesson as { teacher?: { name: string } }).teacher?.name
                                 const isGroup = lesson.type === 'group'
+                                // 印刷用1行テキスト: ①国·金子T
+                                const printParts = [
+                                  toCircle(lesson.slot_index),
+                                  shortSubject(mySubject),
+                                  teacherName && showTeacher ? `·${surname(teacherName)}T` : '',
+                                ]
+                                const printLine = printParts.filter(Boolean).join('')
                                 return (
-                                  <div key={ei} className={[
-                                    'border rounded px-1 py-0.5',
-                                    isGroup ? 'bg-purple-50 border-purple-200' : 'bg-teal-50 border-teal-200',
-                                  ].join(' ')}>
-                                    <p className={[
-                                      'text-[9px] font-bold leading-tight',
-                                      isGroup ? 'text-purple-600' : 'text-teal-600',
-                                    ].join(' ')}>第{lesson.slot_index}コマ</p>
-                                    <p className={[
-                                      'text-[8px] leading-none mb-0.5',
-                                      isGroup ? 'text-purple-400' : 'text-teal-400',
-                                    ].join(' ')}>{timeLabel}</p>
-                                    {teacherName && showTeacher && (
-                                      <p className="text-[9px] text-gray-800 leading-tight truncate">{teacherName}先生</p>
-                                    )}
-                                    {mySubject && (
-                                      <p className="text-[9px] text-gray-500 leading-tight">{mySubject}</p>
-                                    )}
+                                  <div key={ei} className="overflow-hidden">
+                                    {/* screen */}
+                                    <div className={[
+                                      'print:hidden border rounded px-1 py-0.5',
+                                      isGroup ? 'bg-purple-50 border-purple-200' : 'bg-teal-50 border-teal-200',
+                                    ].join(' ')}>
+                                      <p className={[
+                                        'text-[9px] font-bold leading-tight',
+                                        isGroup ? 'text-purple-600' : 'text-teal-600',
+                                      ].join(' ')}>第{lesson.slot_index}コマ</p>
+                                      <p className={[
+                                        'text-[8px] leading-none mb-0.5',
+                                        isGroup ? 'text-purple-400' : 'text-teal-400',
+                                      ].join(' ')}>{timeLabel}</p>
+                                      {teacherName && showTeacher && (
+                                        <p className="text-[9px] text-gray-800 leading-tight truncate">{teacherName}先生</p>
+                                      )}
+                                      {mySubject && (
+                                        <p className="text-[9px] text-gray-500 leading-tight">{mySubject}</p>
+                                      )}
+                                    </div>
+                                    {/* print: 1行圧縮 */}
+                                    <p className="hidden print:block truncate text-[8px] leading-tight text-gray-800 font-medium">
+                                      {printLine}
+                                    </p>
                                   </div>
                                 )
                               }
                             })}
 
                             {/* 生徒ビュー: 振替コマ */}
-                            {visibleMakeupEntries.map((mk, mi) => (
-                              <div key={`mk-${mi}`} className="bg-amber-50 border border-amber-300 rounded px-1 py-0.5">
-                                <p className="text-[9px] text-amber-700 font-bold leading-tight">
-                                  第{mk.slotIndex}コマ
-                                  <span className="ml-1 text-[8px] bg-amber-200 text-amber-800 px-0.5 rounded font-bold">振替</span>
-                                </p>
-                                <p className="text-[8px] text-amber-500 leading-none mb-0.5">{mk.timeLabel}</p>
-                                {mk.teacherName && showTeacher && (
-                                  <p className="text-[9px] text-gray-800 leading-tight truncate">{mk.teacherName}先生</p>
-                                )}
-                                {mk.subject && (
-                                  <p className="text-[9px] text-gray-500 leading-tight">{mk.subject}</p>
-                                )}
-                              </div>
-                            ))}
+                            {visibleMakeupEntries.map((mk, mi) => {
+                              const printLine = [
+                                toCircle(mk.slotIndex) + '振',
+                                shortSubject(mk.subject),
+                                mk.teacherName && showTeacher ? `·${surname(mk.teacherName)}T` : '',
+                              ].filter(Boolean).join('')
+                              return (
+                                <div key={`mk-${mi}`} className="overflow-hidden">
+                                  {/* screen */}
+                                  <div className="print:hidden bg-amber-50 border border-amber-300 rounded px-1 py-0.5">
+                                    <p className="text-[9px] text-amber-700 font-bold leading-tight">
+                                      第{mk.slotIndex}コマ
+                                      <span className="ml-1 text-[8px] bg-amber-200 text-amber-800 px-0.5 rounded font-bold">振替</span>
+                                    </p>
+                                    <p className="text-[8px] text-amber-500 leading-none mb-0.5">{mk.timeLabel}</p>
+                                    {mk.teacherName && showTeacher && (
+                                      <p className="text-[9px] text-gray-800 leading-tight truncate">{mk.teacherName}先生</p>
+                                    )}
+                                    {mk.subject && (
+                                      <p className="text-[9px] text-gray-500 leading-tight">{mk.subject}</p>
+                                    )}
+                                  </div>
+                                  {/* print: 1行圧縮 */}
+                                  <p className="hidden print:block truncate text-[8px] leading-tight text-amber-700 font-medium">
+                                    {printLine}
+                                  </p>
+                                </div>
+                              )
+                            })}
 
-                            {/* オーバーフロー表示 */}
+                            {/* オーバーフロー */}
                             {hiddenCount > 0 && (
-                              <p className="text-[8px] text-gray-400 text-center leading-tight">他{hiddenCount}件</p>
+                              <p className="text-[6px] text-gray-400 text-center leading-tight mt-auto">他{hiddenCount}件</p>
                             )}
                           </div>
                         </>
