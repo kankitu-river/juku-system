@@ -31,7 +31,7 @@ function shortSubject(s: string | null | undefined): string {
 }
 
 const toCircle = (n: number) => CIRCLE_NUMS[n - 1] ?? String(n)
-const surname = (name: string) => name.slice(0, 2)
+const surname = (name: string) => name.slice(0, 3)
 
 export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
   const { year: yearStr, month: monthStr, type, id, showTeacher: showTeacherStr } = await searchParams
