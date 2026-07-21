@@ -176,6 +176,20 @@ export function SurveyRespond({
     return 'ng'
   }
 
+  function setAllSlots(dateStr: string, state: 'ok' | 'maybe' | 'ng') {
+    const indices = getSlotsForDate(dateStr, termType).map(s => s.index)
+    if (state === 'ok') {
+      setOkSlots(prev => ({ ...prev, [dateStr]: indices }))
+      setMaybeSlots(prev => ({ ...prev, [dateStr]: [] }))
+    } else if (state === 'maybe') {
+      setOkSlots(prev => ({ ...prev, [dateStr]: [] }))
+      setMaybeSlots(prev => ({ ...prev, [dateStr]: indices }))
+    } else {
+      setOkSlots(prev => ({ ...prev, [dateStr]: [] }))
+      setMaybeSlots(prev => ({ ...prev, [dateStr]: [] }))
+    }
+  }
+
   function cycleSlot(dateStr: string, slotIndex: number) {
     const state = getSlotState(dateStr, slotIndex)
     setOkSlots(prev => {
@@ -498,11 +512,26 @@ export function SurveyRespond({
         {/* コマ選択パネル */}
         {activeDate && (
           <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{formatDate(activeDate)}</p>
               <button onClick={() => removeDate(activeDate)} className="text-xs text-red-500 hover:text-red-700 font-medium">この日を削除</button>
             </div>
-            <p className="text-xs text-gray-400 mb-2">タップするたびに ○ → △ → × と切り替わります</p>
+            {/* 一括設定ボタン */}
+            <div className="flex gap-1.5 mb-3">
+              <button type="button" onClick={() => setAllSlots(activeDate, 'ok')}
+                className="flex-1 text-xs font-bold py-1.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition-colors">
+                全コマ○
+              </button>
+              <button type="button" onClick={() => setAllSlots(activeDate, 'maybe')}
+                className="flex-1 text-xs font-bold py-1.5 rounded-lg bg-amber-400 text-white hover:bg-amber-500 transition-colors">
+                全コマ△
+              </button>
+              <button type="button" onClick={() => setAllSlots(activeDate, 'ng')}
+                className="flex-1 text-xs font-bold py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                全コマ×
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-2">各コマをタップして個別に ○ → △ → × と切り替えることもできます</p>
             <div className="space-y-2">
               {activeDateSlots.map((slot) => {
                 const state = getSlotState(activeDate, slot.index)
