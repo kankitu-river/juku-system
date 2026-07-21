@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { createSurvey, deleteSurvey, sendSurveyEmails, importSurveyToShifts, getShiftPredictions } from './actions'
-import { SURVEY_NG_REASONS } from '@/lib/constants/surveyReasons'
+import { SURVEY_NG_REASONS, SURVEY_MAYBE_REASONS } from '@/lib/constants/surveyReasons'
 
 interface Token {
   id: string
@@ -38,6 +38,8 @@ type ResponseEntry = {
   maybeSlots: Record<string, number[]>
   ngReasons: string[]
   ngReasonNote: string
+  maybeReasons: string[]
+  maybeReasonNote: string
 }
 
 interface SurveyManagerProps {
@@ -56,6 +58,12 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
   const reasonCounts = SURVEY_NG_REASONS.map(r => ({
     label: r.label,
     count: allNgReasons.filter(k => k === r.key).length,
+  })).filter(r => r.count > 0)
+
+  const allMaybeReasons = responses.flatMap(r => r.maybeReasons ?? [])
+  const maybeReasonCounts = SURVEY_MAYBE_REASONS.map(r => ({
+    label: r.label,
+    count: allMaybeReasons.filter(k => k === r.key).length,
   })).filter(r => r.count > 0)
 
   return (
@@ -129,20 +137,46 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
                   {res.ngReasonNote && <span className="text-[10px] text-gray-400">（{res.ngReasonNote}）</span>}
                 </div>
               )}
+              {res.maybeReasons && res.maybeReasons.length > 0 && (
+                <div className="ml-20 mt-0.5">
+                  <span className="text-[10px] text-amber-500">△理由: </span>
+                  {res.maybeReasons.map(k => {
+                    const r = SURVEY_MAYBE_REASONS.find(r => r.key === k)
+                    return r ? <span key={k} className="text-[10px] text-amber-600 dark:text-amber-400 mr-1">{r.label}</span> : null
+                  })}
+                  {res.maybeReasonNote && <span className="text-[10px] text-amber-400">（{res.maybeReasonNote}）</span>}
+                </div>
+              )}
             </div>
           )
         })}
       </div>
-      {reasonCounts.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
-          <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-2">今月の×理由</p>
-          <div className="flex flex-wrap gap-2">
-            {reasonCounts.map(r => (
-              <span key={r.label} className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full">
-                {r.label} {r.count}件
-              </span>
-            ))}
-          </div>
+      {(reasonCounts.length > 0 || maybeReasonCounts.length > 0) && (
+        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+          {reasonCounts.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1.5">今月の×理由</p>
+              <div className="flex flex-wrap gap-2">
+                {reasonCounts.map(r => (
+                  <span key={r.label} className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full">
+                    {r.label} {r.count}件
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {maybeReasonCounts.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-amber-500 mb-1.5">今月の△理由</p>
+              <div className="flex flex-wrap gap-2">
+                {maybeReasonCounts.map(r => (
+                  <span key={r.label} className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                    {r.label} {r.count}件
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

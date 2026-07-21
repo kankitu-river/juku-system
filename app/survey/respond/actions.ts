@@ -8,7 +8,9 @@ export async function submitSurveyResponse(
   availableSlots: Record<string, number[]>,
   maybeSlots: Record<string, number[]> = {},
   ngReasons: string[] = [],
-  ngReasonNote: string = ''
+  ngReasonNote: string = '',
+  maybeReasons: string[] = [],
+  maybeReasonNote: string = ''
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
 
@@ -19,6 +21,8 @@ export async function submitSurveyResponse(
     p_maybe_slots: maybeSlots,
     p_ng_reasons: ngReasons,
     p_ng_reason_note: ngReasonNote,
+    p_maybe_reasons: maybeReasons,
+    p_maybe_reason_note: maybeReasonNote,
   })
 
   if (error) {

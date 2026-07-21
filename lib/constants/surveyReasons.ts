@@ -9,3 +9,13 @@ export const SURVEY_NG_REASONS = [
 ] as const
 
 export type NgReasonKey = typeof SURVEY_NG_REASONS[number]['key']
+
+export const SURVEY_MAYBE_REASONS = [
+  { key: 'this_week_only', label: '今週のみ授業可能' },
+  { key: 'late_arrival',   label: '遅れて到着するが授業可能' },
+  { key: 'early_leave',    label: '早退が必要だが授業可能' },
+  { key: 'other_job_adj',  label: '他バイトと調整次第' },
+  { key: 'other',          label: 'その他' },
+] as const
+
+export type MaybeReasonKey = typeof SURVEY_MAYBE_REASONS[number]['key']

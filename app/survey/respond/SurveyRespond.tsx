@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { submitSurveyResponse } from './actions'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
-import { SURVEY_NG_REASONS } from '@/lib/constants/surveyReasons'
+import { SURVEY_NG_REASONS, SURVEY_MAYBE_REASONS } from '@/lib/constants/surveyReasons'
 import { toDateStr } from '@/lib/utils/datetime'
 import type { TimeSlot } from '@/types'
 
@@ -118,6 +118,8 @@ export function SurveyRespond({
   )
   const [ngReasonsByDate, setNgReasonsByDate] = useState<Record<string, string[]>>({})
   const [ngNoteByDate, setNgNoteByDate] = useState<Record<string, string>>({})
+  const [maybeReasonsByDate, setMaybeReasonsByDate] = useState<Record<string, string[]>>({})
+  const [maybeNoteByDate, setMaybeNoteByDate] = useState<Record<string, string>>({})
   const [openedDates, setOpenedDates] = useState<Set<string>>(
     preselected
       ? new Set([
@@ -193,6 +195,8 @@ export function SurveyRespond({
     setMaybeSlots(prev => { const n = { ...prev }; delete n[dateStr]; return n })
     setNgReasonsByDate(prev => { const n = { ...prev }; delete n[dateStr]; return n })
     setNgNoteByDate(prev => { const n = { ...prev }; delete n[dateStr]; return n })
+    setMaybeReasonsByDate(prev => { const n = { ...prev }; delete n[dateStr]; return n })
+    setMaybeNoteByDate(prev => { const n = { ...prev }; delete n[dateStr]; return n })
     setOpenedDates(prev => { const n = new Set(prev); n.delete(dateStr); return n })
     if (activeDate === dateStr) setActiveDate(null)
   }
@@ -230,6 +234,11 @@ export function SurveyRespond({
       .filter(([, v]) => v.trim())
       .map(([date, note]) => `${date}: ${note}`)
       .join(' / ')
+    const allMaybeReasons = [...new Set(Object.values(maybeReasonsByDate).flat())]
+    const allMaybeNote = Object.entries(maybeNoteByDate)
+      .filter(([, v]) => v.trim())
+      .map(([date, note]) => `${date}: ${note}`)
+      .join(' / ')
     startTransition(async () => {
       const result = await submitSurveyResponse(
         surveyId,
@@ -238,6 +247,8 @@ export function SurveyRespond({
         maybeSlots,
         allNgReasons,
         allNgNote,
+        allMaybeReasons,
+        allMaybeNote,
       )
       if (result.error) { setError(result.error); return }
       setStep('done')
@@ -279,11 +290,12 @@ export function SurveyRespond({
 
   if (step === 'calendar' && selectedTeacher) {
     const activeDateSlots = activeDate ? getSlotsForDate(activeDate, termType) : []
-    const allNg = activeDate !== null
+    const hasNg = activeDate !== null
       && openedDates.has(activeDate)
-      && activeDateSlots.length > 0
-      && (okSlots[activeDate] ?? []).length === 0
-      && (maybeSlots[activeDate] ?? []).length === 0
+      && activeDateSlots.some(s => getSlotState(activeDate, s.index) === 'ng')
+    const hasMaybe = activeDate !== null
+      && openedDates.has(activeDate)
+      && (maybeSlots[activeDate] ?? []).length > 0
 
     const renderDateCell = (dateStr: string, d: Date, allowedDates?: string[]) => {
       const dow = d.getDay()
@@ -523,42 +535,84 @@ export function SurveyRespond({
               })}
             </div>
 
-            {/* S2: ×理由パネル */}
-            {allNg && (
-              <div className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">来られない理由（任意・複数選択可）</p>
-                <div className="flex flex-wrap gap-2">
-                  {SURVEY_NG_REASONS.map(r => {
-                    const selected = (ngReasonsByDate[activeDate] ?? []).includes(r.key)
-                    return (
-                      <button key={r.key} type="button"
-                        onClick={() => {
-                          setNgReasonsByDate(prev => {
-                            const cur = prev[activeDate] ?? []
-                            const next = selected ? cur.filter(k => k !== r.key) : [...cur, r.key]
-                            return { ...prev, [activeDate]: next }
-                          })
-                        }}
-                        className={[
-                          'text-xs px-3 py-1.5 rounded-full border transition-colors',
-                          selected
-                            ? 'bg-gray-700 text-white border-gray-700 dark:bg-gray-200 dark:text-gray-800 dark:border-gray-200'
-                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-500',
-                        ].join(' ')}
-                      >
-                        {r.label}
-                      </button>
-                    )
-                  })}
-                </div>
-                {(ngReasonsByDate[activeDate] ?? []).includes('other') && (
-                  <input
-                    type="text"
-                    value={ngNoteByDate[activeDate] ?? ''}
-                    onChange={e => setNgNoteByDate(prev => ({ ...prev, [activeDate]: e.target.value }))}
-                    placeholder="その他の理由を入力"
-                    className="mt-2 w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-400"
-                  />
+            {/* 理由パネル: ×または△のコマがあれば即表示 */}
+            {(hasNg || hasMaybe) && (
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3 space-y-3">
+                {hasNg && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">×の理由（任意・複数選択可）</p>
+                    <div className="flex flex-wrap gap-2">
+                      {SURVEY_NG_REASONS.map(r => {
+                        const selected = (ngReasonsByDate[activeDate!] ?? []).includes(r.key)
+                        return (
+                          <button key={r.key} type="button"
+                            onClick={() => {
+                              setNgReasonsByDate(prev => {
+                                const cur = prev[activeDate!] ?? []
+                                const next = selected ? cur.filter(k => k !== r.key) : [...cur, r.key]
+                                return { ...prev, [activeDate!]: next }
+                              })
+                            }}
+                            className={[
+                              'text-xs px-3 py-1.5 rounded-full border transition-colors',
+                              selected
+                                ? 'bg-gray-700 text-white border-gray-700 dark:bg-gray-200 dark:text-gray-800 dark:border-gray-200'
+                                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-500',
+                            ].join(' ')}
+                          >
+                            {r.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {(ngReasonsByDate[activeDate!] ?? []).includes('other') && (
+                      <input
+                        type="text"
+                        value={ngNoteByDate[activeDate!] ?? ''}
+                        onChange={e => setNgNoteByDate(prev => ({ ...prev, [activeDate!]: e.target.value }))}
+                        placeholder="その他の理由を入力"
+                        className="mt-2 w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                      />
+                    )}
+                  </div>
+                )}
+                {hasMaybe && (
+                  <div>
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">△の理由（任意・複数選択可）</p>
+                    <div className="flex flex-wrap gap-2">
+                      {SURVEY_MAYBE_REASONS.map(r => {
+                        const selected = (maybeReasonsByDate[activeDate!] ?? []).includes(r.key)
+                        return (
+                          <button key={r.key} type="button"
+                            onClick={() => {
+                              setMaybeReasonsByDate(prev => {
+                                const cur = prev[activeDate!] ?? []
+                                const next = selected ? cur.filter(k => k !== r.key) : [...cur, r.key]
+                                return { ...prev, [activeDate!]: next }
+                              })
+                            }}
+                            className={[
+                              'text-xs px-3 py-1.5 rounded-full border transition-colors',
+                              selected
+                                ? 'bg-amber-500 text-white border-amber-500'
+                                : 'bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 hover:border-amber-500',
+                            ].join(' ')}
+                          >
+                            {r.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {(maybeReasonsByDate[activeDate!] ?? []).includes('other') && (
+                      <input
+                        type="text"
+                        value={maybeNoteByDate[activeDate!] ?? ''}
+                        onChange={e => setMaybeNoteByDate(prev => ({ ...prev, [activeDate!]: e.target.value }))}
+                        placeholder="その他の理由を入力"
+                        className="mt-2 w-full text-sm border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -578,6 +632,8 @@ export function SurveyRespond({
                 setMaybeSlots({})
                 setNgReasonsByDate({})
                 setNgNoteByDate({})
+                setMaybeReasonsByDate({})
+                setMaybeNoteByDate({})
                 setOpenedDates(new Set())
                 setActiveDate(null)
               }}
