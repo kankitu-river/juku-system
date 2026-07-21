@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { submitSurveyResponse } from './actions'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
 import { SURVEY_NG_REASONS, SURVEY_MAYBE_REASONS } from '@/lib/constants/surveyReasons'
+import { parseAvailability, type ParsedAvailability } from '@/lib/parse/availabilityParser'
 import { toDateStr } from '@/lib/utils/datetime'
 import type { TimeSlot } from '@/types'
 
@@ -134,27 +135,11 @@ export function SurveyRespond({
   const [error, setError] = useState<string>()
   const [changeWarning, setChangeWarning] = useState<string[] | null>(null)
   const [freeText, setFreeText] = useState('')
-  const [aiParsing, setAiParsing] = useState(false)
-  const [aiResult, setAiResult] = useState<{ available_days: number[]; time_preference: string; notes: string } | null>(null)
+  const [parseResult, setParseResult] = useState<ParsedAvailability | null>(null)
 
-  async function handleAIParse() {
+  function handleParse() {
     if (!freeText.trim()) return
-    setAiParsing(true)
-    setAiResult(null)
-    try {
-      const res = await fetch('/api/ai/parse-shift', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: freeText }),
-      })
-      const data = await res.json()
-      if (data.error) { setError(data.error); return }
-      setAiResult(data)
-    } catch {
-      setError('AI解析に失敗しました')
-    } finally {
-      setAiParsing(false)
-    }
+    setParseResult(parseAvailability(freeText))
   }
 
   const days = getDaysInMonth(targetMonth)
@@ -360,35 +345,47 @@ export function SurveyRespond({
 
     return (
       <div className="space-y-4">
-        {/* AI 自由記述パース */}
+        {/* 自由記述パース（ルールベース） */}
         <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl p-4">
           <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-1">
-            <span className="text-[10px] bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded font-bold">AI生成</span>
-            自由記述からカレンダーを自動入力
+            <span className="text-[10px] bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded font-bold">自動解析（ベータ）</span>
+            テキストから曜日を読み取り（参考値）
           </p>
           <div className="flex gap-2">
             <input
               type="text"
               value={freeText}
-              onChange={(e) => setFreeText(e.target.value)}
+              onChange={(e) => { setFreeText(e.target.value); setParseResult(null) }}
+              onKeyDown={(e) => e.key === 'Enter' && handleParse()}
               placeholder="例: 火木の夕方以降なら来られます"
               className="flex-1 text-sm border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
             <button
               type="button"
-              onClick={handleAIParse}
-              disabled={aiParsing || !freeText.trim()}
+              onClick={handleParse}
+              disabled={!freeText.trim()}
               className="px-3 py-1.5 text-sm bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {aiParsing ? '解析中…' : 'AI解析'}
+              読み取る
             </button>
           </div>
-          {aiResult && (
-            <div className="mt-2 text-xs text-blue-700 dark:text-blue-300 bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
-              <p className="font-medium mb-1">解析結果（参考値 — カレンダーを確認・修正してください）:</p>
-              <p>出勤可能曜日: {aiResult.available_days.length > 0 ? aiResult.available_days.map((d) => DAY_NAMES[d]).join('・') : 'なし'}</p>
-              <p>時間帯: {aiResult.time_preference || 'なし'}</p>
-              {aiResult.notes && <p>備考: {aiResult.notes}</p>}
+          {parseResult && (
+            <div className="mt-2 text-xs bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
+              {parseResult.confidence === 'low' ? (
+                <p className="text-amber-600 dark:text-amber-400">うまく読み取れませんでした。カレンダーを直接タップしてください。</p>
+              ) : (
+                <>
+                  <p className="font-medium text-blue-700 dark:text-blue-300 mb-1">読み取り結果（参考値 — カレンダーを確認・修正してください）</p>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    曜日: {parseResult.available_days.map((d) => DAY_NAMES[d]).join('・')}
+                  </p>
+                  {parseResult.time_preference && (
+                    <p className="text-blue-600 dark:text-blue-400">
+                      時間帯: {{ morning: '午前', afternoon: '午後', evening: '夕方以降' }[parseResult.time_preference]}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>
