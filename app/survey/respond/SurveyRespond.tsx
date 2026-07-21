@@ -136,6 +136,9 @@ export function SurveyRespond({
   const [changeWarning, setChangeWarning] = useState<string[] | null>(null)
   const [freeText, setFreeText] = useState('')
   const [parseResult, setParseResult] = useState<ParsedAvailability | null>(null)
+  const [surveyNote, setSurveyNote] = useState('')
+  // null = 矛盾なし/未チェック、string[] = 矛盾している曜日名リスト
+  const [surveyNoteConflict, setSurveyNoteConflict] = useState<string[] | null>(null)
 
   function handleParse() {
     if (!freeText.trim()) return
@@ -224,6 +227,25 @@ export function SurveyRespond({
     setActiveDate(activeDate === dateStr ? null : dateStr)
   }
 
+  // 自由記述とカレンダーの矛盾チェック（ベストエフォート。記述は人間が最終確認する前提）
+  function detectNoteConflict(): string[] | null {
+    if (!surveyNote.trim()) return null
+    const result = parseAvailability(surveyNote)
+    if (result.confidence === 'low' || result.available_days.length === 0) return null
+
+    const activeDows = new Set<number>()
+    for (const [dateStr, slots] of Object.entries(okSlots)) {
+      if (slots.length > 0) activeDows.add(new Date(dateStr + 'T12:00:00').getDay())
+    }
+    for (const [dateStr, slots] of Object.entries(maybeSlots)) {
+      if (slots.length > 0) activeDows.add(new Date(dateStr + 'T12:00:00').getDay())
+    }
+
+    const conflicting = result.available_days.filter(d => !activeDows.has(d))
+    if (conflicting.length === 0) return null
+    return conflicting.map(d => DAY_NAMES[d] + '曜日')
+  }
+
   function doSubmit() {
     if (!selectedTeacher) return
     setError(undefined)
@@ -248,6 +270,7 @@ export function SurveyRespond({
         allNgNote,
         allMaybeReasons,
         allMaybeNote,
+        surveyNote,
       )
       if (result.error) { setError(result.error); return }
       setStep('done')
@@ -263,6 +286,11 @@ export function SurveyRespond({
         setChangeWarning(changes)
         return
       }
+    }
+    const conflict = detectNoteConflict()
+    if (conflict) {
+      setSurveyNoteConflict(conflict)
+      return
     }
     doSubmit()
   }
@@ -422,6 +450,34 @@ export function SurveyRespond({
                   className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-sm"
                 >
                   見直す
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* メモ矛盾確認モーダル */}
+        {surveyNoteConflict && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">メモの内容とカレンダーが違うようです</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    メモには{surveyNoteConflict.join('・')}が書かれていますが、カレンダーには○/△のコマが登録されていません。
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">カレンダーの内容は正しいですか？</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={doSubmit} disabled={isPending}
+                  className="flex-1 bg-navy text-white font-semibold py-2.5 rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50 text-sm">
+                  {isPending ? '送信中...' : 'このまま送信'}
+                </button>
+                <button type="button" onClick={() => setSurveyNoteConflict(null)}
+                  className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-sm">
+                  カレンダーを確認する
                 </button>
               </div>
             </div>
@@ -665,6 +721,21 @@ export function SurveyRespond({
               }}
               className="text-xs text-blue-500 hover:text-blue-700">全解除</button>
           )}
+        </div>
+
+        {/* その他・伝えたいこと（記述は人間が読むもの。解析はベストエフォートで矛盾チェックのみ） */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+            その他、伝えたいこと（任意）
+          </label>
+          <p className="text-[11px] text-gray-400 mb-2">例: 8月後半から出られます、第3コマ以降なら毎日OK、試験期間は少し遅れます</p>
+          <textarea
+            value={surveyNote}
+            onChange={e => setSurveyNote(e.target.value)}
+            placeholder="自由に記入してください"
+            rows={3}
+            className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-navy resize-none"
+          />
         </div>
 
         <button type="button" onClick={handleSubmit} disabled={isPending}

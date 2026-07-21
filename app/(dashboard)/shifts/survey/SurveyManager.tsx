@@ -40,6 +40,7 @@ type ResponseEntry = {
   ngReasonNote: string
   maybeReasons: string[]
   maybeReasonNote: string
+  surveyNote: string
 }
 
 interface SurveyManagerProps {
@@ -145,6 +146,11 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
                     return r ? <span key={k} className="text-[10px] text-amber-600 dark:text-amber-400 mr-1">{r.label}</span> : null
                   })}
                   {res.maybeReasonNote && <span className="text-[10px] text-amber-400">（{res.maybeReasonNote}）</span>}
+                </div>
+              )}
+              {res.surveyNote && (
+                <div className="ml-20 mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 italic">
+                  💬 {res.surveyNote}
                 </div>
               )}
             </div>
