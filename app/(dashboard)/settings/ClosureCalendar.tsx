@@ -98,7 +98,7 @@ export function ClosureCalendar({ initialClosureDates }: ClosureCalendarProps) {
                 className={[
                   'aspect-square rounded-xl text-sm font-medium transition-all flex flex-col items-center justify-center gap-0.5',
                   isClosed
-                    ? 'bg-red-500 text-white shadow-sm'
+                    ? 'bg-red-500 text-white'
                     : isPast
                       ? 'text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                       : dow === 0 ? 'text-red-400 hover:bg-red-50'

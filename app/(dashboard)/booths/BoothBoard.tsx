@@ -46,7 +46,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
     return lesson.booth_id
   }
 
-  function getLessonsForBoothAndSlot(boothId: string, slotIndex: number): Lesson[] {
+  function getLessonsForBoothAndSlot(boothId: string, slotIndex: number): LessonWithTeacher[] {
     return lessons.filter((l) => getBoothId(l) === boothId && l.slot_index === slotIndex)
   }
 
@@ -196,7 +196,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
                                   <p className={[
                                     'font-semibold truncate',
                                     lesson.is_ps1 ? 'text-purple-900' : 'text-teal-900',
-                                  ].join(' ')}>{lesson.teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
+                                  ].join(' ')}>{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}</p>
                                   {lesson.is_ps1 && (
                                     <span className="text-[9px] bg-purple-200 text-purple-800 dark:text-purple-200 px-1 py-0.5 rounded font-bold flex-shrink-0">PS1</span>
                                   )}
@@ -234,7 +234,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
                                   <p className={[
                                     'font-semibold truncate',
                                     lesson.is_ps1 ? 'text-purple-900' : 'text-teal-900',
-                                  ].join(' ')}>{lesson.teacher?.name ? `${(lesson as any).teacher.name}先生` : '担当未設定'}</p>
+                                  ].join(' ')}>{lesson.teacher?.name ? `${lesson.teacher.name}先生` : '担当未設定'}</p>
                                   {lesson.is_ps1 && (
                                     <span className="text-[9px] bg-purple-300 text-purple-900 px-1 py-0.5 rounded font-bold flex-shrink-0">PS1</span>
                                   )}
@@ -289,7 +289,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
                   className="text-xs bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900 rounded-lg px-2.5 py-1.5 text-amber-800 dark:text-amber-200 hover:border-amber-400 transition-colors"
                 >
                   第{l.slot_index}コマ {l.subject}
-                  {l.teacher?.name && ` (${(l as any).teacher.name})`}
+                  {l.teacher?.name && ` (${l.teacher.name})`}
                 </Link>
               ))}
             </div>

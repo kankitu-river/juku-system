@@ -65,7 +65,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   const tokenIds = tokens.map((t) => t.id)
   const [{ data: responses }, { data: closures }] = await Promise.all([
     tokenIds.length > 0
-      ? supabase.from('shift_survey_responses').select('teacher_id, available_slots').in('token_id', tokenIds)
+      ? supabase.from('shift_survey_responses').select('teacher_id, available_slots, maybe_slots, ng_reasons, ng_reason_note').in('token_id', tokenIds)
       : Promise.resolve({ data: [] }),
     supabase.from('school_closures')
       .select('date')
@@ -74,8 +74,10 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   ])
 
   const slotsMap: Record<string, Record<string, number[]>> = {}
+  const maybeSlotsMap: Record<string, Record<string, number[]>> = {}
   for (const r of responses ?? []) {
     slotsMap[r.teacher_id] = (r.available_slots ?? {}) as Record<string, number[]>
+    maybeSlotsMap[r.teacher_id] = (r.maybe_slots ?? {}) as Record<string, number[]>
   }
 
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
@@ -165,6 +167,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
           termType={termType}
           tokens={tokens}
           slotsMap={slotsMap}
+          maybeSlotsMap={maybeSlotsMap}
           closureDates={closureDates}
           intensivePeriodDates={intensivePeriodDates}
           preselectedTeacherId={preselectedTeacherId}

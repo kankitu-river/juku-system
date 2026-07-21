@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { submitSurveyResponse } from './actions'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
+import { SURVEY_NG_REASONS } from '@/lib/constants/surveyReasons'
 import { toDateStr } from '@/lib/utils/datetime'
 import type { TimeSlot } from '@/types'
 
@@ -20,6 +21,7 @@ interface SurveyRespondProps {
   termType: 'regular' | 'intensive'
   tokens: Token[]
   slotsMap: Record<string, Record<string, number[]>>
+  maybeSlotsMap?: Record<string, Record<string, number[]>>
   closureDates?: string[]
   intensivePeriodDates?: string[] | null
   preselectedTeacherId?: string | null
@@ -65,7 +67,6 @@ function groupByMonth(dates: string[]): { ym: string; dates: string[] }[] {
     .map(([ym, dates]) => ({ ym, dates }))
 }
 
-// slotsMap (date → slotIndices) → dayOfWeek → sorted slotIndices
 function toDayPattern(slotsMap: Record<string, number[]>): Record<number, number[]> {
   const pattern: Record<number, Set<number>> = {}
   for (const [dateStr, slots] of Object.entries(slotsMap)) {
@@ -98,8 +99,8 @@ function computeChanges(
 }
 
 export function SurveyRespond({
-  surveyId, targetMonth, termType, tokens, slotsMap, closureDates = [],
-  intensivePeriodDates, preselectedTeacherId, previousDayPattern,
+  surveyId, targetMonth, termType, tokens, slotsMap, maybeSlotsMap = {},
+  closureDates = [], intensivePeriodDates, preselectedTeacherId, previousDayPattern,
 }: SurveyRespondProps) {
   const preselected = preselectedTeacherId
     ? tokens.find((t) => t.teacher_id === preselectedTeacherId) ?? null
@@ -107,10 +108,26 @@ export function SurveyRespond({
 
   const [step, setStep] = useState<'select' | 'calendar' | 'done'>(preselected ? 'calendar' : 'select')
   const [selectedTeacher, setSelectedTeacher] = useState<Token | null>(preselected)
-  const [selectedSlots, setSelectedSlots] = useState<Record<string, number[]>>(
+
+  // 三段階状態
+  const [okSlots, setOkSlots] = useState<Record<string, number[]>>(
     preselected ? (slotsMap[preselected.teacher_id] ?? {}) : {}
   )
+  const [maybeSlots, setMaybeSlots] = useState<Record<string, number[]>>(
+    preselected ? (maybeSlotsMap[preselected.teacher_id] ?? {}) : {}
+  )
+  const [ngReasonsByDate, setNgReasonsByDate] = useState<Record<string, string[]>>({})
+  const [ngNoteByDate, setNgNoteByDate] = useState<Record<string, string>>({})
+  const [openedDates, setOpenedDates] = useState<Set<string>>(
+    preselected
+      ? new Set([
+          ...Object.keys(slotsMap[preselected.teacher_id] ?? {}),
+          ...Object.keys(maybeSlotsMap[preselected.teacher_id] ?? {}),
+        ])
+      : new Set()
+  )
   const [activeDate, setActiveDate] = useState<string | null>(null)
+
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
   const [changeWarning, setChangeWarning] = useState<string[] | null>(null)
@@ -144,9 +161,52 @@ export function SurveyRespond({
 
   const intensiveMonthGroups = intensivePeriodDates ? groupByMonth(intensivePeriodDates) : []
 
+  function getSlotState(dateStr: string, slotIndex: number): 'ok' | 'maybe' | 'ng' {
+    if ((okSlots[dateStr] ?? []).includes(slotIndex)) return 'ok'
+    if ((maybeSlots[dateStr] ?? []).includes(slotIndex)) return 'maybe'
+    return 'ng'
+  }
+
+  function getDateState(dateStr: string): 'ok' | 'maybe' | 'ng' | 'unset' {
+    if (!openedDates.has(dateStr)) return 'unset'
+    if ((okSlots[dateStr] ?? []).length > 0) return 'ok'
+    if ((maybeSlots[dateStr] ?? []).length > 0) return 'maybe'
+    return 'ng'
+  }
+
+  function cycleSlot(dateStr: string, slotIndex: number) {
+    const state = getSlotState(dateStr, slotIndex)
+    setOkSlots(prev => {
+      const slots = (prev[dateStr] ?? []).filter(i => i !== slotIndex)
+      if (state === 'ng') return { ...prev, [dateStr]: [...slots, slotIndex].sort((a, b) => a - b) }
+      return { ...prev, [dateStr]: slots }
+    })
+    setMaybeSlots(prev => {
+      const slots = (prev[dateStr] ?? []).filter(i => i !== slotIndex)
+      if (state === 'ok') return { ...prev, [dateStr]: [...slots, slotIndex].sort((a, b) => a - b) }
+      return { ...prev, [dateStr]: slots }
+    })
+  }
+
+  function removeDate(dateStr: string) {
+    setOkSlots(prev => { const n = { ...prev }; delete n[dateStr]; return n })
+    setMaybeSlots(prev => { const n = { ...prev }; delete n[dateStr]; return n })
+    setNgReasonsByDate(prev => { const n = { ...prev }; delete n[dateStr]; return n })
+    setNgNoteByDate(prev => { const n = { ...prev }; delete n[dateStr]; return n })
+    setOpenedDates(prev => { const n = new Set(prev); n.delete(dateStr); return n })
+    if (activeDate === dateStr) setActiveDate(null)
+  }
+
   function handleSelectTeacher(token: Token) {
     setSelectedTeacher(token)
-    setSelectedSlots(slotsMap[token.teacher_id] ?? {})
+    setOkSlots(slotsMap[token.teacher_id] ?? {})
+    setMaybeSlots(maybeSlotsMap[token.teacher_id] ?? {})
+    setNgReasonsByDate({})
+    setNgNoteByDate({})
+    setOpenedDates(new Set([
+      ...Object.keys(slotsMap[token.teacher_id] ?? {}),
+      ...Object.keys(maybeSlotsMap[token.teacher_id] ?? {}),
+    ]))
     setActiveDate(null)
     setStep('calendar')
   }
@@ -154,42 +214,31 @@ export function SurveyRespond({
   function handleDateClick(dateStr: string) {
     const slots = getSlotsForDate(dateStr, termType)
     if (slots.length === 0) return
-    if (selectedSlots[dateStr] !== undefined) {
-      setActiveDate(activeDate === dateStr ? null : dateStr)
-    } else {
-      setSelectedSlots((prev) => ({ ...prev, [dateStr]: slots.map((s) => s.index) }))
-      setActiveDate(dateStr)
+    if (!openedDates.has(dateStr)) {
+      setOkSlots(prev => ({ ...prev, [dateStr]: slots.map(s => s.index) }))
+      setOpenedDates(prev => new Set([...prev, dateStr]))
     }
-  }
-
-  function removeDate(dateStr: string) {
-    setSelectedSlots((prev) => { const n = { ...prev }; delete n[dateStr]; return n })
-    if (activeDate === dateStr) setActiveDate(null)
-  }
-
-  function toggleSlot(dateStr: string, slotIndex: number) {
-    setSelectedSlots((prev) => {
-      const cur = prev[dateStr] ?? []
-      const next = cur.includes(slotIndex) ? cur.filter((i) => i !== slotIndex) : [...cur, slotIndex].sort((a, b) => a - b)
-      return { ...prev, [dateStr]: next }
-    })
-  }
-
-  function selectAllSlots(dateStr: string) {
-    const slots = getSlotsForDate(dateStr, termType)
-    setSelectedSlots((prev) => ({ ...prev, [dateStr]: slots.map((s) => s.index) }))
-  }
-
-  function clearAllSlots(dateStr: string) {
-    setSelectedSlots((prev) => ({ ...prev, [dateStr]: [] }))
+    setActiveDate(activeDate === dateStr ? null : dateStr)
   }
 
   function doSubmit() {
     if (!selectedTeacher) return
     setError(undefined)
     setChangeWarning(null)
+    const allNgReasons = [...new Set(Object.values(ngReasonsByDate).flat())]
+    const allNgNote = Object.entries(ngNoteByDate)
+      .filter(([, v]) => v.trim())
+      .map(([date, note]) => `${date}: ${note}`)
+      .join(' / ')
     startTransition(async () => {
-      const result = await submitSurveyResponse(surveyId, selectedTeacher.teacher_id, selectedSlots)
+      const result = await submitSurveyResponse(
+        surveyId,
+        selectedTeacher.teacher_id,
+        okSlots,
+        maybeSlots,
+        allNgReasons,
+        allNgNote,
+      )
       if (result.error) { setError(result.error); return }
       setStep('done')
     })
@@ -197,22 +246,19 @@ export function SurveyRespond({
 
   function handleSubmit() {
     if (!selectedTeacher) return
-
-    // 前回回答との差分チェック
     if (previousDayPattern && Object.keys(previousDayPattern).length > 0) {
-      const currentPattern = toDayPattern(selectedSlots)
+      const currentPattern = toDayPattern(okSlots)
       const changes = computeChanges(currentPattern, previousDayPattern)
       if (changes.length > 0) {
         setChangeWarning(changes)
         return
       }
     }
-
     doSubmit()
   }
 
-  const selectedDateCount = Object.keys(selectedSlots).length
-  const totalSlotCount = Object.values(selectedSlots).reduce((sum, s) => sum + s.length, 0)
+  const okCount = Object.values(okSlots).reduce((s, a) => s + a.length, 0)
+  const maybeCount = Object.values(maybeSlots).reduce((s, a) => s + a.length, 0)
 
   if (step === 'done') {
     return (
@@ -220,7 +266,8 @@ export function SurveyRespond({
         <div className="text-4xl mb-3">✅</div>
         <p className="text-lg font-semibold text-green-800 dark:text-green-200">回答を受け付けました</p>
         <p className="text-sm text-green-600 dark:text-green-300 mt-2">
-          {selectedTeacher?.teacher?.name} 先生：{selectedDateCount}日間、合計 {totalSlotCount} コマ登録
+          {selectedTeacher?.teacher?.name} 先生：
+          ○{okCount}コマ　△{maybeCount}コマ 登録
         </p>
         <p className="text-xs text-gray-400 mt-4">このページは閉じても大丈夫です</p>
         <button onClick={() => setStep('select')} className="mt-4 text-sm text-navy dark:text-blue-300 underline">
@@ -232,7 +279,11 @@ export function SurveyRespond({
 
   if (step === 'calendar' && selectedTeacher) {
     const activeDateSlots = activeDate ? getSlotsForDate(activeDate, termType) : []
-    const activeDateSelected = activeDate ? (selectedSlots[activeDate] ?? []) : []
+    const allNg = activeDate !== null
+      && openedDates.has(activeDate)
+      && activeDateSlots.length > 0
+      && (okSlots[activeDate] ?? []).length === 0
+      && (maybeSlots[activeDate] ?? []).length === 0
 
     const renderDateCell = (dateStr: string, d: Date, allowedDates?: string[]) => {
       const dow = d.getDay()
@@ -240,9 +291,8 @@ export function SurveyRespond({
       const isAllowed = allowedDates ? allowedDates.includes(dateStr) : true
       const hasSlots = getSlotsForDate(dateStr, termType).length > 0
       const isSelectable = !isClosed && hasSlots && isAllowed
-      const isSelected = selectedSlots[dateStr] !== undefined
+      const dateState = getDateState(dateStr)
       const isActive = activeDate === dateStr
-      const slotCount = selectedSlots[dateStr]?.length ?? 0
       const isToday = dateStr === toDateStr(new Date())
 
       return (
@@ -258,17 +308,25 @@ export function SurveyRespond({
               : !isSelectable
                 ? 'text-gray-200 cursor-not-allowed'
                 : isActive
-                  ? 'bg-amber-400 text-white shadow-sm ring-2 ring-amber-500 ring-offset-1'
-                  : isSelected
-                    ? 'bg-navy text-white shadow-sm'
-                    : dow === 0 ? 'text-red-400 hover:bg-red-50'
-                    : dow === 6 ? 'text-blue-400 hover:bg-blue-50'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
-            isToday && !isSelected && !isActive && isSelectable ? 'ring-2 ring-navy ring-offset-1' : '',
+                  ? 'ring-2 ring-navy ring-offset-1 bg-navy/10'
+                  : dateState === 'ok'
+                    ? 'bg-teal-500 text-white'
+                    : dateState === 'maybe'
+                      ? 'bg-amber-400 text-white'
+                      : dateState === 'ng'
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                        : dow === 0
+                          ? 'text-red-400 hover:bg-red-50'
+                          : dow === 6
+                            ? 'text-blue-400 hover:bg-blue-50'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
+            isToday && dateState === 'unset' && isSelectable && !isActive ? 'ring-2 ring-navy ring-offset-1' : '',
           ].join(' ')}
         >
           <span>{d.getDate()}</span>
-          {isSelected && <span className="text-[9px] leading-none font-bold text-white opacity-90">{slotCount}コマ</span>}
+          {dateState === 'ok' && <span className="text-[9px] leading-none font-bold text-white opacity-90">○</span>}
+          {dateState === 'maybe' && <span className="text-[9px] leading-none font-bold text-white opacity-90">△</span>}
+          {dateState === 'ng' && <span className="text-[9px] leading-none font-bold text-gray-400 opacity-90">×</span>}
           {isClosed && <span className="text-[8px] font-bold leading-none">休</span>}
         </button>
       )
@@ -308,6 +366,7 @@ export function SurveyRespond({
             </div>
           )}
         </div>
+
         {/* 差分警告モーダル */}
         {changeWarning && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -355,7 +414,7 @@ export function SurveyRespond({
           {termType === 'intensive' && (
             <span className="text-xs bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 px-2 py-1 rounded-full font-medium">講習期間</span>
           )}
-          {slotsMap[selectedTeacher.teacher_id] && (
+          {(slotsMap[selectedTeacher.teacher_id] || maybeSlotsMap[selectedTeacher.teacher_id]) && (
             <span className="text-xs text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 px-2 py-1 rounded-full">回答を更新中</span>
           )}
         </div>
@@ -373,7 +432,13 @@ export function SurveyRespond({
               const fd = monthDays[0].getDay()
               return (
                 <div key={ym} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{y}年{m}月</p>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{y}年{m}月</p>
+                  {/* 凡例 */}
+                  <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded-sm bg-teal-500" />○出られる</span>
+                    <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded-sm bg-amber-400" />△調整すれば出られる</span>
+                    <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700" />×出られない</span>
+                  </div>
                   <div className="grid grid-cols-7 mb-1">
                     {DAY_NAMES.map((d, i) => (
                       <div key={d} className={['text-center text-xs font-medium py-1',
@@ -393,7 +458,13 @@ export function SurveyRespond({
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0.5">{year}年{month}月</p>
-            <p className="text-xs text-gray-400 mb-3">出勤できる日をタップ → コマを選択してください</p>
+            <p className="text-xs text-gray-400 mb-2">出勤できる日をタップ → コマをタップして○/△/×を切り替えてください</p>
+            {/* 凡例 */}
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mb-3">
+              <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded-sm bg-teal-500" />○出られる</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded-sm bg-amber-400" />△調整すれば出られる</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700" />×出られない</span>
+            </div>
             <div className="grid grid-cols-7 mb-1">
               {DAY_NAMES.map((d, i) => (
                 <div key={d} className={['text-center text-xs font-medium py-1',
@@ -414,51 +485,102 @@ export function SurveyRespond({
 
         {/* コマ選択パネル */}
         {activeDate && (
-          <div className="bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900 p-4">
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">{formatDate(activeDate)}</p>
-              <div className="flex items-center gap-2 text-xs">
-                <button onClick={() => selectAllSlots(activeDate)} className="text-blue-600 dark:text-blue-300 hover:text-blue-800 font-medium">全選択</button>
-                <span className="text-blue-300">|</span>
-                <button onClick={() => clearAllSlots(activeDate)} className="text-blue-600 dark:text-blue-300 hover:text-blue-800 font-medium">全解除</button>
-                <span className="text-blue-300">|</span>
-                <button onClick={() => removeDate(activeDate)} className="text-red-500 hover:text-red-700 font-medium">この日を削除</button>
-              </div>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{formatDate(activeDate)}</p>
+              <button onClick={() => removeDate(activeDate)} className="text-xs text-red-500 hover:text-red-700 font-medium">この日を削除</button>
             </div>
+            <p className="text-xs text-gray-400 mb-2">タップするたびに ○ → △ → × と切り替わります</p>
             <div className="space-y-2">
               {activeDateSlots.map((slot) => {
-                const isSlotSelected = activeDateSelected.includes(slot.index)
+                const state = getSlotState(activeDate, slot.index)
                 return (
                   <button
                     key={slot.index}
                     type="button"
-                    onClick={() => toggleSlot(activeDate, slot.index)}
+                    onClick={() => cycleSlot(activeDate, slot.index)}
                     className={[
                       'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left',
-                      isSlotSelected ? 'bg-navy text-white' : 'bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-100',
+                      state === 'ok'
+                        ? 'bg-teal-500 text-white'
+                        : state === 'maybe'
+                          ? 'bg-amber-400 text-white'
+                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400',
                     ].join(' ')}
                   >
-                    <span className={['text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0',
-                      isSlotSelected ? 'bg-white/20 text-white' : 'bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300'].join(' ')}>
+                    <span className={[
+                      'text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0',
+                      state === 'ok' || state === 'maybe' ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700',
+                    ].join(' ')}>
                       第{slot.index}コマ
                     </span>
                     <span>{slot.start}〜{slot.end}</span>
-                    {isSlotSelected && <span className="ml-auto text-base">✓</span>}
+                    <span className="ml-auto text-base font-bold">
+                      {state === 'ok' ? '○' : state === 'maybe' ? '△' : '×'}
+                    </span>
                   </button>
                 )
               })}
             </div>
+
+            {/* S2: ×理由パネル */}
+            {allNg && (
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">来られない理由（任意・複数選択可）</p>
+                <div className="flex flex-wrap gap-2">
+                  {SURVEY_NG_REASONS.map(r => {
+                    const selected = (ngReasonsByDate[activeDate] ?? []).includes(r.key)
+                    return (
+                      <button key={r.key} type="button"
+                        onClick={() => {
+                          setNgReasonsByDate(prev => {
+                            const cur = prev[activeDate] ?? []
+                            const next = selected ? cur.filter(k => k !== r.key) : [...cur, r.key]
+                            return { ...prev, [activeDate]: next }
+                          })
+                        }}
+                        className={[
+                          'text-xs px-3 py-1.5 rounded-full border transition-colors',
+                          selected
+                            ? 'bg-gray-700 text-white border-gray-700 dark:bg-gray-200 dark:text-gray-800 dark:border-gray-200'
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-500',
+                        ].join(' ')}
+                      >
+                        {r.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {(ngReasonsByDate[activeDate] ?? []).includes('other') && (
+                  <input
+                    type="text"
+                    value={ngNoteByDate[activeDate] ?? ''}
+                    onChange={e => setNgNoteByDate(prev => ({ ...prev, [activeDate]: e.target.value }))}
+                    placeholder="その他の理由を入力"
+                    className="mt-2 w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  />
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* サマリー */}
         <div className="bg-blue-50 dark:bg-blue-950/40 rounded-xl px-4 py-3 flex items-center justify-between">
           <p className="text-sm text-blue-700 dark:text-blue-300">
-            <span className="font-bold text-lg text-navy dark:text-blue-300">{selectedDateCount}</span> 日間・
-            合計 <span className="font-bold text-lg text-navy dark:text-blue-300">{totalSlotCount}</span> コマ選択中
+            ○ <span className="font-bold text-lg text-teal-600 dark:text-teal-300">{okCount}</span> コマ
+            　△ <span className="font-bold text-lg text-amber-500">{maybeCount}</span> コマ
           </p>
-          {selectedDateCount > 0 && (
-            <button type="button" onClick={() => { setSelectedSlots({}); setActiveDate(null) }}
+          {(okCount > 0 || maybeCount > 0) && (
+            <button type="button"
+              onClick={() => {
+                setOkSlots({})
+                setMaybeSlots({})
+                setNgReasonsByDate({})
+                setNgNoteByDate({})
+                setOpenedDates(new Set())
+                setActiveDate(null)
+              }}
               className="text-xs text-blue-500 hover:text-blue-700">全解除</button>
           )}
         </div>

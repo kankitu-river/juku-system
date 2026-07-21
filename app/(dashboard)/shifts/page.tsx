@@ -116,7 +116,7 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
           シフトあり
         </span>
         <span className="flex items-center gap-1">
-          <span className="text-amber-400">⚠</span>
+          <span className="text-amber-700 dark:text-amber-400">⚠</span>
           コマあり・シフト未登録
         </span>
         <span className="flex items-center gap-1">

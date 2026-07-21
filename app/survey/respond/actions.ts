@@ -5,7 +5,10 @@ import { createClient } from '@/lib/supabase/server'
 export async function submitSurveyResponse(
   surveyId: string,
   teacherId: string,
-  availableSlots: Record<string, number[]>
+  availableSlots: Record<string, number[]>,
+  maybeSlots: Record<string, number[]> = {},
+  ngReasons: string[] = [],
+  ngReasonNote: string = ''
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
 
@@ -13,6 +16,9 @@ export async function submitSurveyResponse(
     p_survey_id: surveyId,
     p_teacher_id: teacherId,
     p_available_slots: availableSlots,
+    p_maybe_slots: maybeSlots,
+    p_ng_reasons: ngReasons,
+    p_ng_reason_note: ngReasonNote,
   })
 
   if (error) {

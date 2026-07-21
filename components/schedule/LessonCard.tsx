@@ -31,10 +31,10 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [] }: Les
       <Link
         href={`/schedule/${lesson.id}`}
         className={[
-          'flex items-center gap-1 rounded px-1.5 py-1 text-xs leading-tight transition-opacity hover:opacity-80',
+          'flex items-center gap-1 rounded px-1.5 py-1 text-xs leading-tight transition-all duration-150 ease-out hover:shadow-md hover:-translate-y-px',
           isGroup
-            ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-900 border border-purple-200 dark:border-purple-900'
-            : 'bg-teal-100 dark:bg-teal-900/60 text-teal-900 border border-teal-200 dark:border-teal-900',
+            ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-900 border border-purple-200 dark:border-purple-800'
+            : 'bg-teal-50 dark:bg-teal-900/40 text-teal-900 border border-teal-200 dark:border-teal-800',
         ].join(' ')}
       >
         {lesson.lesson_kind === 'temporary' && (
@@ -74,11 +74,11 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [] }: Les
     <Link
       href={`/schedule/${lesson.id}`}
       className={[
-        'block rounded-md px-2 py-2 text-xs transition-opacity hover:opacity-80 overflow-hidden',
+        'block rounded-md px-2 py-2 text-xs transition-all duration-150 ease-out hover:shadow-md hover:-translate-y-px overflow-hidden',
         makeupStudents.length > 0 ? 'min-h-[72px]' : 'h-[72px]',
         isGroup
-          ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-900 border border-purple-200 dark:border-purple-900'
-          : 'bg-teal-100 dark:bg-teal-900/60 text-teal-900 border border-teal-200 dark:border-teal-900',
+          ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-900 border border-purple-200 dark:border-purple-800 border-l-2 border-l-purple-400'
+          : 'bg-teal-50 dark:bg-teal-900/40 text-teal-900 border border-teal-200 dark:border-teal-800 border-l-2 border-l-teal-400',
       ].join(' ')}
     >
       {/* 先生 + 科目 + 定員 を1行に */}

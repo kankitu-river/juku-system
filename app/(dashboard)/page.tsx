@@ -361,12 +361,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">今日のコマ数</p>
-          <p className="text-3xl font-bold text-navy dark:text-blue-300">
-            {todayLessons.length}
-            <span className="text-base font-normal text-gray-500 dark:text-gray-400 ml-1">コマ</span>
+          <p className="text-3xl font-bold text-navy dark:text-blue-300 tabular-nums">
+            {todayLessons.length}<span className="text-base font-normal text-gray-400 dark:text-gray-500 ml-0.5">コマ</span>
           </p>
         </Card>
         <Card>
@@ -382,9 +381,8 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">本日出勤講師数</p>
-          <p className="text-3xl font-bold text-navy dark:text-blue-300">
-            {workingTeacherCount}
-            <span className="text-base font-normal text-gray-500 dark:text-gray-400 ml-1">名</span>
+          <p className="text-3xl font-bold text-navy dark:text-blue-300 tabular-nums">
+            {workingTeacherCount}<span className="text-base font-normal text-gray-400 dark:text-gray-500 ml-0.5">名</span>
           </p>
         </Card>
         <Card>

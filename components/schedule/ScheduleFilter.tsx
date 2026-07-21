@@ -151,7 +151,7 @@ export function ScheduleFilter({
             <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">
               ⚠ このカレンダーに表示されていないコマ（{otherTermType === 'intensive' ? '講習期間' : '通常期間'}のコマ）
             </span>
-            <span className="text-xs text-amber-500">
+            <span className="text-xs text-amber-700 dark:text-amber-400">
               {otherTermType === 'intensive' ? '講習期間' : '通常期間'}の週に移動すると表示されます
             </span>
           </div>

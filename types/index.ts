@@ -70,6 +70,7 @@ export interface Lesson {
 export interface Student {
   id: string
   name: string
+  surname?: string | null
   grade: string
   subjects: string[]
   preferred_teacher_ids: string[]

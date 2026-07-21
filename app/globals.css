@@ -81,3 +81,10 @@ body {
 .print-landscape {
   /* applied via JS before print */
 }
+
+table {
+  font-variant-numeric: tabular-nums;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

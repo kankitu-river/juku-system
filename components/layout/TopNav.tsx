@@ -268,7 +268,7 @@ export function TopNav() {
   const settingsActive = pathname.startsWith('/settings')
 
   return (
-    <header className="sticky top-0 z-40 bg-navy text-white shadow-md print:hidden relative">
+    <header className="sticky top-0 z-40 bg-navy text-white shadow-sm print:hidden relative">
       {/* ドロップダウン用の外側クリック閉じオーバーレイ */}
       {openMenu && (
         <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(null)} />

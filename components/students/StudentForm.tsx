@@ -39,6 +39,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
 
   const [form, setForm] = useState<StudentFormData>({
     name: student?.name ?? '',
+    surname: student?.surname ?? '',
     grade: student?.grade ?? '',
     subjects: student?.subjects ?? [],
     preferred_teacher_ids: student?.preferred_teacher_ids ?? [],

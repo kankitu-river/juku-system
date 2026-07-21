@@ -236,7 +236,7 @@ export function TeacherForm({ teacher, onSave, onDelete }: TeacherFormProps) {
                   <span className="font-medium text-navy dark:text-blue-300">{sg.subject}</span>
                   {sg.grades.length > 0
                     ? `：${sg.grades[0]}〜${sg.grades[sg.grades.length - 1]}`
-                    : <span className="text-amber-500 ml-1">（学年未設定）</span>
+                    : <span className="text-amber-700 dark:text-amber-400 ml-1">（学年未設定）</span>
                   }
                 </span>
               ))}

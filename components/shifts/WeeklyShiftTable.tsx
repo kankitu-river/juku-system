@@ -239,7 +239,7 @@ export function WeeklyShiftTable({ teachers, shifts, weekDates, lessons, termPer
                       ) : (
                         <div className="text-gray-300 text-xs">
                           {dayLessons.length > 0
-                            ? <span className="text-amber-400 font-medium">⚠ 未登録</span>
+                            ? <span className="text-amber-700 dark:text-amber-400 font-medium">⚠ 未登録</span>
                             : '—'}
                         </div>
                       )}

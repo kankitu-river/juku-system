@@ -230,9 +230,9 @@ export function ManualShiftEntry({ teachers, intensivePeriods = [] }: ManualShif
                     : disabled
                       ? 'text-gray-200 cursor-not-allowed'
                       : isEditing
-                        ? 'bg-amber-400 text-white shadow-sm ring-2 ring-amber-500 ring-offset-1'
+                        ? 'bg-amber-400 text-white ring-2 ring-amber-500 ring-offset-1'
                         : isSelected
-                          ? 'bg-navy text-white shadow-sm'
+                          ? 'bg-navy text-white'
                           : isIntensive
                             ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100'
                             : dow === 6

@@ -7,6 +7,7 @@ import { GRADE_ORDER, getNextGrade } from '@/lib/utils/grade'
 
 export interface StudentFormData {
   name: string
+  surname?: string
   grade: string
   subjects: string[]
   preferred_teacher_ids: string[]

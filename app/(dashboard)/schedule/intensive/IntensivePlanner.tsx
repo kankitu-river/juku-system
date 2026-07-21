@@ -534,7 +534,7 @@ export function IntensivePlanner({
                                       <span className="text-[10px] text-red-400">定員満</span>
                                     )}
                                     {overPlan && !enrolled && (
-                                      <span className="text-[10px] text-amber-500">予定超過</span>
+                                      <span className="text-[10px] text-amber-700 dark:text-amber-400">予定超過</span>
                                     )}
                                     <button
                                       onClick={() => handleEnrollToggle(lesson.id)}

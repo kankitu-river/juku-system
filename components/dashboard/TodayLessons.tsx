@@ -127,15 +127,21 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
           <div className={[
             'px-5 py-2 border-y border-gray-100 dark:border-gray-700 flex items-center gap-2 text-xs font-semibold',
             gi === currentIdx
-              ? 'bg-amber-50 dark:bg-amber-950/40 border-l-4 border-l-amber-brand text-amber-900'
+              ? 'bg-red-50/30 dark:bg-red-900/10 border-l-4 border-l-red-500 text-gray-700 dark:text-gray-200'
               : 'bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-300',
           ].join(' ')}>
             第{group.slotIndex}コマ
             {group.start && (
-              <span className="font-normal opacity-60">{group.start}〜{group.end}</span>
+              <span className="font-normal opacity-60 tabular-nums">{group.start}〜{group.end}</span>
             )}
             {gi === currentIdx && (
-              <span className="bg-amber-brand text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">進行中</span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 dark:text-red-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                </span>
+                進行中
+              </span>
             )}
             {gi === nextIdx && gi !== currentIdx && (
               <span className="bg-gray-200 text-gray-500 dark:text-gray-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">次</span>

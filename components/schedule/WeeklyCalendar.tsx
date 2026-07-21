@@ -240,11 +240,11 @@ const lessonMap = useMemo(() => {
             )
           })}
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
+        <div className="overflow-auto max-h-[calc(100vh-220px)]">
+          <table className="w-full border-separate border-spacing-0 text-sm">
+            <thead className="sticky top-0 z-20">
               <tr>
-                <th className="w-36 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-3 text-left text-xs text-gray-500 dark:text-gray-400 font-medium">
+                <th className="w-36 border-b-2 border-b-gray-200 dark:border-b-gray-600 bg-gray-50 dark:bg-gray-900/50 px-3 py-3 text-left text-xs text-gray-500 dark:text-gray-400 font-medium sticky left-0 z-30">
                   時間帯
                 </th>
                 {weekdays.map((day, i) => {
@@ -255,11 +255,11 @@ const lessonMap = useMemo(() => {
                   const dateLabel = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`
                   return (
                     <th key={day.value}
-                      className={['border px-3 py-3 text-center font-semibold relative',
+                      className={['px-3 py-3 text-center font-semibold relative',
                         day.value === mobileDay ? '' : 'hidden lg:table-cell',
-                        isClosed ? 'bg-red-50 dark:bg-red-950/40 text-red-400 border-gray-200 dark:border-gray-700' :
-                        isToday ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 border-amber-300 dark:border-amber-800 border-2' :
-                        'bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700',
+                        isClosed ? 'bg-red-50 dark:bg-red-950/40 text-red-400 border-b-2 border-b-gray-200 dark:border-b-gray-600' :
+                        isToday ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 border-b-2 border-b-amber-200 dark:border-b-amber-900' :
+                        'bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 border-b-2 border-b-gray-200 dark:border-b-gray-600',
                       ].join(' ')}>
                       {isToday && (
                         <span className="absolute top-0.5 right-1 text-[9px] font-bold text-amber-600 dark:text-amber-300">TODAY</span>
@@ -275,9 +275,9 @@ const lessonMap = useMemo(() => {
             <tbody>
               {slots.map(slot => (
                 <tr key={slot.index}>
-                  <td className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap">
+                  <td className="border-b border-b-gray-100 dark:border-b-gray-700/50 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap sticky left-0 z-10">
                     <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">第{slot.index}コマ</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">{slot.start}〜{slot.end}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5 tabular-nums">{slot.start}〜{slot.end}</div>
                   </td>
                   {weekdays.map((day, i) => {
                     const dateStr = weekDateStrings[i]
@@ -298,11 +298,11 @@ const lessonMap = useMemo(() => {
 
                     return (
                       <td key={day.value}
-                        className={['border px-2 py-2 align-top',
+                        className={['px-2 py-2 align-top',
                           day.value === mobileDay ? '' : 'hidden lg:table-cell',
-                          isClosed ? 'bg-red-50/50 border-gray-200 dark:border-gray-700' :
-                          isToday ? 'bg-amber-50/60 border-amber-200 dark:border-amber-900' :
-                          'border-gray-200 dark:border-gray-700',
+                          isClosed ? 'bg-red-50/50 border-b border-b-gray-100 dark:border-b-gray-700/50' :
+                          isToday ? 'bg-amber-50/60 border-b border-b-amber-100 dark:border-b-amber-900/50' :
+                          'border-b border-b-gray-100 dark:border-b-gray-700/50',
                         ].join(' ')}
                         style={{ minWidth: '190px' }}>
                         {isClosed ? (
@@ -346,19 +346,19 @@ const lessonMap = useMemo(() => {
 
       {/* 土曜ビュー */}
       {dayView === 'saturday' && (
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[calc(100vh-220px)]">
           {isSatClosed && (
             <div className="mb-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl px-4 py-3 text-sm text-red-600 dark:text-red-300 font-medium">
               今週の土曜日（{weekDateStrings[5]?.replace(/-/g, '/')}）は休校日です
             </div>
           )}
           {termType === 'intensive' ? (
-            <table className="border-collapse text-sm" style={{ minWidth: '400px' }}>
-              <thead>
+            <table className="border-separate border-spacing-0 text-sm" style={{ minWidth: '400px' }}>
+              <thead className="sticky top-0 z-20">
                 <tr>
-                  <th className="w-36 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-3 text-left text-xs text-gray-500 dark:text-gray-400 font-medium">時間帯</th>
-                  <th className={['border border-gray-200 dark:border-gray-700 px-3 py-3 text-center text-sm font-semibold',
-                    isSatClosed ? 'bg-red-50 dark:bg-red-950/40 text-red-400' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-200'].join(' ')}
+                  <th className="w-36 border-b-2 border-b-gray-200 dark:border-b-gray-600 bg-gray-50 dark:bg-gray-900/50 px-3 py-3 text-left text-xs text-gray-500 dark:text-gray-400 font-medium sticky left-0 z-30">時間帯</th>
+                  <th className={['border-b-2 px-3 py-3 text-center text-sm font-semibold',
+                    isSatClosed ? 'bg-red-50 dark:bg-red-950/40 text-red-400 border-b-gray-200 dark:border-b-gray-600' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-200 border-b-purple-200 dark:border-b-purple-800'].join(' ')}
                     style={{ minWidth: '300px' }}>
                     土曜日
                     {isSatClosed && <div className="text-[10px] font-bold text-red-500">休校</div>}
@@ -370,11 +370,11 @@ const lessonMap = useMemo(() => {
                   const cellLessons = isSatClosed ? [] : (lessonMap.get(`6-${slot.index}`) ?? [])
                   return (
                     <tr key={slot.index}>
-                      <td className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap">
+                      <td className="border-b border-b-gray-100 dark:border-b-gray-700/50 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap sticky left-0 z-10">
                         <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">第{slot.index}コマ</div>
-                        <div className="text-[11px] text-gray-400 mt-0.5">{slot.start}〜{slot.end}</div>
+                        <div className="text-[11px] text-gray-400 mt-0.5 tabular-nums">{slot.start}〜{slot.end}</div>
                       </td>
-                      <td className={['border border-gray-200 dark:border-gray-700 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
+                      <td className={['px-2 py-2 align-top border-b border-b-gray-100 dark:border-b-gray-700/50', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                         style={{ minHeight: '80px' }}>
                         <div className="space-y-1">
                           <CellLessons lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} />
@@ -393,11 +393,11 @@ const lessonMap = useMemo(() => {
           ) : (
             <div className="space-y-4" style={{ minWidth: '320px' }}>
               {/* 個別指導 */}
-              <table className="w-full border-collapse text-sm">
-                <thead>
+              <table className="w-full border-separate border-spacing-0 text-sm">
+                <thead className="sticky top-0 z-20">
                   <tr>
-                    <th className="w-36 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 text-left text-xs text-gray-500 dark:text-gray-400 font-medium">時間帯</th>
-                    <th className="border border-gray-200 dark:border-gray-700 bg-teal-50 dark:bg-teal-950/40 px-3 py-2.5 text-center text-sm font-semibold text-teal-800 dark:text-teal-200">個別指導</th>
+                    <th className="w-36 border-b-2 border-b-gray-200 dark:border-b-gray-600 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 text-left text-xs text-gray-500 dark:text-gray-400 font-medium sticky left-0 z-30">時間帯</th>
+                    <th className="border-b-2 border-b-teal-200 dark:border-b-teal-800 bg-teal-50 dark:bg-teal-950/40 px-3 py-2.5 text-center text-sm font-semibold text-teal-800 dark:text-teal-200">個別指導</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -406,11 +406,11 @@ const lessonMap = useMemo(() => {
                     const cellLessons = isSatClosed ? [] : (lessonMap.get(key) ?? [])
                     return (
                       <tr key={slot.index}>
-                        <td className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap">
+                        <td className="border-b border-b-gray-100 dark:border-b-gray-700/50 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap sticky left-0 z-10">
                           <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">第{slot.index}コマ</div>
-                          <div className="text-[11px] text-gray-400 mt-0.5">{slot.start}〜{slot.end}</div>
+                          <div className="text-[11px] text-gray-400 mt-0.5 tabular-nums">{slot.start}〜{slot.end}</div>
                         </td>
-                        <td className={['border border-gray-200 dark:border-gray-700 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
+                        <td className={['px-2 py-2 align-top border-b border-b-gray-100 dark:border-b-gray-700/50', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                           style={{ minHeight: '72px' }}>
                           <div className="space-y-1">
                             <CellLessons lessons={cellLessons} />
@@ -428,11 +428,11 @@ const lessonMap = useMemo(() => {
               </table>
 
               {/* 集団授業 */}
-              <table className="w-full border-collapse text-sm">
-                <thead>
+              <table className="w-full border-separate border-spacing-0 text-sm">
+                <thead className="sticky top-0 z-20">
                   <tr>
-                    <th className="w-36 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 text-left text-xs text-gray-500 dark:text-gray-400 font-medium">時間帯</th>
-                    <th className="border border-gray-200 dark:border-gray-700 bg-purple-50 dark:bg-purple-950/40 px-3 py-2.5 text-center text-sm font-semibold text-purple-800 dark:text-purple-200">集団授業</th>
+                    <th className="w-36 border-b-2 border-b-gray-200 dark:border-b-gray-600 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 text-left text-xs text-gray-500 dark:text-gray-400 font-medium sticky left-0 z-30">時間帯</th>
+                    <th className="border-b-2 border-b-purple-200 dark:border-b-purple-800 bg-purple-50 dark:bg-purple-950/40 px-3 py-2.5 text-center text-sm font-semibold text-purple-800 dark:text-purple-200">集団授業</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -441,11 +441,11 @@ const lessonMap = useMemo(() => {
                     const cellLessons = isSatClosed ? [] : (lessonMap.get(key) ?? [])
                     return (
                       <tr key={slot.index}>
-                        <td className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap">
+                        <td className="border-b border-b-gray-100 dark:border-b-gray-700/50 bg-gray-50 dark:bg-gray-900/50 px-3 py-2.5 whitespace-nowrap sticky left-0 z-10">
                           <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">第{slot.index}コマ</div>
-                          <div className="text-[11px] text-gray-400 mt-0.5">{slot.start}〜{slot.end}</div>
+                          <div className="text-[11px] text-gray-400 mt-0.5 tabular-nums">{slot.start}〜{slot.end}</div>
                         </td>
-                        <td className={['border border-gray-200 dark:border-gray-700 px-2 py-2 align-top', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
+                        <td className={['px-2 py-2 align-top border-b border-b-gray-100 dark:border-b-gray-700/50', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                           style={{ minHeight: '72px' }}>
                           <div className="space-y-1">
                             <CellLessons lessons={cellLessons} />

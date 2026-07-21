@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { createSurvey, deleteSurvey, sendSurveyEmails, importSurveyToShifts, getShiftPredictions } from './actions'
+import { SURVEY_NG_REASONS } from '@/lib/constants/surveyReasons'
 
 interface Token {
   id: string
@@ -31,7 +32,13 @@ interface IntensivePeriod {
   end_date: string
 }
 
-type ResponseEntry = { teacherId: string; availableSlots: Record<string, number[]> }
+type ResponseEntry = {
+  teacherId: string
+  availableSlots: Record<string, number[]>
+  maybeSlots: Record<string, number[]>
+  ngReasons: string[]
+  ngReasonNote: string
+}
 
 interface SurveyManagerProps {
   surveys: Survey[]
@@ -45,9 +52,19 @@ const DOW_NAMES = ['日', '月', '火', '水', '木', '金', '土']
 function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: ResponseEntry[] }) {
   if (tokens.length === 0) return null
 
+  const allNgReasons = responses.flatMap(r => r.ngReasons ?? [])
+  const reasonCounts = SURVEY_NG_REASONS.map(r => ({
+    label: r.label,
+    count: allNgReasons.filter(k => k === r.key).length,
+  })).filter(r => r.count > 0)
+
   return (
     <div className="border-t border-gray-100 dark:border-gray-700 mt-4 pt-4">
-      <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-3">回答内容（インポート前に確認できます）</p>
+      <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-3">回答内容</p>
+      <div className="flex gap-3 text-[10px] text-gray-400 mb-3">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-teal-500 inline-block" />○ 出勤可</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />△ 調整可</span>
+      </div>
       <div className="space-y-3">
         {tokens.map((token) => {
           const res = responses.find((r) => r.teacherId === token.teacher_id)
@@ -60,35 +77,74 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
             )
           }
 
-          // 日付ごとにソートして表示
-          const dateEntries = Object.entries(res.availableSlots)
+          const okEntries = Object.entries(res.availableSlots)
             .filter(([, slots]) => slots && slots.length > 0)
             .sort(([a], [b]) => a.localeCompare(b))
+          const maybeEntries = Object.entries(res.maybeSlots ?? {})
+            .filter(([, slots]) => slots && slots.length > 0)
+            .sort(([a], [b]) => a.localeCompare(b))
+          const okCount = okEntries.reduce((s, [, slots]) => s + slots.length, 0)
+          const maybeCount = maybeEntries.reduce((s, [, slots]) => s + slots.length, 0)
 
           return (
             <div key={token.id}>
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-20 shrink-0">{token.teacher?.name}</span>
-                <span className="text-xs text-green-600 dark:text-green-300 font-medium">✓ {dateEntries.length}日間</span>
+                <span className="text-xs text-teal-600 dark:text-teal-300 font-medium">○{okCount}コマ</span>
+                {maybeCount > 0 && <span className="text-xs text-amber-600 dark:text-amber-300 font-medium">△{maybeCount}コマ</span>}
               </div>
-              {dateEntries.length > 0 && (
-                <div className="flex flex-wrap gap-1 ml-20">
-                  {dateEntries.map(([dateStr, slots]) => {
+              {okEntries.length > 0 && (
+                <div className="flex flex-wrap gap-1 ml-20 mb-1">
+                  {okEntries.map(([dateStr, slots]) => {
                     const d = new Date(dateStr + 'T12:00:00')
                     const label = `${d.getMonth() + 1}/${d.getDate()}（${DOW_NAMES[d.getDay()]}）`
                     return (
-                      <span key={dateStr} className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 text-blue-700 dark:text-blue-300 text-[10px] px-2 py-0.5 rounded-full">
-                        <span className="font-bold">{label}</span>
-                        第{[...slots].sort((a, b) => a - b).join('・')}コマ
+                      <span key={dateStr} className="inline-flex items-center gap-1 bg-teal-50 dark:bg-teal-950/40 border border-teal-100 text-teal-700 dark:text-teal-300 text-[10px] px-2 py-0.5 rounded-full">
+                        <span className="font-bold">{label}</span>第{[...slots].sort((a, b) => a - b).join('・')}コマ
                       </span>
                     )
                   })}
+                </div>
+              )}
+              {maybeEntries.length > 0 && (
+                <div className="flex flex-wrap gap-1 ml-20 mb-1">
+                  {maybeEntries.map(([dateStr, slots]) => {
+                    const d = new Date(dateStr + 'T12:00:00')
+                    const label = `${d.getMonth() + 1}/${d.getDate()}（${DOW_NAMES[d.getDay()]}）`
+                    return (
+                      <span key={dateStr} className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-amber-700 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full">
+                        △<span className="font-bold">{label}</span>第{[...slots].sort((a, b) => a - b).join('・')}コマ
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              {res.ngReasons && res.ngReasons.length > 0 && (
+                <div className="ml-20 mt-0.5">
+                  <span className="text-[10px] text-gray-400">×理由: </span>
+                  {res.ngReasons.map(k => {
+                    const r = SURVEY_NG_REASONS.find(r => r.key === k)
+                    return r ? <span key={k} className="text-[10px] text-gray-500 mr-1">{r.label}</span> : null
+                  })}
+                  {res.ngReasonNote && <span className="text-[10px] text-gray-400">（{res.ngReasonNote}）</span>}
                 </div>
               )}
             </div>
           )
         })}
       </div>
+      {reasonCounts.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-2">今月の×理由</p>
+          <div className="flex flex-wrap gap-2">
+            {reasonCounts.map(r => (
+              <span key={r.label} className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full">
+                {r.label} {r.count}件
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
