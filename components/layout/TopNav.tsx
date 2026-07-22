@@ -202,6 +202,7 @@ const navigation: NavEntry[] = [
     children: [
       { href: '/analytics', label: '分析', icon: icons.analytics },
       { href: '/meetings', label: '議事録', icon: icons.meetings },
+      { href: '/assistant', label: 'アシスタント', icon: icons.assistant },
     ],
   },
   { href: '/tasks', label: 'タスク', icon: icons.tasks },
