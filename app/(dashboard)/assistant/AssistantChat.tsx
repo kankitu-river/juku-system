@@ -54,10 +54,10 @@ export function AssistantChat() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] max-w-3xl mx-auto">
-      {/* ルールベース説明バナー */}
+      {/* 説明バナー */}
       <div className="mb-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 px-4 py-2.5 text-xs text-blue-700 dark:text-blue-300">
-        <span className="font-semibold">実データ照会モード</span>
-        ：LLMは使わず、登録データから回答します（コマ・振替残数・出席率・科目別の先生など）。
+        <span className="font-semibold">データ検索アシスタント</span>
+        ：登録データを検索して回答します（コマ・生徒・振替残数・出席率・シフト・科目別の先生など）。閲覧のみ・データ変更はしません。
       </div>
 
       {/* チャット履歴 */}
