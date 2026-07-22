@@ -42,6 +42,16 @@ function getTermTypeForDate(date: Date, termPeriods: TermPeriod[]): 'regular' | 
   return match?.type ?? 'regular'
 }
 
+// 週（月〜土）のいずれかが講習期間に重なれば intensive とみなす（移行週対策）
+function getWeekTermType(monday: Date, termPeriods: TermPeriod[]): 'regular' | 'intensive' {
+  for (let i = 0; i <= 5; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    if (getTermTypeForDate(d, termPeriods) === 'intensive') return 'intensive'
+  }
+  return 'regular'
+}
+
 const DAY_LABELS: Record<number, string> = { 0: '日', 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土' }
 
 export function ScheduleFilter({
@@ -65,7 +75,7 @@ export function ScheduleFilter({
     d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
     return d
   }, [referenceDate])
-  const currentTermType = getTermTypeForDate(monday, termPeriods)
+  const currentTermType = getWeekTermType(monday, termPeriods)
   const otherTermType = currentTermType === 'regular' ? 'intensive' : 'regular'
 
   const filtered = useMemo(() => {

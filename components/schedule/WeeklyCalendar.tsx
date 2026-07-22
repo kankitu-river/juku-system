@@ -53,6 +53,17 @@ function getTermTypeForDate(date: Date, termPeriods: TermPeriod[]): 'regular' | 
   return match?.type ?? 'regular'
 }
 
+// 週（月〜土）のいずれかが講習期間に重なれば intensive とみなす。
+// 講習が週の途中から始まる/終わる移行週で、月曜だけで判定すると期間区分がずれるため。
+function getWeekTermType(monday: Date, termPeriods: TermPeriod[]): 'regular' | 'intensive' {
+  for (let i = 0; i <= 5; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    if (getTermTypeForDate(d, termPeriods) === 'intensive') return 'intensive'
+  }
+  return 'regular'
+}
+
 type DayView = 'weekday' | 'saturday'
 
 
@@ -93,7 +104,7 @@ export function WeeklyCalendar({
     return d
   }, [referenceDate])
 
-  const termType = getTermTypeForDate(monday, termPeriods)
+  const termType = getWeekTermType(monday, termPeriods)
 
   const weekDateStrings = useMemo(() => {
     const result: string[] = []

@@ -55,10 +55,12 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     if (!makeupByLessonDate.has(k)) makeupByLessonDate.set(k, [])
     makeupByLessonDate.get(k)!.push(m.student)
   }
-  const dateStr = toLocalDate(start)
-  const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
-    (t) => t.start_date <= dateStr && t.end_date >= dateStr
-  )
+  // 週（月〜土）のいずれかが講習期間に重なれば intensive とみなす（移行週で月曜だけ判定するとズレるため）
+  const termsArr = (termPeriods as TermPeriod[]) ?? []
+  const findTerm = (ds: string) => termsArr.find((t) => t.start_date <= ds && t.end_date >= ds)
+  const activeTerm =
+    weekDateStrs.map(findTerm).find((t) => t?.type === 'intensive') ??
+    findTerm(toLocalDate(start))
   const currentTermType = activeTerm?.type ?? 'regular'
 
   const typedLessons = (lessons as Lesson[]) ?? []
