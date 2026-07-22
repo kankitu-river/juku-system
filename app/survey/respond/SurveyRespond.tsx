@@ -153,6 +153,30 @@ export function SurveyRespond({
     setParseResult(parseAvailability(freeText))
   }
 
+  function applyParseResult(result: NonNullable<typeof parseResult>) {
+    if (result.confidence === 'low' || result.available_days.length === 0) return
+    const newOkSlots = { ...okSlots }
+    const newOpenedDates = new Set(openedDates)
+    for (const d of days) {
+      const dateStr = toDateStr(d)
+      if (!result.available_days.includes(d.getDay())) continue
+      if (closureDates.includes(dateStr)) continue
+      const slots = getSlotsForDate(dateStr, termType)
+      if (slots.length === 0) continue
+      let indices = slots.map((s) => s.index)
+      if (result.time_preference && termType === 'intensive') {
+        if (result.time_preference === 'morning') indices = indices.filter((i) => i <= 2)
+        else if (result.time_preference === 'afternoon') indices = indices.filter((i) => i >= 3 && i <= 4)
+        else indices = indices.filter((i) => i >= 5)
+        if (indices.length === 0) indices = slots.map((s) => s.index)
+      }
+      newOkSlots[dateStr] = indices
+      newOpenedDates.add(dateStr)
+    }
+    setOkSlots(newOkSlots)
+    setOpenedDates(newOpenedDates)
+  }
+
   const days = getDaysInMonth(targetMonth)
   const [year, month] = targetMonth.split('-').map(Number)
   const firstDow = days[0].getDay()
@@ -411,15 +435,26 @@ export function SurveyRespond({
                 <p className="text-amber-600 dark:text-amber-400">うまく読み取れませんでした。カレンダーを直接タップしてください。</p>
               ) : (
                 <>
-                  <p className="font-medium text-blue-700 dark:text-blue-300 mb-1">読み取り結果（参考値 — カレンダーを確認・修正してください）</p>
-                  <p className="text-blue-700 dark:text-blue-300">
-                    曜日: {parseResult.available_days.map((d) => DAY_NAMES[d]).join('・')}
-                  </p>
-                  {parseResult.time_preference && (
-                    <p className="text-blue-600 dark:text-blue-400">
-                      時間帯: {{ morning: '午前', afternoon: '午後', evening: '夕方以降' }[parseResult.time_preference]}
-                    </p>
-                  )}
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div>
+                      <p className="font-medium text-blue-700 dark:text-blue-300 mb-0.5">
+                        曜日: {parseResult.available_days.map((d) => DAY_NAMES[d]).join('・')}
+                      </p>
+                      {parseResult.time_preference && (
+                        <p className="text-blue-600 dark:text-blue-400 text-[11px]">
+                          時間帯: {{ morning: '午前', afternoon: '午後', evening: '夕方以降' }[parseResult.time_preference]}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => applyParseResult(parseResult)}
+                      className="flex-shrink-0 px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      カレンダーに適用
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-blue-500 dark:text-blue-400 mt-1">適用後、カレンダーで確認・修正してください</p>
                 </>
               )}
             </div>
@@ -593,41 +628,10 @@ export function SurveyRespond({
               </button>
             </div>
             <p className="text-xs text-gray-400 mb-2">各コマをタップして個別に ○ → △ → × と切り替えることもできます</p>
-            <div className="space-y-2">
-              {activeDateSlots.map((slot) => {
-                const state = getSlotState(activeDate, slot.index)
-                return (
-                  <button
-                    key={slot.index}
-                    type="button"
-                    onClick={() => cycleSlot(activeDate, slot.index)}
-                    className={[
-                      'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left',
-                      state === 'ok'
-                        ? 'bg-teal-500 text-white'
-                        : state === 'maybe'
-                          ? 'bg-amber-400 text-white'
-                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400',
-                    ].join(' ')}
-                  >
-                    <span className={[
-                      'text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0',
-                      state === 'ok' || state === 'maybe' ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700',
-                    ].join(' ')}>
-                      第{slot.index}コマ
-                    </span>
-                    <span>{slot.start}〜{slot.end}</span>
-                    <span className="ml-auto text-base font-bold">
-                      {state === 'ok' ? '○' : state === 'maybe' ? '△' : '×'}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
 
-            {/* 理由パネル: ×または△のコマがあれば即表示 */}
+            {/* 理由パネル: ×または△のコマがあれば即表示（スロット一覧の上） */}
             {(hasNg || hasMaybe) && (
-              <div ref={reasonPanelRef} className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3 space-y-3">
+              <div ref={reasonPanelRef} className="mb-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 space-y-3">
                 {hasNg && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">×の理由（任意・複数選択可）</p>
@@ -706,6 +710,38 @@ export function SurveyRespond({
                 )}
               </div>
             )}
+
+            <div className="space-y-2">
+              {activeDateSlots.map((slot) => {
+                const state = getSlotState(activeDate, slot.index)
+                return (
+                  <button
+                    key={slot.index}
+                    type="button"
+                    onClick={() => cycleSlot(activeDate, slot.index)}
+                    className={[
+                      'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left',
+                      state === 'ok'
+                        ? 'bg-teal-500 text-white'
+                        : state === 'maybe'
+                          ? 'bg-amber-400 text-white'
+                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400',
+                    ].join(' ')}
+                  >
+                    <span className={[
+                      'text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0',
+                      state === 'ok' || state === 'maybe' ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700',
+                    ].join(' ')}>
+                      第{slot.index}コマ
+                    </span>
+                    <span>{slot.start}〜{slot.end}</span>
+                    <span className="ml-auto text-base font-bold">
+                      {state === 'ok' ? '○' : state === 'maybe' ? '△' : '×'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
 
