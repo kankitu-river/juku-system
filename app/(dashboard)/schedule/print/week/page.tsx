@@ -126,11 +126,12 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   const endLabel = end.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
   const yearLabel = start.getFullYear()
 
-  // 教室掲示用にA3横で印刷。大きい紙なので読める文字サイズを確保する
+  // 教室掲示用にA3横で印刷。大きい紙なので読める文字サイズを確保する。
+  // 空きセルの最小高さは小さくして、7コマでも縦に収まるようにする（埋まったセルは内容なり）
   const isIntensive = currentTermType === 'intensive'
   const tableFont = isIntensive ? 10 : 12
   const pillFont = isIntensive ? 9 : 11
-  const cellMinH = isIntensive ? 34 : 60
+  const cellMinH = isIntensive ? 16 : 44
 
   return (
     <div className="print-root bg-white min-h-screen">

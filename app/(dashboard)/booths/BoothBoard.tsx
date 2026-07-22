@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Booth, Lesson } from '@/types'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS } from '@/lib/constants/timeSlots'
-import { updateBoothAssignment, updateBoothName, autoAssignBooths } from './actions'
+import { updateBoothAssignment, updateBoothName, autoAssignBooths, autoAssignIntensivePeriod } from './actions'
 
 export type LessonWithTeacher = Lesson & { teacher: { name: string } | null }
 
@@ -35,6 +35,15 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
       const result = await autoAssignBooths(dateStr, dow, currentTermType)
       setAutoResult(result.error ? `エラー: ${result.error}` : `${result.assigned}件のコマにブースを割り当てました`)
       setTimeout(() => { setAutoResult(null); router.refresh() }, 2000)
+    })
+  }
+
+  function handleAutoAssignPeriod() {
+    if (!confirm('この講習期間の全コマのブースを一括で割り当て直します。よろしいですか？')) return
+    startAutoAssign(async () => {
+      const result = await autoAssignIntensivePeriod(dateStr)
+      setAutoResult(result.error ? `エラー: ${result.error}` : `${result.days}日分・${result.assigned}件を割り当てました`)
+      setTimeout(() => { setAutoResult(null); router.refresh() }, 3000)
     })
   }
 
@@ -88,14 +97,23 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
   return (
     <div className="space-y-5">
       {/* 自動割当ボタン */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={handleAutoAssign}
           disabled={autoAssigning}
           className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors disabled:opacity-50"
         >
-          {autoAssigning ? '割り当て中…' : '自動ブース割り当て'}
+          {autoAssigning ? '割り当て中…' : 'この日を自動割り当て'}
         </button>
+        {currentTermType === 'intensive' && (
+          <button
+            onClick={handleAutoAssignPeriod}
+            disabled={autoAssigning}
+            className="px-4 py-2 text-sm bg-navy text-white rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50"
+          >
+            {autoAssigning ? '割り当て中…' : '講習期間まとめて自動割り当て'}
+          </button>
+        )}
         {autoResult && (
           <span className="text-sm text-green-600 dark:text-green-400">{autoResult}</span>
         )}
