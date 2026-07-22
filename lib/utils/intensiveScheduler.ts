@@ -72,7 +72,7 @@ export interface ProposedAssignment {
   lessonLabel: string
   teacherId: string | null
   teacherName: string | null
-  reasonCode: 'regular_senior' | 'regular' | 'preferred' | 'compatible'
+  reasonCode: 'regular_senior' | 'regular' | 'preferred' | 'compatible' | 'ml_optimized'
   reasonLabel: string
   isNew?: boolean
   newLesson?: { teacherId: string; date: string; slotIndex: number }

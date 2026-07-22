@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useState, useTransition, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { assignMakeup } from '@/app/(dashboard)/attendance/actions'
+import { assignMakeup, getMakeupMLScores } from '@/app/(dashboard)/attendance/actions'
 import { getSlotLabel } from '@/lib/constants/timeSlots'
 import { DAYS_OF_WEEK } from '@/lib/constants/timeSlots'
 import { getDisplayGrade } from '@/lib/utils/grade'
@@ -77,8 +77,23 @@ export function MakeupManager({
   const [viewMode, setViewMode] = useState<'date' | 'multi'>('date')
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
+  const [mlScores, setMlScores] = useState<Record<string, { score: number; reasons: string[] }> | null>(null)
+  const [mlLoading, setMlLoading] = useState(false)
 
   const student = selectedCredit?.student ?? null
+
+  // 生徒選択時にML APIでスコア取得（バックグラウンド、失敗しても問題なし）
+  useEffect(() => {
+    setMlScores(null)
+    if (!selectedCredit?.student) return
+    const teacherIds = [...new Set(lessons.map((l) => l.teacher_id).filter(Boolean) as string[])]
+    if (teacherIds.length === 0) return
+    setMlLoading(true)
+    getMakeupMLScores(selectedCredit.student.id, teacherIds)
+      .then((result) => setMlScores(result))
+      .catch(() => setMlScores(null))
+      .finally(() => setMlLoading(false))
+  }, [selectedCredit?.student?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Single-date mode: lessons on the selected date
   const dateLessons = useMemo(() => {
@@ -267,12 +282,20 @@ export function MakeupManager({
                 <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
                   {viewMode === 'date' ? 'この日にあるコマ' : '2週間以内のおすすめコマ（上位40件）'}
                 </label>
-                {student && (
-                  <span className="text-[10px] text-gray-400">
-                    {student.ng_teacher_ids.length > 0 && 'NG除外 '}
-                    ⭐任せたい ✓科目一致
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {mlLoading && (
+                    <span className="text-[10px] text-purple-400 animate-pulse">ML計算中…</span>
+                  )}
+                  {!mlLoading && mlScores && (
+                    <span className="text-[10px] text-purple-500" title="MLスコア取得済み">ML✓</span>
+                  )}
+                  {student && (
+                    <span className="text-[10px] text-gray-400">
+                      {student.ng_teacher_ids.length > 0 && 'NG除外 '}
+                      ⭐任せたい ✓科目一致
+                    </span>
+                  )}
+                </div>
               </div>
 
               {scoredLessons.length === 0 ? (
@@ -300,6 +323,7 @@ export function MakeupManager({
                                   onSelect={() => handleSelectLesson(x.lesson.id, x.date)}
                                   showDate={viewMode === 'multi'}
                                   dayLabel={dayLabel(x.lesson.day_of_week)}
+                                  mlScore={x.lesson.teacher_id ? mlScores?.[x.lesson.teacher_id] ?? null : null}
                                 />
                               ))}
                             </div>
@@ -317,6 +341,7 @@ export function MakeupManager({
                                   onSelect={() => handleSelectLesson(x.lesson.id, x.date)}
                                   showDate={viewMode === 'multi'}
                                   dayLabel={dayLabel(x.lesson.day_of_week)}
+                                  mlScore={x.lesson.teacher_id ? mlScores?.[x.lesson.teacher_id] ?? null : null}
                                 />
                               ))}
                             </div>
@@ -370,11 +395,13 @@ function LessonButton({
   onSelect,
   showDate,
   dayLabel,
+  mlScore,
 }: ScoredCandidate & {
   isSelected: boolean
   onSelect: () => void
   showDate: boolean
   dayLabel: string
+  mlScore: { score: number; reasons: string[] } | null
 }) {
   const slotLabel = getSlotLabel(lesson.slot_index, lesson.day_of_week, lesson.term_type, lesson.type)
   const enrolled = lesson.enrollments?.length ?? 0
@@ -427,6 +454,14 @@ function LessonButton({
           )}
           {isFull && (
             <span className="text-[10px] bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-300 px-1.5 py-0.5 rounded-full">定員満</span>
+          )}
+          {mlScore !== null && mlScore.score >= 0.6 && (
+            <span
+              className="text-[10px] bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full"
+              title={mlScore.reasons.length > 0 ? mlScore.reasons.join(' / ') : `MLスコア ${Math.round(mlScore.score * 100)}%`}
+            >
+              ML {Math.round(mlScore.score * 100)}%
+            </span>
           )}
         </div>
       </div>

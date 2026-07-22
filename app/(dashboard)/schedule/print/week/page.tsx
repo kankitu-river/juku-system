@@ -5,7 +5,7 @@ import type { Lesson, TermPeriod } from '@/types'
 import { WeekPrintClient } from './WeekPrintClient'
 
 interface PageProps {
-  searchParams: Promise<{ date?: string }>
+  searchParams: Promise<{ date?: string; waiting?: string }>
 }
 
 function getWeekRange(date: Date): { start: Date; end: Date } {
@@ -23,7 +23,8 @@ function getWeekRange(date: Date): { start: Date; end: Date } {
 const DAY_NAMES = ['', '月', '火', '水', '木', '金', '土']
 
 export default async function WeekPrintPage({ searchParams }: PageProps) {
-  const { date } = await searchParams
+  const { date, waiting } = await searchParams
+  const showWaiting = waiting !== '0'
   const refDate = date ? new Date(date) : new Date()
   const { start, end } = getWeekRange(refDate)
 
@@ -171,7 +172,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
           ].join(' ')}>
             {activeTerm ? activeTerm.name : '通常期間'}
           </span>
-          <WeekPrintClient />
+          <WeekPrintClient showWaiting={showWaiting} weekDateStr={toLocalDate(start)} />
         </div>
       </div>
 
@@ -241,7 +242,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                           {cellLessons.map((lesson) => (
                             <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${dateStr2}`) ?? []} />
                           ))}
-                          {waitingTeachers.length > 0 && (
+                          {showWaiting && waitingTeachers.length > 0 && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
                               {waitingTeachers.map(t => (
                                 <span key={t.id} className="text-[8px] bg-blue-50 text-blue-600 border border-dashed border-blue-300 px-1 py-0.5 rounded-full whitespace-nowrap wpl-pill">

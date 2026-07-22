@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { callML } from '@/lib/ml/client'
 
 // 出欠を記録（upsert）
 export async function recordAttendance(
@@ -139,6 +140,76 @@ export async function cancelMakeupAssignment(assignmentId: string): Promise<{ er
   if (attError) return { error: attError.message }
 
   return {}
+}
+
+// MLサービスで振替候補をスコアリング（B-3）
+export async function getMakeupMLScores(
+  studentId: string,
+  teacherIds: string[]
+): Promise<Record<string, { score: number; reasons: string[] }> | null> {
+  if (!process.env.ML_API_URL || teacherIds.length === 0) return null
+
+  const supabase = await createClient()
+
+  // 生徒の出欠レコード取得
+  const { data: attRows } = await supabase
+    .from('attendances')
+    .select('status, lesson_id')
+    .eq('student_id', studentId)
+
+  const lessonIds = [...new Set((attRows ?? []).map((r) => r.lesson_id as string))]
+
+  // lessonId→teacher_id マッピング
+  const lessonTeacherMap: Record<string, string> = {}
+  if (lessonIds.length > 0) {
+    const { data: lessonRows } = await supabase
+      .from('lessons')
+      .select('id, teacher_id')
+      .in('id', lessonIds)
+    for (const l of lessonRows ?? []) {
+      if (l.teacher_id) lessonTeacherMap[l.id as string] = l.teacher_id as string
+    }
+  }
+
+  // 先生ごとに集計
+  const stats: Record<string, { total: number; attended: number }> = {}
+  for (const row of attRows ?? []) {
+    const tid = lessonTeacherMap[row.lesson_id as string]
+    if (!tid) continue
+    if (!stats[tid]) stats[tid] = { total: 0, attended: 0 }
+    stats[tid].total++
+    if (row.status === 'present' || row.status === 'makeup_used') stats[tid].attended++
+  }
+
+  // 先生の担当コマ数（負荷）
+  const { data: loadRows } = await supabase
+    .from('lessons')
+    .select('teacher_id')
+    .not('teacher_id', 'is', null)
+  const loadMap: Record<string, number> = {}
+  for (const r of loadRows ?? []) {
+    const tid = r.teacher_id as string
+    loadMap[tid] = (loadMap[tid] ?? 0) + 1
+  }
+
+  const candidates = teacherIds.map((tid) => ({
+    candidate_id: tid,
+    past_lessons: stats[tid]?.total ?? 0,
+    attendance_rate: stats[tid]?.total ? stats[tid].attended / stats[tid].total : 0,
+    teacher_load: loadMap[tid] ?? 0,
+  }))
+
+  const result = await callML<{ ranked: { candidate_id: string; score: number; reasons: string[] }[] }>(
+    '/makeup/score',
+    { student_id: studentId, candidates }
+  )
+  if (!result) return null
+
+  const map: Record<string, { score: number; reasons: string[] }> = {}
+  for (const r of result.ranked) {
+    map[r.candidate_id] = { score: r.score, reasons: r.reasons }
+  }
+  return map
 }
 
 // 振替コマを割り当て（クレジットを1消費）

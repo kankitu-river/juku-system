@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import { submitSurveyResponse } from './actions'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
 import { SURVEY_NG_REASONS, SURVEY_MAYBE_REASONS } from '@/lib/constants/surveyReasons'
@@ -121,6 +121,7 @@ export function SurveyRespond({
   const [ngNoteByDate, setNgNoteByDate] = useState<Record<string, string>>({})
   const [maybeReasonsByDate, setMaybeReasonsByDate] = useState<Record<string, string[]>>({})
   const [maybeNoteByDate, setMaybeNoteByDate] = useState<Record<string, string>>({})
+  const reasonPanelRef = useRef<HTMLDivElement>(null)
   const [openedDates, setOpenedDates] = useState<Set<string>>(
     preselected
       ? new Set([
@@ -132,6 +133,13 @@ export function SurveyRespond({
   const [activeDate, setActiveDate] = useState<string | null>(null)
 
   const [isPending, startTransition] = useTransition()
+
+  // △/×理由パネルが現れたときにスクロールして見えるようにする
+  useEffect(() => {
+    if (reasonPanelRef.current) {
+      reasonPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [maybeSlots, okSlots])
   const [error, setError] = useState<string>()
   const [changeWarning, setChangeWarning] = useState<string[] | null>(null)
   const [freeText, setFreeText] = useState('')
@@ -619,7 +627,7 @@ export function SurveyRespond({
 
             {/* 理由パネル: ×または△のコマがあれば即表示 */}
             {(hasNg || hasMaybe) && (
-              <div className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3 space-y-3">
+              <div ref={reasonPanelRef} className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3 space-y-3">
                 {hasNg && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">×の理由（任意・複数選択可）</p>

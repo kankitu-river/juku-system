@@ -2,8 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { generateSchedule, type DraftScheduleResult, type AvailabilityMap, type SlotTime } from '@/lib/utils/intensiveScheduler'
+import { generateSchedule, type DraftScheduleResult, type ProposedAssignment, type ScheduleConflict, type AvailabilityMap, type SlotTime } from '@/lib/utils/intensiveScheduler'
 import { INTENSIVE_SLOTS, type IntensiveSlotLimits } from '@/lib/constants/timeSlots'
+import { callML } from '@/lib/ml/client'
 
 type RegularEnrollmentRow = {
   student_id: string
@@ -17,7 +18,8 @@ type IntensiveLessonRow = {
   enrollments: { student_id: string }[]
 }
 type StudentRow = { id: string; name: string; grade: string; preferred_teacher_ids: string[] | null; ng_teacher_ids: string[] | null }
-type IntensivePlanRow = { student_id: string; subject: string; planned_count: number }
+type PlanCategory = 'applied' | 'makeup' | 'special'
+type IntensivePlanRow = { student_id: string; subject: string; planned_count: number; category: PlanCategory }
 type EnrollmentRow = { student_id: string; lesson_id: string }
 type TeacherRow = { id: string; name: string; subjects: string[] | null }
 type ShiftRow = { teacher_id: string; date: string; start_time: string; end_time: string }
@@ -64,48 +66,35 @@ export async function bulkCreateIntensiveLessons(input: {
   return { count: rows.length }
 }
 
-// 生徒の持ちコマ（科目×コマ数）をまとめて保存（SET方式: 渡された内容が最終状態になる）
+// 生徒の持ちコマ（科目×コマ数×区分）をまとめて保存（SET方式: 渡された内容が最終状態になる）
 export async function saveStudentPlans(
   studentId: string,
   termPeriodId: string,
-  plans: { subject: string; count: number }[]
+  plans: { subject: string; count: number; category: PlanCategory }[]
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
 
-  const { data: existing } = await supabase
+  const valid = plans.filter((p) => p.subject && p.count >= 1)
+
+  // 全削除してから再挿入（(subject,category) の組み合わせが変わる可能性があるため）
+  const { error: delError } = await supabase
     .from('intensive_plans')
-    .select('subject')
+    .delete()
     .eq('student_id', studentId)
     .eq('term_period_id', termPeriodId)
-
-  const valid = plans.filter((p) => p.subject && p.count >= 1)
-  const keepSubjects = new Set(valid.map((p) => p.subject))
-
-  // 入力から消えた科目のプランは削除
-  const toDelete = ((existing ?? []) as { subject: string }[])
-    .map((e) => e.subject)
-    .filter((s) => !keepSubjects.has(s))
-  if (toDelete.length > 0) {
-    const { error } = await supabase
-      .from('intensive_plans')
-      .delete()
-      .eq('student_id', studentId)
-      .eq('term_period_id', termPeriodId)
-      .in('subject', toDelete)
-    if (error) return { error: error.message }
-  }
+  if (delError) return { error: delError.message }
 
   if (valid.length > 0) {
     const { error } = await supabase
       .from('intensive_plans')
-      .upsert(
+      .insert(
         valid.map((p) => ({
           student_id: studentId,
           term_period_id: termPeriodId,
           subject: p.subject,
           planned_count: p.count,
-        })),
-        { onConflict: 'student_id,term_period_id,subject' }
+          category: p.category,
+        }))
       )
     if (error) return { error: error.message }
   }
@@ -118,20 +107,22 @@ export async function upsertIntensivePlan(
   studentId: string,
   termPeriodId: string,
   subject: string,
-  plannedCount: number
+  plannedCount: number,
+  category: PlanCategory = 'applied'
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { error } = await supabase
     .from('intensive_plans')
     .upsert(
-      { student_id: studentId, term_period_id: termPeriodId, subject, planned_count: plannedCount },
-      { onConflict: 'student_id,term_period_id,subject' }
+      { student_id: studentId, term_period_id: termPeriodId, subject, planned_count: plannedCount, category },
+      { onConflict: 'student_id,term_period_id,subject,category' }
     )
   if (error) return { error: error.message }
   revalidatePath('/schedule/intensive')
   return {}
 }
 
+// 科目に紐づく全区分のプランを削除
 export async function deleteIntensivePlan(
   studentId: string,
   termPeriodId: string,
@@ -294,6 +285,7 @@ export async function generateDraftSchedule(
         student_id: p.student_id,
         subject: p.subject,
         planned_count: p.planned_count,
+        category: p.category,
       })),
     (currentEnrollments as EnrollmentRow[] ?? []).map((e) => ({
       student_id: e.student_id,
@@ -320,6 +312,169 @@ export async function generateDraftSchedule(
   )
 
   return { result }
+}
+
+// MLサービスを使った講習割り振り最適化（B-5: ハンガリアン法）
+export async function generateMLDraftSchedule(
+  termPeriodId: string,
+  targetStudentIds?: string[]
+): Promise<{ result?: DraftScheduleResult; error?: string }> {
+  if (!process.env.ML_API_URL) {
+    return { error: 'MLサービスが設定されていません（ML_API_URL未設定）' }
+  }
+
+  const supabase = await createClient()
+
+  const { data: termPeriod } = await supabase
+    .from('term_periods')
+    .select('id, start_date, end_date')
+    .eq('id', termPeriodId)
+    .single()
+  if (!termPeriod) return { error: '講習期間が見つかりません' }
+
+  const [
+    { data: students },
+    { data: lessonRows },
+    { data: plans },
+    { data: availabilityRows },
+    { data: teachers },
+  ] = await Promise.all([
+    supabase.from('students').select('id, name, grade'),
+    supabase
+      .from('lessons')
+      .select('id, subject, teacher_id, teacher:teachers(id, name), day_of_week, slot_index, specific_date, capacity, term_type, enrollments:lesson_enrollments(student_id)')
+      .eq('term_type', 'intensive'),
+    supabase
+      .from('intensive_plans')
+      .select('student_id, subject, planned_count')
+      .eq('term_period_id', termPeriodId),
+    supabase
+      .from('intensive_student_availability')
+      .select('student_id, date, slot_index')
+      .eq('term_period_id', termPeriodId),
+    supabase.from('teachers').select('id, name'),
+  ])
+
+  if (!students || !lessonRows || !plans) return { error: 'データ取得に失敗しました' }
+
+  // 期間内の講習コマのみ
+  const lessonInfos = (lessonRows as unknown as IntensiveLessonRow[])
+    .filter((l) =>
+      !l.specific_date ||
+      (l.specific_date >= termPeriod.start_date && l.specific_date <= termPeriod.end_date)
+    )
+    .map((l) => ({
+      id: l.id,
+      subject: l.subject ?? '',
+      teacher_id: l.teacher_id ?? null,
+      teacher_name: (l.teacher as unknown as { name: string } | null)?.name ?? null,
+      day_of_week: l.day_of_week,
+      slot_index: l.slot_index,
+      specific_date: l.specific_date ?? null,
+      capacity: l.capacity,
+      enrolled_count: (l.enrollments ?? []).length,
+    }))
+
+  // 生徒の来塾希望: student_id -> Set<"date__slotIndex">
+  const availMap: Record<string, Set<string>> = {}
+  for (const row of (availabilityRows ?? []) as { student_id: string; date: string; slot_index: number }[]) {
+    if (!availMap[row.student_id]) availMap[row.student_id] = new Set()
+    availMap[row.student_id].add(`${row.date}__${row.slot_index}`)
+  }
+
+  // MLリクエストのstudents構築
+  const filteredPlans = (plans as { student_id: string; subject: string; planned_count: number }[])
+    .filter((p) => !targetStudentIds?.length || targetStudentIds.includes(p.student_id))
+
+  const mlStudents = filteredPlans.map((p) => {
+    const studentAvail = availMap[p.student_id] ?? new Set<string>()
+    const availableSlotIds = lessonInfos
+      .filter(
+        (l) =>
+          l.subject === p.subject &&
+          l.specific_date !== null &&
+          studentAvail.has(`${l.specific_date}__${l.slot_index}`)
+      )
+      .map((l) => l.id)
+    return {
+      student_id: p.student_id,
+      subject: p.subject,
+      desired_slots: p.planned_count,
+      available_slot_ids: availableSlotIds,
+    }
+  })
+
+  const mlSlots = lessonInfos.map((l) => ({
+    slot_id: l.id,
+    teacher_id: l.teacher_id ?? '',
+    subject: l.subject,
+    day: l.day_of_week,
+    slot_index: l.slot_index,
+    current_enrollment: l.enrolled_count,
+    capacity: l.capacity,
+  }))
+
+  const mlResult = await callML<{
+    assignments: { student_id: string; slot_id: string; teacher_id: string }[]
+    unassigned: string[]
+    message: string
+  }>('/intensive/optimize', { students: mlStudents, slots: mlSlots })
+
+  if (!mlResult) {
+    return {
+      error:
+        'MLサービスへの接続に失敗しました。起動中の可能性があります。1分後に再試行してください。',
+    }
+  }
+
+  // ML出力 → DraftScheduleResult に変換
+  const studentMap = new Map((students as { id: string; name: string; grade: string }[]).map((s) => [s.id, s]))
+  const lessonMap = new Map(lessonInfos.map((l) => [l.id, l]))
+  const teacherMap = new Map((teachers ?? []).map((t) => [t.id as string, t as { id: string; name: string }]))
+
+  const assignments: ProposedAssignment[] = mlResult.assignments
+    .map((a): ProposedAssignment | null => {
+      const student = studentMap.get(a.student_id)
+      const lesson = lessonMap.get(a.slot_id)
+      if (!student || !lesson) return null
+      const teacher = a.teacher_id ? teacherMap.get(a.teacher_id) : null
+      const label = lesson.specific_date
+        ? `${lesson.specific_date.slice(5).replace('-', '/')} 第${lesson.slot_index}コマ`
+        : `第${lesson.slot_index}コマ`
+      return {
+        studentId: a.student_id,
+        studentName: student.name,
+        studentGrade: student.grade,
+        subject: lesson.subject,
+        lessonId: a.slot_id as string | null,
+        lessonLabel: label,
+        teacherId: a.teacher_id || null,
+        teacherName: teacher?.name ?? lesson.teacher_name ?? null,
+        reasonCode: 'ml_optimized',
+        reasonLabel: 'ML最適化',
+        isNew: false,
+      }
+    })
+    .filter((x): x is ProposedAssignment => x !== null)
+
+  const conflicts: ScheduleConflict[] = mlResult.unassigned.map((studentId) => {
+    const student = studentMap.get(studentId)
+    const studentPlans = filteredPlans.filter((p) => p.student_id === studentId)
+    return {
+      studentId,
+      studentName: student?.name ?? '',
+      studentGrade: student?.grade ?? '',
+      subject: studentPlans.map((p) => p.subject).join('・'),
+      needed: studentPlans.reduce((sum, p) => sum + p.planned_count, 0),
+      found: 0,
+      isSenior: student?.grade === '高3',
+      regularTeacherName: null,
+      regularTeacherNoSlots: false,
+      alternatives: [],
+    }
+  })
+
+  return { result: { assignments, conflicts, swaps: [] } }
 }
 
 // 入れ替え提案の適用: 既存生徒を別の枠へ移し、新しい生徒を満員コマに入れる

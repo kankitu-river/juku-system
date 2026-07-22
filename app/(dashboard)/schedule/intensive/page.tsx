@@ -16,7 +16,7 @@ export default async function IntensivePage({ searchParams }: PageProps) {
 
   const [{ data: termPeriods }, { data: students }, { data: teachers }, { data: booths }, { data: slotLimitSetting }, { data: closures }] = await Promise.all([
     supabase.from('term_periods').select('*').eq('type', 'intensive').order('start_date', { ascending: false }),
-    supabase.from('students').select('id, name, grade, subjects').order('grade').order('name'),
+    supabase.from('students').select('id, name, grade, subjects, parent_requests, is_trial').order('grade').order('name'),
     supabase.from('teachers').select('id, name').order('name'),
     supabase.from('booths').select('id, name').eq('is_active', true).order('name'),
     supabase.from('app_settings').select('value').eq('key', 'intensive_slot_limits').single(),

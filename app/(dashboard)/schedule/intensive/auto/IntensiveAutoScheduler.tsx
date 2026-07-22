@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
-import { generateDraftSchedule, applyDraftSchedule, applyScheduleSwap } from '../actions'
+import { generateDraftSchedule, generateMLDraftSchedule, applyDraftSchedule, applyScheduleSwap } from '../actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
 import type { DraftScheduleResult, ProposedAssignment, SwapProposal } from '@/lib/utils/intensiveScheduler'
 
@@ -22,11 +22,14 @@ const REASON_COLORS: Record<string, string> = {
   regular: 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300',
   preferred: 'bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300',
   compatible: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
+  ml_optimized: 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300',
 }
 
 export function IntensiveAutoScheduler({ termPeriodId, termPeriodName, planStudents = [] }: Props) {
   const [isPending, startTransition] = useTransition()
+  const [isMLPending, startMLTransition] = useTransition()
   const [isApplying, startApplying] = useTransition()
+  const [resultSource, setResultSource] = useState<'local' | 'ml'>('local')
   const [result, setResult] = useState<DraftScheduleResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState(false)
@@ -85,8 +88,26 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName, planStude
     setApplied(false)
     setExcluded(new Set())
     setAppliedSwaps(new Set())
+    setResultSource('local')
     startTransition(async () => {
       const res = await generateDraftSchedule(termPeriodId, Array.from(targetIds))
+      if (res.error) {
+        setError(res.error)
+      } else if (res.result) {
+        setResult(res.result)
+      }
+    })
+  }
+
+  function handleMLGenerate() {
+    setResult(null)
+    setError(null)
+    setApplied(false)
+    setExcluded(new Set())
+    setAppliedSwaps(new Set())
+    setResultSource('ml')
+    startMLTransition(async () => {
+      const res = await generateMLDraftSchedule(termPeriodId, Array.from(targetIds))
       if (res.error) {
         setError(res.error)
       } else if (res.result) {
@@ -163,17 +184,29 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName, planStude
               <li>・ 新規コマは1コマ最大2名（同一科目のみ同席）</li>
             </ul>
           </div>
-          <button
-            onClick={handleGenerate}
-            disabled={isPending}
-            className="flex-shrink-0 px-5 py-2.5 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark disabled:opacity-50 transition-colors"
-          >
-            {isPending
-              ? '生成中...'
-              : targetIds.size > 0
-                ? `${targetIds.size}名分の案を生成`
-                : result ? '再生成' : '割り振り案を生成'}
-          </button>
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            <button
+              onClick={handleGenerate}
+              disabled={isPending || isMLPending}
+              className="px-5 py-2.5 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-dark disabled:opacity-50 transition-colors"
+            >
+              {isPending
+                ? '生成中...'
+                : targetIds.size > 0
+                  ? `${targetIds.size}名分の案を生成`
+                  : result && resultSource === 'local' ? '再生成' : '割り振り案を生成'}
+            </button>
+            <button
+              onClick={handleMLGenerate}
+              disabled={isPending || isMLPending}
+              className="px-5 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              title="ハンガリアン法（最適割り当て）を使用"
+            >
+              {isMLPending
+                ? 'ML最適化中...'
+                : result && resultSource === 'ml' ? 'ML再最適化' : 'ML最適化で生成'}
+            </button>
+          </div>
         </div>
 
         {/* 対象生徒の絞り込み */}
@@ -239,6 +272,16 @@ export function IntensiveAutoScheduler({ termPeriodId, termPeriodName, planStude
 
       {result && !applied && (
         <>
+          {/* アルゴリズム表示 */}
+          <div className={[
+            'rounded-xl border px-4 py-2 text-xs font-medium flex items-center gap-2',
+            resultSource === 'ml'
+              ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-900 text-purple-700 dark:text-purple-300'
+              : 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 text-blue-700 dark:text-blue-300',
+          ].join(' ')}>
+            {resultSource === 'ml' ? '🤖 ハンガリアン法（ML最適化）で生成した案です。確認して適用してください。' : '📋 ルールベースで生成した案です。確認して適用してください。'}
+          </div>
+
           {/* サマリー */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-teal-50 dark:bg-teal-950/40 rounded-xl border border-teal-100 px-4 py-3">

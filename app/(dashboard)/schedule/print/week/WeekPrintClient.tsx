@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 const PAPER_SIZES = [
   { value: 'A3 landscape', label: 'A3 横' },
@@ -9,7 +10,6 @@ const PAPER_SIZES = [
   { value: 'A4 portrait', label: 'A4 縦' },
 ] as const
 
-// 用紙サイズ指定の @page スタイルを差し込んでその場で印刷する
 function printWithPageSize(size: string) {
   const style = document.createElement('style')
   style.id = '__print_page_size'
@@ -19,10 +19,15 @@ function printWithPageSize(size: string) {
   setTimeout(() => document.getElementById('__print_page_size')?.remove(), 500)
 }
 
-export function WeekPrintClient() {
-  const [paperSize, setPaperSize] = useState<string>('A3 landscape')
+interface Props {
+  showWaiting: boolean
+  weekDateStr: string
+}
 
-  // 旧リンク互換: autoprint=1 付きで開かれたら自動印刷
+export function WeekPrintClient({ showWaiting, weekDateStr }: Props) {
+  const [paperSize, setPaperSize] = useState<string>('A3 landscape')
+  const router = useRouter()
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('autoprint') !== '1') return
@@ -33,8 +38,29 @@ export function WeekPrintClient() {
     printWithPageSize(paperSize)
   }
 
+  function toggleWaiting() {
+    const params = new URLSearchParams(window.location.search)
+    if (showWaiting) {
+      params.set('waiting', '0')
+    } else {
+      params.delete('waiting')
+    }
+    router.push(`/schedule/print/week?${params.toString()}`)
+  }
+
   return (
     <div className="flex items-center gap-2">
+      <button
+        onClick={toggleWaiting}
+        className={[
+          'px-3 py-2 text-sm rounded-lg border transition-colors',
+          showWaiting
+            ? 'bg-blue-50 border-blue-300 text-blue-700'
+            : 'bg-white border-gray-300 text-gray-500',
+        ].join(' ')}
+      >
+        待機先生を{showWaiting ? '非表示' : '表示'}
+      </button>
       <select
         value={paperSize}
         onChange={(e) => setPaperSize(e.target.value)}

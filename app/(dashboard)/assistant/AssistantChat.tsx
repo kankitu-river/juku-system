@@ -54,6 +54,11 @@ export function AssistantChat() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] max-w-3xl mx-auto">
+      {/* 機能無効バナー */}
+      <div className="mb-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+        <span className="font-semibold">この機能は現在無効化されています。</span>
+        AIチャット機能はコスト削減のため停止中です。将来のLLM再導入時に復活予定です。
+      </div>
       {/* チャット履歴 */}
       <div className="flex-1 overflow-y-auto space-y-4 py-4 px-1">
         {messages.length === 0 && (

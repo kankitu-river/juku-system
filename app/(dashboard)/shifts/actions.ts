@@ -25,6 +25,52 @@ export async function deleteShift(id: string): Promise<{ error?: string }> {
   return {}
 }
 
+export interface ShiftImpact {
+  affectedStudents: { id: string; name: string; grade: string; hasPendingCredits: boolean }[]
+  lessonCount: number
+}
+
+export async function getShiftImpact(teacherId: string, date: string): Promise<ShiftImpact> {
+  const supabase = await createClient()
+  const dow = new Date(date + 'T12:00:00').getDay()
+
+  const [{ data: regularLessons }, { data: tempLessons }, { data: makeupCredits }] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select('id, enrollments:lesson_enrollments(student_id, student:students(id, name, grade))')
+      .eq('teacher_id', teacherId)
+      .eq('day_of_week', dow)
+      .eq('lesson_kind', 'regular'),
+    supabase
+      .from('lessons')
+      .select('id, enrollments:lesson_enrollments(student_id, student:students(id, name, grade))')
+      .eq('teacher_id', teacherId)
+      .eq('specific_date', date)
+      .eq('lesson_kind', 'temporary'),
+    supabase.from('makeup_credits').select('student_id, total_credits, used_credits'),
+  ])
+
+  const creditsMap = new Map(
+    (makeupCredits ?? []).map((mc) => [mc.student_id as string, (mc.total_credits as number) - (mc.used_credits as number)])
+  )
+
+  const allLessons = [...(regularLessons ?? []), ...(tempLessons ?? [])]
+  const studentMap = new Map<string, { id: string; name: string; grade: string }>()
+  for (const lesson of allLessons) {
+    for (const e of (lesson.enrollments ?? []) as unknown as { student_id: string; student: { id: string; name: string; grade: string } | null }[]) {
+      if (e.student && !studentMap.has(e.student.id)) studentMap.set(e.student.id, e.student)
+    }
+  }
+
+  return {
+    affectedStudents: Array.from(studentMap.values()).map((s) => ({
+      ...s,
+      hasPendingCredits: (creditsMap.get(s.id) ?? 0) > 0,
+    })),
+    lessonCount: allLessons.length,
+  }
+}
+
 export async function copyShiftsToNextWeek(currentWeekDates: string[]): Promise<{ count?: number; error?: string }> {
   const supabase = await createClient()
   const { data: shifts, error: fetchError } = await supabase
