@@ -95,9 +95,9 @@ export default async function SettingsPage() {
 
         {/* 名簿インポート */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">名簿インポート（Excel）</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Excelから取り込み（スケ組みソフト）</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            スケ組みソフトのExcelから、未登録の講師・生徒・ふりがなを取り込みます。既存データは上書きしません。
+            スケ組みソフトのExcelから、講師・生徒・ふりがな、および夏期講習のコマをまとめて取り込みます。既存データは上書きしません。
           </p>
           <Link
             href="/settings/import"

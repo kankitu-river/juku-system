@@ -52,7 +52,8 @@ function buildRosterMaps(wb: XLSX.WorkBook) {
 }
 
 export function parseIntensiveSchedule(buffer: ArrayBuffer | Buffer): ParsedSchedule {
-  const wb = XLSX.read(buffer, { type: 'buffer' })
+  // 講習日程＋名簿の必要シートだけ解析する（他の巨大シートを読むと重いため）
+  const wb = XLSX.read(buffer, { type: 'buffer', sheets: [SHEET, '生徒名簿', '講師名簿'] })
   const ws = wb.Sheets[SHEET]
   if (!ws) return { lessons: [], minDate: '', maxDate: '' }
 

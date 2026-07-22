@@ -48,7 +48,8 @@ function sheetToRows(wb: XLSX.WorkBook, sheetName: string): unknown[][] {
 }
 
 export function parseRoster(buffer: ArrayBuffer | Buffer): ParsedRoster {
-  const wb = XLSX.read(buffer, { type: 'buffer' })
+  // 名簿の2シートだけ解析する（巨大な「講習授業日程」を読むと重く、サーバーが落ちるため）
+  const wb = XLSX.read(buffer, { type: 'buffer', sheets: ['講師名簿', '生徒名簿'] })
 
   // ── 講師名簿 ──
   const teachers: ParsedTeacher[] = []
