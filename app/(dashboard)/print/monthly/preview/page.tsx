@@ -320,10 +320,11 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                     subject: (e as { subject?: string | null }).subject ?? lesson.subject ?? '',
                                   }))
                                 const makeupStudents = makeupByLessonDate.get(`${lesson.id}__${dateStr}`) ?? []
-                                const tStart = (timeLabel || '').split(/[〜~\-]/)[0].trim()
-                                // 印刷用1行テキスト: ①16:30 涌井(国)/金子(算)
+                                const [tgS, tgE] = (timeLabel || '').split(/[〜~\-]/).map((x) => x.trim())
+                                const tgRange = tgE ? `${tgS}-${tgE}` : tgS
+                                // 印刷用1行テキスト: ①16:30-18:00 涌井(国)/金子(算)
                                 const printLine = [
-                                  `${toCircle(lesson.slot_index)}${tStart}`,
+                                  `${toCircle(lesson.slot_index)}${tgRange}`,
                                   enrolledStudents.length > 0
                                     ? enrolledStudents.map(s => `${surname(s.name)}(${shortSubject(s.subject)})`).join('/')
                                     : (shortSubject(lesson.subject) || '—'),
@@ -363,10 +364,11 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                 const mySubject = (enrollment as { subject?: string | null } | undefined)?.subject ?? lesson.subject
                                 const teacherName = (lesson as { teacher?: { name: string } }).teacher?.name
                                 const isGroup = lesson.type === 'group'
-                                const startTime = (timeLabel || '').split(/[〜~\-]/)[0].trim()
-                                // 印刷用1行テキスト: ①16:30 国·金子T
+                                const [tS, tE] = (timeLabel || '').split(/[〜~\-]/).map((x) => x.trim())
+                                const timeRange = tE ? `${tS}-${tE}` : tS
+                                // 印刷用1行テキスト: ①16:30-18:00 国·金子T
                                 const printParts = [
-                                  `${toCircle(lesson.slot_index)}${startTime}`,
+                                  `${toCircle(lesson.slot_index)}${timeRange}`,
                                   shortSubject(mySubject),
                                   teacherName && showTeacher ? `·${surname(teacherName)}T` : '',
                                 ]
@@ -404,9 +406,10 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
                             {/* 生徒ビュー: 振替コマ */}
                             {visibleMakeupEntries.map((mk, mi) => {
-                              const mkStart = (mk.timeLabel || '').split(/[〜~\-]/)[0].trim()
+                              const [mkS, mkE] = (mk.timeLabel || '').split(/[〜~\-]/).map((x) => x.trim())
+                              const mkRange = mkE ? `${mkS}-${mkE}` : mkS
                               const printLine = [
-                                `${toCircle(mk.slotIndex)}振${mkStart}`,
+                                `${toCircle(mk.slotIndex)}振${mkRange}`,
                                 shortSubject(mk.subject),
                                 mk.teacherName && showTeacher ? `·${surname(mk.teacherName)}T` : '',
                               ].filter(Boolean).join(' ')

@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, GROUP_SATURDAY_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
 import type { Lesson, TermPeriod } from '@/types'
 import { WeekPrintClient } from './WeekPrintClient'
-import { FitToPage } from '@/components/print/FitToPage'
 
 interface PageProps {
   searchParams: Promise<{ date?: string; waiting?: string }>
@@ -127,29 +126,29 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   const endLabel = end.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
   const yearLabel = start.getFullYear()
 
-  // 講習期間は7コマあり縦に長くなるため、印刷時のセル高さ・文字を詰めて1枚に収める
+  // 教室掲示用にA3横で印刷。大きい紙なので読める文字サイズを確保する
   const isIntensive = currentTermType === 'intensive'
-  const cellMinH = isIntensive ? 24 : 55
-  const tableFont = isIntensive ? 6.5 : 7
-  const cellPad = isIntensive ? '1px 3px' : '2px 4px'
+  const tableFont = isIntensive ? 10 : 12
+  const pillFont = isIntensive ? 9 : 11
+  const cellMinH = isIntensive ? 34 : 60
 
   return (
     <div className="print-root bg-white min-h-screen">
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 3mm; }
+          @page { size: A3 landscape; margin: 6mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .wpl-printbody { zoom: 1.0; }
-          .wpl-wrap { display: flex; align-items: flex-start; gap: 4mm; }
+          .wpl-wrap { display: flex; align-items: flex-start; gap: 5mm; }
           .wpl-days { flex: 13; min-width: 0; }
           .wpl-sat  { flex: 4;  min-width: 0; }
           .wpl-table { font-size: ${tableFont}px !important; table-layout: fixed; width: 100%; }
-          .wpl-table th, .wpl-table td { padding: 1px 2px !important; }
-          .wpl-cell { padding: ${cellPad} !important; margin-bottom: 1px !important; height: auto !important; min-height: ${cellMinH}px !important; overflow: visible !important; }
-          .wpl-cell p { margin: 0 !important; line-height: 1.25 !important; }
-          .wpl-pill { font-size: ${tableFont}px !important; padding: 0 3px !important; margin-bottom: 1px !important; }
-          .wpl-h2 { font-size: 8px !important; margin-bottom: 2px !important; }
-          .wpl-h3 { font-size: 7px !important; margin-bottom: 1px !important; }
+          .wpl-table th, .wpl-table td { padding: 2px 3px !important; }
+          .wpl-cell { padding: 2px 4px !important; margin-bottom: 2px !important; height: auto !important; min-height: ${cellMinH}px !important; overflow: visible !important; }
+          .wpl-cell p { margin: 0 !important; line-height: 1.3 !important; }
+          .wpl-pill { font-size: ${pillFont}px !important; padding: 0 4px !important; margin-bottom: 1px !important; }
+          .wpl-h2 { font-size: 12px !important; margin-bottom: 3px !important; }
+          .wpl-h3 { font-size: 11px !important; margin-bottom: 2px !important; }
         }
       `}</style>
       {/* Controls (hidden on print) */}
@@ -187,7 +186,6 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
 
       {/* Print content */}
       <div className="p-6 print:p-0 wpl-printbody">
-        <FitToPage landscape marginMm={4}>
         {/* Header */}
         <div className="mb-4 print:mb-3">
           <h1 className="text-xl font-bold text-navy">週間スケジュール</h1>
@@ -350,7 +348,6 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
           <span>塾スケジュール管理システム</span>
           <span>印刷日: {new Date().toLocaleDateString('ja-JP')}</span>
         </div>
-        </FitToPage>
       </div>
     </div>
   )

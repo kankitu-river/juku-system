@@ -4,7 +4,6 @@ import { REGULAR_SLOTS, INTENSIVE_SLOTS, GROUP_SATURDAY_SLOTS, SATURDAY_INDIVIDU
 import type { Lesson, TermPeriod } from '@/types'
 import { PrintButton } from '@/components/print/PrintButton'
 import { AutoPrint } from '@/components/print/AutoPrint'
-import { FitToPage } from '@/components/print/FitToPage'
 
 interface PageProps {
   searchParams: Promise<{ date?: string; waiting?: string }>
@@ -274,7 +273,6 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
 
       {/* 印刷コンテンツ */}
       <div className="max-w-3xl mx-auto p-6 print:p-0 print:max-w-none">
-        <FitToPage marginMm={6}>
         {/* 画面プレビュー */}
         <div className="dpp-page">
           {/* ヘッダー */}
@@ -345,7 +343,6 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             </div>
           )}
         </div>
-        </FitToPage>
       </div>
     </div>
   )
