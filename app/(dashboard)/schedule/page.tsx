@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { Lesson, TermPeriod, Teacher, Student } from '@/types'
 import type { TimeSlotConfig } from '@/app/(dashboard)/settings/actions'
 import { DailyNoteEditor } from '@/components/schedule/DailyNoteEditor'
+import { DayBoothAssignButton } from '@/components/schedule/DayBoothAssignButton'
 import { getJstTodayStr } from '@/lib/utils/datetime'
 
 interface PageProps {
@@ -380,6 +381,9 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
         >
           翌日 ›
         </Link>
+      </div>
+      <div className="mb-3 flex justify-end">
+        <DayBoothAssignButton dateStr={toLocalDate(date)} dow={dayOfWeek} termType={currentTermType} />
       </div>
       {mergedGroups.length === 0 ? (
         <p className="text-center text-gray-400 py-10 text-sm">この日のコマはありません</p>
