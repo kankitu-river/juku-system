@@ -332,6 +332,7 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
     allMakeupStudents: { id: string; name: string }[]
     capacity: number
     subject: string
+    boothName: string | null
   }
 
   const sorted = [...dayLessons].sort((a, b) => a.slot_index - b.slot_index)
@@ -364,6 +365,7 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
       allMakeupStudents,
       capacity: rep.capacity,
       subject: rep.subject ?? '',
+      boothName: ((rep.booth as { name: string } | null | undefined)?.name) ?? null,
     })
   }
 
@@ -406,6 +408,9 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
                 <div className="text-center shrink-0 min-w-[48px]">
                   <p className="text-xs font-bold text-gray-600 dark:text-gray-300">第{group.slotIndex}コマ</p>
                   <p className="text-[10px] text-gray-400">{group.subject}</p>
+                  {group.boothName && (
+                    <p className="text-[10px] font-medium text-navy dark:text-blue-300 mt-0.5">{group.boothName}</p>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">

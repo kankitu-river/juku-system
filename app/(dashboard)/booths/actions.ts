@@ -72,92 +72,114 @@ export async function updateBoothAssignment(
   return {}
 }
 
-// 貪欲法でブースを自動割り当て（集団授業→group_preferred優先、個別指導→individual優先）
+type AssignLesson = { id: string; type: string; slot_index: number; specific_date?: string | null; day_of_week?: number | null }
+type AssignBooth = { id: string; name: string; booth_type: string }
+
+function chunkArr<T>(a: T[], n: number): T[][] {
+  const o: T[][] = []
+  for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n))
+  return o
+}
+
+// 集団ブース判定: 種別 group_preferred または 名前に「集団」を含む
+function isGroupBooth(b: AssignBooth): boolean {
+  return b.booth_type === 'group_preferred' || b.name.includes('集団')
+}
+
+// 貪欲法でブースを割り当てて更新する（同一 日付×コマ で重複しない。集団は集団ブース優先、個別は集団ブースを避ける）
+async function applyBoothAssignments(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  lessons: AssignLesson[],
+  booths: AssignBooth[],
+): Promise<number> {
+  const groupBooths = booths.filter(isGroupBooth)
+  const indivBooths = booths.filter((b) => !isGroupBooth(b))
+
+  // 日付×コマ でまとめる
+  const byKey = new Map<string, AssignLesson[]>()
+  for (const l of lessons) {
+    const key = `${l.specific_date ?? l.day_of_week ?? 'x'}|${l.slot_index}`
+    if (!byKey.has(key)) byKey.set(key, [])
+    byKey.get(key)!.push(l)
+  }
+
+  const boothToLessons = new Map<string, string[]>()
+  let assigned = 0
+  const add = (boothId: string, lessonId: string) => {
+    if (!boothToLessons.has(boothId)) boothToLessons.set(boothId, [])
+    boothToLessons.get(boothId)!.push(lessonId)
+    assigned++
+  }
+
+  for (const [, group] of byKey) {
+    const used = new Set<string>()
+    // 集団授業を先に集団ブースへ
+    for (const l of group.filter((x) => x.type === 'group')) {
+      const b = groupBooths.find((x) => !used.has(x.id))
+        ?? indivBooths.find((x) => !used.has(x.id))
+        ?? booths.find((x) => !used.has(x.id))
+      if (!b) continue
+      used.add(b.id); add(b.id, l.id)
+    }
+    // 個別指導は集団ブースを避けて割当
+    for (const l of group.filter((x) => x.type !== 'group')) {
+      const b = indivBooths.find((x) => !used.has(x.id))
+        ?? booths.find((x) => !used.has(x.id))
+      if (!b) continue
+      used.add(b.id); add(b.id, l.id)
+    }
+  }
+
+  // ブースごとにまとめて更新
+  for (const [boothId, ids] of boothToLessons) {
+    for (const c of chunkArr(ids, 200)) {
+      await supabase.from('lessons').update({ booth_id: boothId }).in('id', c)
+    }
+  }
+  return assigned
+}
+
+// 1日分のブース自動割り当て（未割り当てのコマのみ）
 export async function autoAssignBooths(dateStr: string, dow: number, termType: string): Promise<{ assigned: number; error?: string }> {
   const supabase = await createClient()
 
-  const [{ data: booths }, { data: regularIndividual }, { data: tempIndividual }, { data: regularGroup }, { data: tempGroup }] = await Promise.all([
-    supabase.from('booths').select('id, sort_order, name, booth_type').eq('is_active', true).order('sort_order'),
-    supabase
-      .from('lessons')
-      .select('id, type, booth_id, slot_index')
-      .eq('day_of_week', dow)
-      .eq('type', 'individual')
-      .eq('lesson_kind', 'regular')
-      .eq('term_type', termType)
-      .is('booth_id', null),
-    supabase
-      .from('lessons')
-      .select('id, type, booth_id, slot_index')
-      .eq('specific_date', dateStr)
-      .eq('type', 'individual')
-      .eq('lesson_kind', 'temporary')
-      .is('booth_id', null),
-    supabase
-      .from('lessons')
-      .select('id, type, booth_id, slot_index')
-      .eq('day_of_week', dow)
-      .eq('type', 'group')
-      .eq('lesson_kind', 'regular')
-      .eq('term_type', termType)
-      .is('booth_id', null),
-    supabase
-      .from('lessons')
-      .select('id, type, booth_id, slot_index')
-      .eq('specific_date', dateStr)
-      .eq('type', 'group')
-      .eq('lesson_kind', 'temporary')
-      .is('booth_id', null),
+  const [{ data: booths }, { data: tempLessons }, { data: regularLessons }] = await Promise.all([
+    supabase.from('booths').select('id, name, booth_type').eq('is_active', true).order('sort_order'),
+    supabase.from('lessons').select('id, type, slot_index, specific_date')
+      .eq('specific_date', dateStr).eq('lesson_kind', 'temporary').is('booth_id', null),
+    supabase.from('lessons').select('id, type, slot_index, day_of_week')
+      .eq('day_of_week', dow).eq('lesson_kind', 'regular').eq('term_type', termType).is('booth_id', null),
   ])
 
-  // 集団授業を先に割り当てて group_preferred ブースを確保する
-  const groupLessons = [...(regularGroup ?? []), ...(tempGroup ?? [])].map((l) => ({ ...l, isGroup: true }))
-  const individualLessons = [...(regularIndividual ?? []), ...(tempIndividual ?? [])].map((l) => ({ ...l, isGroup: false }))
-  const unassigned = [...groupLessons, ...individualLessons]
+  const lessons = [...(tempLessons ?? []), ...(regularLessons ?? [])] as AssignLesson[]
+  if (lessons.length === 0 || !booths || booths.length === 0) return { assigned: 0 }
 
-  if (unassigned.length === 0 || !booths || booths.length === 0) return { assigned: 0 }
-
-  // 既に使用中のブース（当日）を除外
-  const { data: usedLessons } = await supabase
-    .from('lessons')
-    .select('booth_id, slot_index')
-    .not('booth_id', 'is', null)
-    .or(`day_of_week.eq.${dow},specific_date.eq.${dateStr}`)
-
-  // slot -> 使用中boothId set
-  const usedBySlot = new Map<number, Set<string>>()
-  for (const l of usedLessons ?? []) {
-    const slot = l.slot_index as number
-    if (!usedBySlot.has(slot)) usedBySlot.set(slot, new Set())
-    usedBySlot.get(slot)!.add(l.booth_id as string)
-  }
-
-  const allBooths = booths as { id: string; sort_order: number; booth_type: string }[]
-  let assigned = 0
-
-  for (const lesson of unassigned) {
-    const slot = lesson.slot_index as number
-    const taken = usedBySlot.get(slot) ?? new Set()
-    const available = allBooths.filter((b) => !taken.has(b.id))
-    if (available.length === 0) continue
-
-    let booth: { id: string; sort_order: number; booth_type: string }
-    if (lesson.isGroup) {
-      // 集団授業: group_preferred 優先、なければ individual も使う
-      booth = available.find((b) => b.booth_type === 'group_preferred') ?? available[0]
-    } else {
-      // 個別指導: individual 優先、なければ group_preferred も使う
-      booth = available.find((b) => b.booth_type === 'individual') ?? available[0]
-    }
-
-    const { error } = await supabase.from('lessons').update({ booth_id: booth.id }).eq('id', lesson.id)
-    if (!error) {
-      taken.add(booth.id)
-      usedBySlot.set(slot, taken)
-      assigned++
-    }
-  }
-
+  const assigned = await applyBoothAssignments(supabase, lessons, booths as AssignBooth[])
   revalidatePath('/booths')
+  revalidatePath('/schedule')
   return { assigned }
+}
+
+// 講習期間まるごとブースを自動割り当て（期間内の全講習コマを再割り当て）
+export async function autoAssignIntensivePeriod(dateStr: string): Promise<{ assigned: number; days: number; error?: string }> {
+  const supabase = await createClient()
+
+  const { data: periods } = await supabase.from('term_periods').select('start_date, end_date, type').eq('type', 'intensive')
+  const period = (periods ?? []).find((p) => p.start_date <= dateStr && p.end_date >= dateStr)
+  if (!period) return { assigned: 0, days: 0, error: 'この日を含む講習期間が見つかりません' }
+
+  const [{ data: booths }, { data: lessons }] = await Promise.all([
+    supabase.from('booths').select('id, name, booth_type').eq('is_active', true).order('sort_order'),
+    supabase.from('lessons').select('id, type, slot_index, specific_date')
+      .eq('term_type', 'intensive').eq('lesson_kind', 'temporary')
+      .gte('specific_date', period.start_date).lte('specific_date', period.end_date),
+  ])
+  if (!booths || booths.length === 0) return { assigned: 0, days: 0, error: 'ブースがありません' }
+  if (!lessons || lessons.length === 0) return { assigned: 0, days: 0 }
+
+  const assigned = await applyBoothAssignments(supabase, lessons as AssignLesson[], booths as AssignBooth[])
+  const days = new Set((lessons as { specific_date: string }[]).map((l) => l.specific_date)).size
+  revalidatePath('/booths')
+  revalidatePath('/schedule')
+  return { assigned, days }
 }
