@@ -93,6 +93,20 @@ export default async function SettingsPage() {
           <GradeAdvancement />
         </div>
 
+        {/* 名簿インポート */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">名簿インポート（Excel）</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            スケ組みソフトのExcelから、未登録の講師・生徒・ふりがなを取り込みます。既存データは上書きしません。
+          </p>
+          <Link
+            href="/settings/import"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm hover:bg-navy-dark transition-colors"
+          >
+            Excelから取り込む
+          </Link>
+        </div>
+
         {/* 整合性チェック */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">スケジュール整合性チェック</h2>

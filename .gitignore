@@ -40,3 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/settings.local.json
+
+# 個人情報を含む取り込み用ファイル（コミット禁止）
+*.xlsm
+*.xlsx
+*.xls
+_xlsx_tmp/
+import_data/
