@@ -1,4 +1,4 @@
-const CACHE_NAME = 'juku-v1'
+const CACHE_NAME = 'juku-v2'
 const STATIC_ASSETS = [
   '/',
   '/schedule',
