@@ -67,8 +67,10 @@ export function parseIntensiveSchedule(buffer: ArrayBuffer | Buffer): ParsedSche
     const row = grid[i]
     const a = row[0]
     if (typeof a === 'number' && a > 40000) {
-      currentDate = serialToDate(a)
-      dates.push(currentDate)
+      const d = serialToDate(a)
+      // 日曜（0）は講習コマが無いためスキップする
+      currentDate = new Date(d + 'T12:00:00').getDay() === 0 ? '' : d
+      if (currentDate) dates.push(currentDate)
     }
     if (!currentDate) continue
 
