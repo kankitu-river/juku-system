@@ -126,6 +126,12 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   const endLabel = end.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
   const yearLabel = start.getFullYear()
 
+  // 講習期間は7コマあり縦に長くなるため、印刷時のセル高さ・文字を詰めて1枚に収める
+  const isIntensive = currentTermType === 'intensive'
+  const cellMinH = isIntensive ? 24 : 55
+  const tableFont = isIntensive ? 6.5 : 7
+  const cellPad = isIntensive ? '1px 3px' : '2px 4px'
+
   return (
     <div className="print-root bg-white min-h-screen">
       <style>{`
@@ -136,11 +142,11 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
           .wpl-wrap { display: flex; align-items: flex-start; gap: 4mm; }
           .wpl-days { flex: 13; min-width: 0; }
           .wpl-sat  { flex: 4;  min-width: 0; }
-          .wpl-table { font-size: 7px !important; }
-          .wpl-table th, .wpl-table td { padding: 1px 3px !important; }
-          .wpl-cell { padding: 2px 4px !important; margin-bottom: 1px !important; height: auto !important; min-height: 55px !important; overflow: visible !important; }
-          .wpl-cell p { margin: 0 !important; line-height: 1.3 !important; }
-          .wpl-pill { font-size: 7px !important; padding: 0 3px !important; margin-bottom: 1px !important; }
+          .wpl-table { font-size: ${tableFont}px !important; table-layout: fixed; width: 100%; }
+          .wpl-table th, .wpl-table td { padding: 1px 2px !important; }
+          .wpl-cell { padding: ${cellPad} !important; margin-bottom: 1px !important; height: auto !important; min-height: ${cellMinH}px !important; overflow: visible !important; }
+          .wpl-cell p { margin: 0 !important; line-height: 1.25 !important; }
+          .wpl-pill { font-size: ${tableFont}px !important; padding: 0 3px !important; margin-bottom: 1px !important; }
           .wpl-h2 { font-size: 8px !important; margin-bottom: 2px !important; }
           .wpl-h3 { font-size: 7px !important; margin-bottom: 1px !important; }
         }

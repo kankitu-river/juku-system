@@ -81,8 +81,12 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   )
   const currentTermType = activeTerm?.type ?? 'regular'
 
-  const typedLessons = ((lessons as Lesson[]) ?? []).filter(
-    (l) => l.term_type === currentTermType
+  // 臨時コマ(講習など)は「その日付」だけ表示。通常コマは曜日＋期間区分で表示。
+  // （specific_dateで絞らないと、同じ曜日の別日の講習コマが重複表示される）
+  const typedLessons = ((lessons as Lesson[]) ?? []).filter((l) =>
+    l.lesson_kind === 'temporary'
+      ? l.specific_date === dateStr
+      : l.term_type === currentTermType
   )
 
   // コマごとに lessons をグループ化（時間帯ごとの枠を構築）

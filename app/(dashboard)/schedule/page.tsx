@@ -310,10 +310,12 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dayOfWeek = date.getDay()
+  const localDateStr = toLocalDate(date)
+  // 臨時コマ(講習)はその日付だけ。通常コマは曜日＋期間区分で表示（別日の講習コマの重複を防ぐ）
   const dayLessons = lessons.filter((l) => {
+    if (l.lesson_kind === 'temporary') return l.specific_date === localDateStr
     if (l.day_of_week !== dayOfWeek) return false
-    const lt = (l.term_type as string) || 'regular'
-    return lt === currentTermType
+    return ((l.term_type as string) || 'regular') === currentTermType
   })
   const dateStr = date.toLocaleDateString('ja-JP', {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
