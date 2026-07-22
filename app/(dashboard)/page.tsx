@@ -19,6 +19,7 @@ export default async function DashboardPage() {
   })
 
   const dayOfWeek = today.getDay() // 0=日曜
+  const lastWeekStr = new Date(today.getTime() - 7 * 86400000).toISOString().slice(0, 10)
 
   const [
     { data: lessons },
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
     { data: makeupCredits },
     { data: students },
     { data: todayShifts },
+    { data: lastWeekTermPeriods },
   ] = await Promise.all([
     supabase
       .from('lessons')
@@ -39,12 +41,30 @@ export default async function DashboardPage() {
     supabase.from('makeup_credits').select('student_id, total_credits, used_credits'),
     supabase.from('students').select('id, name, grade'),
     supabase.from('shifts').select('teacher_id').eq('date', todayStr),
+    supabase.from('term_periods').select('type').lte('start_date', lastWeekStr).gte('end_date', lastWeekStr),
   ])
 
   const workingTeacherCount = new Set((todayShifts ?? []).map(s => s.teacher_id)).size
 
   const currentTerm = termPeriods?.[0]
   const termType = (currentTerm?.type as 'regular' | 'intensive') ?? 'regular'
+  const lastWeekTermType = (lastWeekTermPeriods?.[0]?.type as 'regular' | 'intensive') ?? 'regular'
+
+  // 前週同曜日のコマ数（表示密度のベンチマーク用）
+  const [{ count: lastWeekRegCount }, { count: lastWeekTmpCount }] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select('id', { count: 'exact', head: true })
+      .eq('day_of_week', dayOfWeek)
+      .eq('term_type', lastWeekTermType)
+      .eq('lesson_kind', 'regular'),
+    supabase
+      .from('lessons')
+      .select('id', { count: 'exact', head: true })
+      .eq('specific_date', lastWeekStr)
+      .eq('lesson_kind', 'temporary'),
+  ])
+  const lastWeekLessonCount = (lastWeekRegCount ?? 0) + (lastWeekTmpCount ?? 0)
 
   // 講師別週次コマ数（現期間区分の通常コマ）
   const { data: regularLessons } = await supabase
@@ -276,7 +296,7 @@ export default async function DashboardPage() {
 
       {/* 講師負荷バランス警告 */}
       {overloadedTeachers.length > 0 && (
-        <div className="mb-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl p-4">
+        <div className="mb-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 border-l-4 border-l-red-500 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-red-600 dark:text-red-300 font-semibold text-sm">
               ⚠ 負荷が集中している講師（週平均 {avgLoad.toFixed(1)} コマの1.5倍超）
@@ -303,7 +323,7 @@ export default async function DashboardPage() {
 
       {/* 振替がたまりすぎ警告 */}
       {highCreditStudents.length > 0 && (
-        <div className="mb-4 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 rounded-xl p-4">
+        <div className="mb-4 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 border-l-4 border-l-orange-400 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-orange-600 dark:text-orange-300 font-semibold text-sm">📌 振替が3件以上たまっている生徒</span>
             <Link href="/attendance/makeup" className="ml-auto text-xs text-orange-700 dark:text-orange-300 hover:underline">
@@ -330,7 +350,7 @@ export default async function DashboardPage() {
 
       {/* 振替残数が少ない警告 */}
       {lowCreditStudents.length > 0 && (
-        <div className="mb-6 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl p-4">
+        <div className="mb-6 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 border-l-4 border-l-amber-400 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-amber-600 dark:text-amber-300 font-semibold text-sm">⚠ 振替残数が少ない生徒</span>
             <Link href="/attendance/makeup" className="ml-auto text-xs text-amber-700 dark:text-amber-300 hover:underline">
@@ -367,6 +387,7 @@ export default async function DashboardPage() {
           <p className="text-3xl font-bold text-navy dark:text-blue-300 tabular-nums">
             {todayLessons.length}<span className="text-base font-normal text-gray-400 dark:text-gray-500 ml-0.5">コマ</span>
           </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 tabular-nums">先週の同じ曜日: {lastWeekLessonCount}コマ</p>
         </Card>
         <Card>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">現在の期間区分</p>

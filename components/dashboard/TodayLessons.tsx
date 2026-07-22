@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { recordAttendance, markAbsentWithCredit, markAbsentNoCredit } from '@/app/(dashboard)/attendance/actions'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { getDisplayGrade } from '@/lib/utils/grade'
 import { getSlotsForLesson } from '@/lib/constants/timeSlots'
 import type { LessonWithRelations, StudentRef, AttendanceRef } from '@/types'
@@ -91,15 +92,7 @@ export function TodayLessons({ lessons, todayStr, dayOfWeek = new Date().getDay(
   }
 
   if (lessons.length === 0) {
-    return (
-      <div className="px-5 py-10 text-center text-gray-400">
-        <svg className="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <p className="text-sm">今日のコマはありません</p>
-      </div>
-    )
+    return <EmptyState message="今日のコマはありません" actionLabel="週次カレンダーを見る" actionHref="/schedule" />
   }
 
   // スロットごとにグループ化して「進行中」「次」を判定

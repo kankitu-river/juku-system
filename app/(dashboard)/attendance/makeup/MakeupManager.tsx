@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { assignMakeup } from '@/app/(dashboard)/attendance/actions'
 import { getSlotLabel } from '@/lib/constants/timeSlots'
 import { DAYS_OF_WEEK } from '@/lib/constants/timeSlots'
@@ -143,11 +144,7 @@ export function MakeupManager({
     DAYS_OF_WEEK.find((d) => d.value === dow)?.label ?? ''
 
   if (credits.length === 0) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
-        <p className="text-gray-400 text-sm">振替クレジットが残っている生徒はいません</p>
-      </div>
-    )
+    return <EmptyState message="未消化の振替はありません 🎉" />
   }
 
   return (

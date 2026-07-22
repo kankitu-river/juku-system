@@ -72,6 +72,8 @@ export function WeeklyCalendar({
 }: WeeklyCalendarProps) {
   const router = useRouter()
   const [dayView, setDayView] = useState<DayView>('weekday')
+  const [density, setDensity] = useState<'full' | 'compact'>('full')
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
   // モバイル（lg未満）では1日分だけ表示する。初期値は今日（土日は月曜）
   const [mobileDay, setMobileDay] = useState<number>(() => {
     const d = new Date().getDay()
@@ -201,16 +203,43 @@ const lessonMap = useMemo(() => {
         </div>
       </div>
 
-      {/* タブ */}
-      <div className="flex gap-1 mb-4">
-        {(['weekday', 'saturday'] as DayView[]).map(v => (
-          <button key={v} onClick={() => setDayView(v)}
-            className={['px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              dayView === v ? 'bg-navy text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200',
-            ].join(' ')}>
-            {v === 'weekday' ? '月〜金' : '土曜日'}
-          </button>
-        ))}
+      {/* タブ＋表示オプション */}
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex gap-1">
+          {(['weekday', 'saturday'] as DayView[]).map(v => (
+            <button key={v} onClick={() => setDayView(v)}
+              className={['px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                dayView === v ? 'bg-navy text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200',
+              ].join(' ')}>
+              {v === 'weekday' ? '月〜金' : '土曜日'}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          {/* 表示密度トグル */}
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            {(['full', 'compact'] as const).map((d, i) => (
+              <button key={d} onClick={() => setDensity(d)}
+                className={['px-3 py-1.5 text-xs font-medium transition-colors',
+                  i > 0 ? 'border-l border-gray-200 dark:border-gray-700' : '',
+                  density === d ? 'bg-navy text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
+                ].join(' ')}>
+                {d === 'full' ? '詳細' : 'コンパクト'}
+              </button>
+            ))}
+          </div>
+          {/* 担当者フィルタ */}
+          {teachers.length > 0 && (
+            <select
+              value={selectedTeacherId ?? ''}
+              onChange={(e) => setSelectedTeacherId(e.target.value || null)}
+              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-navy"
+            >
+              <option value="">全員</option>
+              {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
+        </div>
       </div>
 
       {/* 月〜金ビュー */}
@@ -311,7 +340,7 @@ const lessonMap = useMemo(() => {
                           </div>
                         ) : (
                           <div className="space-y-1">
-                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} />
+                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} density={density} selectedTeacherId={selectedTeacherId} />
                             {cellLessons.length === 0 && availableTeachers.length === 0 && (
                               <div className="h-10 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-300">—</span>
@@ -377,7 +406,7 @@ const lessonMap = useMemo(() => {
                       <td className={['px-2 py-2 align-top border-b border-b-gray-100 dark:border-b-gray-700/50', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                         style={{ minHeight: '80px' }}>
                         <div className="space-y-1">
-                          <CellLessons lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} />
+                          <CellLessons lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} density={density} selectedTeacherId={selectedTeacherId} />
                           {cellLessons.length === 0 && !isSatClosed && (
                             <div className="h-10 flex items-center justify-center">
                               <span className="text-[10px] text-gray-300">—</span>
@@ -413,7 +442,7 @@ const lessonMap = useMemo(() => {
                         <td className={['px-2 py-2 align-top border-b border-b-gray-100 dark:border-b-gray-700/50', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                           style={{ minHeight: '72px' }}>
                           <div className="space-y-1">
-                            <CellLessons lessons={cellLessons} />
+                            <CellLessons lessons={cellLessons} density={density} selectedTeacherId={selectedTeacherId} />
                             {cellLessons.length === 0 && !isSatClosed && (
                               <div className="h-10 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-300">—</span>
@@ -448,7 +477,7 @@ const lessonMap = useMemo(() => {
                         <td className={['px-2 py-2 align-top border-b border-b-gray-100 dark:border-b-gray-700/50', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                           style={{ minHeight: '72px' }}>
                           <div className="space-y-1">
-                            <CellLessons lessons={cellLessons} />
+                            <CellLessons lessons={cellLessons} density={density} selectedTeacherId={selectedTeacherId} />
                             {cellLessons.length === 0 && !isSatClosed && (
                               <div className="h-10 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-300">—</span>
@@ -470,23 +499,26 @@ const lessonMap = useMemo(() => {
   )
 }
 
-function CellLessons({ lessons, dateStr, makeups = [] }: {
+function CellLessons({ lessons, dateStr, makeups = [], density = 'full', selectedTeacherId = null }: {
   lessons: Lesson[]
   dateStr?: string
   makeups?: MakeupAssignment[]
+  density?: 'full' | 'compact'
+  selectedTeacherId?: string | null
 }) {
-  const compact = lessons.length >= 3
+  const compact = density === 'compact' || lessons.length >= 3
   return (
     <>
       {lessons.map(lesson => (
-        <LessonCard
-          key={lesson.id}
-          lesson={lesson}
-          compact={compact}
-          makeupStudents={makeups
-            .filter((m) => m.lesson_id === lesson.id && m.assigned_date === dateStr && m.student)
-            .map((m) => m.student!)}
-        />
+        <div key={lesson.id} className={selectedTeacherId && lesson.teacher_id !== selectedTeacherId ? 'opacity-30' : ''}>
+          <LessonCard
+            lesson={lesson}
+            compact={compact}
+            makeupStudents={makeups
+              .filter((m) => m.lesson_id === lesson.id && m.assigned_date === dateStr && m.student)
+              .map((m) => m.student!)}
+          />
+        </div>
       ))}
     </>
   )
