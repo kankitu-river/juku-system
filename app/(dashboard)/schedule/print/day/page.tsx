@@ -4,6 +4,7 @@ import { REGULAR_SLOTS, INTENSIVE_SLOTS, GROUP_SATURDAY_SLOTS, SATURDAY_INDIVIDU
 import type { Lesson, TermPeriod } from '@/types'
 import { PrintButton } from '@/components/print/PrintButton'
 import { AutoPrint } from '@/components/print/AutoPrint'
+import { FitToPage } from '@/components/print/FitToPage'
 
 interface PageProps {
   searchParams: Promise<{ date?: string; waiting?: string }>
@@ -142,12 +143,10 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
           @page { size: A4 portrait; margin: 6mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-          /* ページ全体: A4縦297mm − 上下余白6mm×2 = 285mm（誤差吸収で-2mm） */
+          /* ページ全体: 高さ固定せず内容なり。FitToPageで1枚に自動縮小する */
           .dpp-page {
-            height: 283mm;
             display: flex !important;
             flex-direction: column !important;
-            overflow: hidden !important;
           }
 
           /* ヘッダー */
@@ -162,22 +161,16 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
 
           /* コマ一覧: 均等分割 */
           .dpp-slots {
-            flex: 1 !important;
-            min-height: 0 !important;
             display: flex !important;
             flex-direction: column !important;
             gap: 1.5mm !important;
-            overflow: hidden !important;
           }
 
           /* コマ枠: 印刷時のみコマ数に応じた比例配分（flex-basis 0）にする。
              画面表示で basis 0 にすると高さが潰れて何も見えなくなるため print 限定 */
           .dpp-slot {
-            min-height: 0 !important;
-            flex-basis: 0 !important;
             display: flex !important;
             flex-direction: column !important;
-            overflow: hidden !important;
             border: 1px solid #9ca3af !important;
             border-radius: 0 !important;
           }
@@ -208,13 +201,11 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
           /* 授業カード行 */
           .dpp-slot-body {
             flex: 1 !important;
-            min-height: 0 !important;
             display: flex !important;
             flex-wrap: wrap !important;
             align-content: flex-start !important;
             gap: 1mm !important;
             padding: 1.5mm !important;
-            overflow: hidden !important;
           }
 
           /* 授業カード: コンパクトにしてテキストを大きく */
@@ -283,6 +274,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
 
       {/* 印刷コンテンツ */}
       <div className="max-w-3xl mx-auto p-6 print:p-0 print:max-w-none">
+        <FitToPage marginMm={6}>
         {/* 画面プレビュー */}
         <div className="dpp-page">
           {/* ヘッダー */}
@@ -353,6 +345,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             </div>
           )}
         </div>
+        </FitToPage>
       </div>
     </div>
   )

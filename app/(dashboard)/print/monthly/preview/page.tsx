@@ -320,16 +320,17 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                     subject: (e as { subject?: string | null }).subject ?? lesson.subject ?? '',
                                   }))
                                 const makeupStudents = makeupByLessonDate.get(`${lesson.id}__${dateStr}`) ?? []
-                                // 印刷用1行テキスト: ①涌井(国)/金子(算)
+                                const tStart = (timeLabel || '').split(/[〜~\-]/)[0].trim()
+                                // 印刷用1行テキスト: ①16:30 涌井(国)/金子(算)
                                 const printLine = [
-                                  toCircle(lesson.slot_index),
+                                  `${toCircle(lesson.slot_index)}${tStart}`,
                                   enrolledStudents.length > 0
                                     ? enrolledStudents.map(s => `${surname(s.name)}(${shortSubject(s.subject)})`).join('/')
                                     : (shortSubject(lesson.subject) || '—'),
                                   makeupStudents.length > 0
                                     ? '+' + makeupStudents.map(mk => `${surname(mk.name)}振`).join('/')
                                     : '',
-                                ].filter(Boolean).join('')
+                                ].filter(Boolean).join(' ')
                                 return (
                                   <div key={ei} className="overflow-hidden">
                                     {/* screen */}
@@ -362,13 +363,14 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
                                 const mySubject = (enrollment as { subject?: string | null } | undefined)?.subject ?? lesson.subject
                                 const teacherName = (lesson as { teacher?: { name: string } }).teacher?.name
                                 const isGroup = lesson.type === 'group'
-                                // 印刷用1行テキスト: ①国·金子T
+                                const startTime = (timeLabel || '').split(/[〜~\-]/)[0].trim()
+                                // 印刷用1行テキスト: ①16:30 国·金子T
                                 const printParts = [
-                                  toCircle(lesson.slot_index),
+                                  `${toCircle(lesson.slot_index)}${startTime}`,
                                   shortSubject(mySubject),
                                   teacherName && showTeacher ? `·${surname(teacherName)}T` : '',
                                 ]
-                                const printLine = printParts.filter(Boolean).join('')
+                                const printLine = printParts.filter(Boolean).join(' ')
                                 return (
                                   <div key={ei} className="overflow-hidden">
                                     {/* screen */}
@@ -402,11 +404,12 @@ export default async function MonthlyPreviewPage({ searchParams }: PageProps) {
 
                             {/* 生徒ビュー: 振替コマ */}
                             {visibleMakeupEntries.map((mk, mi) => {
+                              const mkStart = (mk.timeLabel || '').split(/[〜~\-]/)[0].trim()
                               const printLine = [
-                                toCircle(mk.slotIndex) + '振',
+                                `${toCircle(mk.slotIndex)}振${mkStart}`,
                                 shortSubject(mk.subject),
                                 mk.teacherName && showTeacher ? `·${surname(mk.teacherName)}T` : '',
-                              ].filter(Boolean).join('')
+                              ].filter(Boolean).join(' ')
                               return (
                                 <div key={`mk-${mi}`} className="overflow-hidden">
                                   {/* screen */}

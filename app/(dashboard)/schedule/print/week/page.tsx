@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { REGULAR_SLOTS, INTENSIVE_SLOTS, GROUP_SATURDAY_SLOTS, SATURDAY_INDIVIDUAL_SLOTS } from '@/lib/constants/timeSlots'
 import type { Lesson, TermPeriod } from '@/types'
 import { WeekPrintClient } from './WeekPrintClient'
+import { FitToPage } from '@/components/print/FitToPage'
 
 interface PageProps {
   searchParams: Promise<{ date?: string; waiting?: string }>
@@ -186,6 +187,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
 
       {/* Print content */}
       <div className="p-6 print:p-0 wpl-printbody">
+        <FitToPage landscape marginMm={4}>
         {/* Header */}
         <div className="mb-4 print:mb-3">
           <h1 className="text-xl font-bold text-navy">週間スケジュール</h1>
@@ -348,6 +350,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
           <span>塾スケジュール管理システム</span>
           <span>印刷日: {new Date().toLocaleDateString('ja-JP')}</span>
         </div>
+        </FitToPage>
       </div>
     </div>
   )
