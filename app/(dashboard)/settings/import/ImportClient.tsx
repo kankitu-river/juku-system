@@ -149,7 +149,10 @@ function ScheduleSection({ file, onDone }: { file: File | null; onDone: () => vo
       )}
       {result?.error && <ErrBox msg={result.error} />}
       {result && !result.error && (
-        <OkBox msg={`コマ ${result.insertedLessons}件・受講 ${result.insertedEnrollments}件を登録（既存 ${result.deleted}件を置換、未登録生徒の受講 ${result.skippedEnrollments}件はスキップ、生徒の受講科目 ${result.updatedStudents}名を更新）。`} />
+        <>
+          <OkBox msg={`コマ ${result.insertedLessons}件・受講 ${result.insertedEnrollments}件を登録（既存 ${result.deleted}件を置換、未登録生徒の受講 ${result.skippedEnrollments}件はスキップ、生徒の受講科目 ${result.updatedStudents}名を更新）。`} />
+          {result.enrollWarning && <ErrBox msg={result.enrollWarning} />}
+        </>
       )}
     </div>
   )

@@ -193,6 +193,7 @@ export async function previewSchedule(formData: FormData): Promise<SchedulePrevi
 
 export interface ScheduleResult {
   error?: string
+  enrollWarning?: string
   deleted: number
   insertedLessons: number
   insertedEnrollments: number
@@ -260,14 +261,21 @@ export async function commitSchedule(formData: FormData): Promise<ScheduleResult
         is_ps1: l.isPs1,
         booth_id: null,
       })
+      // 同一コマ内で同じ生徒が2枠に登場することがある（例: 数 と PS1）。
+      // unique(lesson_id, student_id) 制約に触れるため、生徒単位に集約して科目を結合する。
+      const perLesson = new Map<string, Set<string>>()
       for (const s of l.students) {
         const sid = smap.get(s.fullName)
         if (!sid) { skippedEnrollments++; continue }
-        enrollRows.push({ lesson_id: id, student_id: sid, subject: s.subject })
+        if (!perLesson.has(sid)) perLesson.set(sid, new Set())
+        if (s.subject) perLesson.get(sid)!.add(s.subject)
         if (s.subject) {
           if (!studentSubjectAdd.has(sid)) studentSubjectAdd.set(sid, new Set())
           studentSubjectAdd.get(sid)!.add(s.subject)
         }
+      }
+      for (const [sid, subs] of perLesson) {
+        enrollRows.push({ lesson_id: id, student_id: sid, subject: [...subs].join('・') })
       }
     }
 
@@ -278,9 +286,11 @@ export async function commitSchedule(formData: FormData): Promise<ScheduleResult
       insertedLessons += c.length
     }
     let insertedEnrollments = 0
+    let enrollError = ''
     for (const c of chunk(enrollRows, 300)) {
       const { error } = await supabase.from('lesson_enrollments').insert(c)
-      if (!error) insertedEnrollments += c.length
+      if (error) { enrollError = error.message; continue }
+      insertedEnrollments += c.length
     }
 
     // 生徒の受講科目を補完（既存との和集合）
@@ -296,7 +306,10 @@ export async function commitSchedule(formData: FormData): Promise<ScheduleResult
 
     revalidatePath('/schedule')
     revalidatePath('/students')
-    return { deleted, insertedLessons, insertedEnrollments, skippedEnrollments, updatedStudents }
+    return {
+      deleted, insertedLessons, insertedEnrollments, skippedEnrollments, updatedStudents,
+      enrollWarning: enrollError ? `一部の受講登録でエラー: ${enrollError}` : undefined,
+    }
   } catch (e) {
     return { error: e instanceof Error ? e.message : '登録に失敗しました', deleted: 0, insertedLessons: 0, insertedEnrollments: 0, skippedEnrollments: 0, updatedStudents: 0 }
   }
