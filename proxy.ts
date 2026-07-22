@@ -48,5 +48,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth).*)'],
+  // PWA用の静的ファイル（sw.js / manifest / icons）は認証チェックから除外する。
+  // これらがリダイレクトされると Service Worker の更新が失敗し、古いキャッシュが残り続ける。
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth|sw.js|manifest.webmanifest|icons/).*)'],
 }
