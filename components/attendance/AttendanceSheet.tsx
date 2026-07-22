@@ -22,6 +22,7 @@ interface AttendanceEntry {
   studentId: string
   studentName: string
   studentGrade: string
+  isTrial?: boolean
   currentStatus: Status
 }
 
@@ -64,7 +65,17 @@ export function AttendanceSheet({ lessonId, date, entries: initialEntries }: Att
     })
   }
 
-  function handleAbsentClick(studentId: string, studentName: string) {
+  function handleAbsentClick(studentId: string, studentName: string, isTrial: boolean) {
+    if (isTrial) {
+      // 体験生徒は振替クレジット不要なのでダイアログをスキップ
+      setLoadingId(studentId)
+      startTransition(async () => {
+        await markAbsentNoCredit(studentId, lessonId, date)
+        updateLocalStatus(studentId, 'absent')
+        setLoadingId(null)
+      })
+      return
+    }
     setMakeupDialog({ studentId, studentName })
   }
 
@@ -107,6 +118,7 @@ export function AttendanceSheet({ lessonId, date, entries: initialEntries }: Att
         {entries.map((entry) => {
           const isLoading = loadingId === entry.studentId
           const status = entry.currentStatus
+          const isTrial = entry.isTrial ?? false
 
           return (
             <div
@@ -115,7 +127,12 @@ export function AttendanceSheet({ lessonId, date, entries: initialEntries }: Att
             >
               {/* 生徒情報 */}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 dark:text-gray-100">{entry.studentName}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100 inline-flex items-center gap-1.5">
+                  {entry.studentName}
+                  {isTrial && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium">体験</span>
+                  )}
+                </p>
                 <p className="text-xs text-gray-400">{entry.studentGrade}</p>
               </div>
 
@@ -146,7 +163,7 @@ export function AttendanceSheet({ lessonId, date, entries: initialEntries }: Att
                 </button>
                 <button
                   disabled={isLoading || status === 'absent'}
-                  onClick={() => handleAbsentClick(entry.studentId, entry.studentName)}
+                  onClick={() => handleAbsentClick(entry.studentId, entry.studentName, isTrial)}
                   className={[
                     'min-w-[64px] px-3 py-2 rounded-lg text-sm font-medium border transition-colors',
                     status === 'absent'

@@ -12,21 +12,25 @@ export function StudentTable({ students }: { students: Student[] }) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [gradeFilter, setGradeFilter] = useState('')
+  const [showTrial, setShowTrial] = useState(false)
+
+  const nonTrial = students.filter((s) => !s.is_trial)
 
   // 表示中の生徒に存在する学年だけを選択肢にする（元の並び順を維持）
   const gradeOptions = useMemo(() => {
     const seen = new Set<string>()
     const result: string[] = []
-    for (const s of students) {
+    for (const s of nonTrial) {
       if (!seen.has(s.grade)) {
         seen.add(s.grade)
         result.push(s.grade)
       }
     }
     return result
-  }, [students])
+  }, [nonTrial])
 
-  const filtered = students.filter((s) => {
+  const base = showTrial ? students : nonTrial
+  const filtered = base.filter((s) => {
     if (gradeFilter && s.grade !== gradeFilter) return false
     if (query && !s.name.toLowerCase().includes(query.toLowerCase())) return false
     return true
@@ -61,6 +65,17 @@ export function StudentTable({ students }: { students: Student[] }) {
         {(query || gradeFilter) && (
           <span className="text-xs text-gray-400">{filtered.length}名がヒット</span>
         )}
+        <button
+          onClick={() => setShowTrial((v) => !v)}
+          className={[
+            'ml-auto text-xs px-2.5 py-1.5 rounded-lg border transition-colors',
+            showTrial
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'
+              : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 hover:border-gray-400',
+          ].join(' ')}
+        >
+          体験枠を{showTrial ? '非表示' : '表示'}
+        </button>
       </div>
 
       {filtered.length > 0 ? (
@@ -82,7 +97,14 @@ export function StudentTable({ students }: { students: Student[] }) {
                   onClick={() => router.push(`/students/${student.id}`)}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
                 >
-                  <td className="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">{student.name}</td>
+                  <td className="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">
+                    <span className="inline-flex items-center gap-1.5">
+                      {student.name}
+                      {student.is_trial && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium">体験</span>
+                      )}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-gray-600 dark:text-gray-300">{getDisplayGrade(student.grade)}</td>
                   <td className="px-5 py-3">
                     {(student.fixed_slots as FixedSlot[] | undefined)?.length ? (

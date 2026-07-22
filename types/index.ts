@@ -42,6 +42,7 @@ export interface Booth {
   name: string
   is_active: boolean
   sort_order: number
+  booth_type: 'individual' | 'group_preferred'
 }
 
 export type LessonKind = 'regular' | 'temporary'
@@ -76,6 +77,8 @@ export interface Student {
   preferred_teacher_ids: string[]
   ng_teacher_ids: string[]
   fixed_slots: Array<{ day: number; slot: number; subject?: string; teacher_id?: string }>
+  parent_requests: string
+  is_trial: boolean
   created_at: string
 }
 

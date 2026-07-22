@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
-import { upsertShift, deleteShift } from '@/app/(dashboard)/shifts/actions'
+import { upsertShift, deleteShift, getShiftImpact, type ShiftImpact } from '@/app/(dashboard)/shifts/actions'
 import { getSlotLabel, getSlotsForLesson } from '@/lib/constants/timeSlots'
 import type { Lesson } from '@/types'
 
@@ -48,6 +48,7 @@ export function ShiftModal({
   const [isPending, startTransition] = useTransition()
   const [isDeleting, startDeleting] = useTransition()
   const [error, setError] = useState<string>()
+  const [impactState, setImpactState] = useState<null | 'loading' | ShiftImpact>(null)
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -64,8 +65,15 @@ export function ShiftModal({
     })
   }
 
-  function handleDelete() {
-    if (!existing?.id || !confirm('このシフトを削除しますか？')) return
+  function handleDeleteClick() {
+    if (!existing?.id) return
+    setImpactState('loading')
+    getShiftImpact(teacherId, date).then((data) => setImpactState(data)).catch(() => setImpactState({ affectedStudents: [], lessonCount: 0 }))
+  }
+
+  function confirmDelete() {
+    if (!existing?.id) return
+    setImpactState(null)
     startDeleting(async () => {
       const result = await deleteShift(existing.id!)
       if (result.error) { setError(result.error); return }
@@ -107,6 +115,52 @@ export function ShiftModal({
         </div>
       )}
 
+      {/* 削除影響確認パネル */}
+      {impactState !== null && (
+        <div className="mb-4 rounded-lg border p-3 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900">
+          {impactState === 'loading' ? (
+            <p className="text-sm text-gray-500">影響を確認中...</p>
+          ) : (
+            <>
+              {impactState.affectedStudents.length > 0 ? (
+                <>
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-300 mb-2">
+                    ⚠ このシフトを削除すると {impactState.affectedStudents.length}名の生徒に影響が出ます
+                  </p>
+                  <ul className="space-y-0.5 mb-3 max-h-32 overflow-y-auto">
+                    {impactState.affectedStudents.map((s) => (
+                      <li key={s.id} className="text-xs text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                        ・{s.name}
+                        {s.hasPendingCredits && (
+                          <span className="text-[10px] px-1 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 font-bold">振替残あり</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">影響を受ける受講生徒はいません。</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
+                >
+                  {isDeleting ? '削除中...' : '本当に削除する'}
+                </button>
+                <button
+                  onClick={() => setImpactState(null)}
+                  className="text-xs px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handleSave} className="space-y-4">
         {error && (
           <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-3 py-2 text-sm text-red-700 dark:text-red-300">
@@ -142,8 +196,8 @@ export function ShiftModal({
               キャンセル
             </Button>
           </div>
-          {existing?.id && (
-            <Button type="button" size="sm" variant="danger" loading={isDeleting} onClick={handleDelete}>
+          {existing?.id && !impactState && (
+            <Button type="button" size="sm" variant="danger" onClick={handleDeleteClick}>
               削除
             </Button>
           )}

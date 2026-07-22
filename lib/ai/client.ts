@@ -1,3 +1,4 @@
+// 現在未使用（LLM離脱 M2-4）。LLM再導入時にここを復活させる。
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 

@@ -198,10 +198,9 @@ const navigation: NavEntry[] = [
     ],
   },
   {
-    label: 'AI・分析',
+    label: '分析・記録',
     children: [
       { href: '/analytics', label: '分析', icon: icons.analytics },
-      { href: '/assistant', label: 'AIチャット', icon: icons.assistant },
       { href: '/meetings', label: '議事録', icon: icons.meetings },
     ],
   },

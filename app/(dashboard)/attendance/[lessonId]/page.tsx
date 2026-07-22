@@ -31,7 +31,7 @@ export default async function LessonAttendancePage({ params, searchParams }: Pag
         teacher:teachers(id, name),
         enrollments:lesson_enrollments(
           id, student_id,
-          student:students(id, name, grade)
+          student:students(id, name, grade, is_trial)
         )
       `)
       .eq('id', lessonId)
@@ -62,6 +62,7 @@ export default async function LessonAttendancePage({ params, searchParams }: Pag
     studentId: e.student_id,
     studentName: e.student?.name ?? '不明',
     studentGrade: (e.student as { grade?: string })?.grade ?? '',
+    isTrial: (e.student as { is_trial?: boolean })?.is_trial ?? false,
     currentStatus: (attendanceMap.get(e.student_id) ?? null) as 'present' | 'absent' | 'makeup_used' | null,
   }))
 

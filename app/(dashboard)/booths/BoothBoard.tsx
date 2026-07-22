@@ -163,6 +163,9 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
                     ) : (
                       <div className="flex items-center gap-1 group">
                         <span>{booth.name}</span>
+                        {booth.booth_type === 'group_preferred' && (
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-medium flex-shrink-0">集団</span>
+                        )}
                         <button
                           onClick={() => { setEditingBooth(booth.id); setEditingBoothName(booth.name) }}
                           className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity text-[11px] ml-1"

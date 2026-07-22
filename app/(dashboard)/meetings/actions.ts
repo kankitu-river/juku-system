@@ -2,19 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { generateJSON } from '@/lib/ai/client'
-import { SYSTEM_MEETING_SUMMARY } from '@/lib/ai/prompts/meetingSummary'
-
-interface MeetingTaskExtracted {
-  title: string
-  assignee: string | null
-  due_date: string | null
-}
-
-interface SummaryResult {
-  summary: string
-  tasks: MeetingTaskExtracted[]
-}
+import { parseMeeting } from '@/lib/parse/meetingParser'
 
 export async function createMeeting(formData: FormData) {
   const supabase = await createClient()
@@ -49,6 +37,18 @@ export async function updateMeetingText(id: string, raw_text: string) {
   return {}
 }
 
+export async function updateMeetingSummary(id: string, summary: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('meeting_notes')
+    .update({ summary })
+    .eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/meetings')
+  revalidatePath(`/meetings/${id}`)
+  return {}
+}
+
 export async function generateMeetingSummary(id: string) {
   const supabase = await createClient()
   const { data: meeting } = await supabase
@@ -59,8 +59,7 @@ export async function generateMeetingSummary(id: string) {
 
   if (!meeting?.raw_text) return { error: 'メモがありません' }
 
-  const result = await generateJSON<SummaryResult>(SYSTEM_MEETING_SUMMARY, meeting.raw_text, 1024)
-  if (!result) return { error: 'AI解析に失敗しました' }
+  const result = parseMeeting(meeting.raw_text)
 
   const { error: updateErr } = await supabase
     .from('meeting_notes')
@@ -73,9 +72,9 @@ export async function generateMeetingSummary(id: string) {
     await supabase.from('meeting_tasks').insert(
       result.tasks.map((t) => ({
         meeting_id: id,
-        title: t.title,
+        title: t.description,
         assignee: t.assignee,
-        due_date: t.due_date,
+        due_date: t.dueDate,
       }))
     )
   }

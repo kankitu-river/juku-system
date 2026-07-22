@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { generateMeetingSummary, updateMeetingText, toggleMeetingTask } from '../actions'
+import { generateMeetingSummary, updateMeetingText, updateMeetingSummary, toggleMeetingTask } from '../actions'
 
 interface MeetingTask {
   id: string
@@ -20,12 +20,16 @@ interface Props {
   tasks: MeetingTask[]
 }
 
+const FORMAT_GUIDE = `書き方ガイド：★ または【決定】→ 決定事項 ／ ・ - □ TODO: → タスク行 ／ @担当者 (月/日) で担当者と期限を自動抽出`
+
 export function MeetingDetail({ id, title, meeting_date, raw_text: initialText, summary: initialSummary, tasks: initialTasks }: Props) {
   const [rawText, setRawText] = useState(initialText)
-  const [summary, setSummary] = useState(initialSummary)
+  const [summary, setSummary] = useState(initialSummary ?? '')
   const [tasks, setTasks] = useState(initialTasks)
   const [dirty, setDirty] = useState(false)
+  const [summaryDirty, setSummaryDirty] = useState(false)
   const [isSaving, startSave] = useTransition()
+  const [isSavingSummary, startSaveSummary] = useTransition()
   const [isGenerating, startGenerate] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [genInfo, setGenInfo] = useState<string | null>(null)
@@ -36,12 +40,26 @@ export function MeetingDetail({ id, title, meeting_date, raw_text: initialText, 
     setGenInfo(null)
   }
 
+  function handleSummaryChange(v: string) {
+    setSummary(v)
+    setSummaryDirty(true)
+  }
+
   function handleSave() {
     setError(null)
     startSave(async () => {
       const result = await updateMeetingText(id, rawText)
       if (result.error) { setError(result.error); return }
       setDirty(false)
+    })
+  }
+
+  function handleSaveSummary() {
+    setError(null)
+    startSaveSummary(async () => {
+      const result = await updateMeetingSummary(id, summary)
+      if (result.error) { setError(result.error); return }
+      setSummaryDirty(false)
     })
   }
 
@@ -56,9 +74,9 @@ export function MeetingDetail({ id, title, meeting_date, raw_text: initialText, 
       }
       const result = await generateMeetingSummary(id)
       if (result.error) { setError(result.error); return }
-      setSummary(result.summary ?? null)
+      setSummary(result.summary ?? '')
+      setSummaryDirty(false)
       setGenInfo(`${result.taskCount ?? 0}件のタスクを抽出しました`)
-      // revalidatePath が page を更新するが client state も更新
     })
   }
 
@@ -84,9 +102,11 @@ export function MeetingDetail({ id, title, meeting_date, raw_text: initialText, 
           className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
         />
 
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5 leading-relaxed">{FORMAT_GUIDE}</p>
+
         {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
 
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 mt-3 flex-wrap">
           {dirty && (
             <button
               onClick={handleSave}
@@ -99,24 +119,33 @@ export function MeetingDetail({ id, title, meeting_date, raw_text: initialText, 
           <button
             onClick={handleGenerate}
             disabled={isGenerating || !rawText.trim()}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-violet-600 dark:bg-violet-700 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-1.5 text-sm bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            <span className="text-[10px] font-bold bg-violet-400/40 rounded px-1">AI</span>
-            {isGenerating ? '解析中…' : '要約・タスク抽出'}
+            {isGenerating ? '解析中…' : '解析・タスク抽出'}
           </button>
           {genInfo && <span className="self-center text-xs text-green-600 dark:text-green-400">{genInfo}</span>}
         </div>
       </div>
 
-      {summary && (
-        <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] bg-violet-200 dark:bg-violet-800 text-violet-800 dark:text-violet-200 px-1.5 py-0.5 rounded font-bold">AI生成</span>
-            <h3 className="text-sm font-semibold text-violet-800 dark:text-violet-200">要約</h3>
-          </div>
-          <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{summary}</p>
-        </div>
-      )}
+      <div className="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">要約</h3>
+        <textarea
+          value={summary}
+          onChange={(e) => handleSummaryChange(e.target.value)}
+          rows={3}
+          placeholder="解析ボタンで自動生成、または手動で編集できます"
+          className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+        />
+        {summaryDirty && (
+          <button
+            onClick={handleSaveSummary}
+            disabled={isSavingSummary}
+            className="mt-2 px-4 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          >
+            {isSavingSummary ? '保存中…' : '要約を保存'}
+          </button>
+        )}
+      </div>
 
       {tasks.length > 0 && (
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5">

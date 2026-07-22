@@ -13,6 +13,7 @@ export interface StudentFormData {
   preferred_teacher_ids: string[]
   ng_teacher_ids: string[]
   fixed_slots: Array<{ day: number; slot: number; subject?: string; teacher_id?: string }>
+  parent_requests: string
   lesson_ids: string[]
 }
 

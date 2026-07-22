@@ -5,7 +5,6 @@ import { TermPeriodManager } from './TermPeriodManager'
 import { ClosureCalendar } from './ClosureCalendar'
 import { TimeSlotEditor } from './TimeSlotEditor'
 import { IntensiveSlotSettings } from './IntensiveSlotSettings'
-import { ApiKeySettings } from './ApiKeySettings'
 import { GradeAdvancement } from '@/components/settings/GradeAdvancement'
 import { UserManager } from './UserManager'
 import { listUsers } from './userActions'
@@ -21,7 +20,6 @@ export default async function SettingsPage() {
     { data: closures },
     { data: slotSetting },
     { data: intensiveSlotSetting },
-    { data: apiKeySetting },
     { data: { user: currentUser } },
     { users },
   ] = await Promise.all([
@@ -29,7 +27,6 @@ export default async function SettingsPage() {
     supabase.from('school_closures').select('date').order('date'),
     supabase.from('app_settings').select('value').eq('key', 'time_slots').single(),
     supabase.from('app_settings').select('value').eq('key', 'intensive_slot_limits').single(),
-    supabase.from('app_settings').select('value').eq('key', 'anthropic_api_key').single(),
     supabase.auth.getUser(),
     listUsers(),
   ])
@@ -37,7 +34,6 @@ export default async function SettingsPage() {
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
   const customSlots = (slotSetting?.value as TimeSlotConfig) ?? null
   const intensiveSlotLimits = (intensiveSlotSetting?.value as IntensiveSlotLimits) ?? {}
-  const hasApiKey = !!apiKeySetting?.value
 
   return (
     <div>
@@ -123,15 +119,6 @@ export default async function SettingsPage() {
           >
             重複コマを確認・統合する
           </Link>
-        </div>
-
-        {/* Anthropic API キー */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Anthropic API キー</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            AIチャット・週次サマリー・議事録要約・保護者メッセージ生成に使用します。
-          </p>
-          <ApiKeySettings hasKey={hasApiKey} />
         </div>
 
         {/* バックアップ */}

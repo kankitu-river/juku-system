@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Booth } from '@/types'
-import { addBooth, deleteBooth, toggleBoothActive, swapBoothOrder, updateBoothName } from './actions'
+import { addBooth, deleteBooth, toggleBoothActive, toggleBoothType, swapBoothOrder, updateBoothName } from './actions'
 
 interface BoothSettingsProps {
   booths: Booth[]
@@ -46,6 +46,14 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
   function handleToggle(id: string, current: boolean) {
     startTransition(async () => {
       await toggleBoothActive(id, !current)
+      refresh()
+    })
+  }
+
+  function handleToggleType(id: string, current: 'individual' | 'group_preferred') {
+    const next = current === 'group_preferred' ? 'individual' : 'group_preferred'
+    startTransition(async () => {
+      await toggleBoothType(id, next)
       refresh()
     })
   }
@@ -161,6 +169,21 @@ export function BoothSettings({ booths }: BoothSettingsProps) {
                   ].join(' ')}
                 >
                   {booth.is_active ? '稼働中' : '無効'}
+                </button>
+
+                {/* 集団優先トグル */}
+                <button
+                  onClick={() => handleToggleType(booth.id, booth.booth_type ?? 'individual')}
+                  disabled={isPending}
+                  title={booth.booth_type === 'group_preferred' ? '集団優先ブース（クリックで解除）' : '個別ブース（クリックで集団優先に変更）'}
+                  className={[
+                    'text-xs px-2 py-0.5 rounded-full border transition-colors',
+                    booth.booth_type === 'group_preferred'
+                      ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800 hover:bg-purple-200'
+                      : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 hover:border-purple-300 hover:text-purple-600',
+                  ].join(' ')}
+                >
+                  {booth.booth_type === 'group_preferred' ? '集団優先' : '個別'}
                 </button>
 
                 {/* 削除 */}

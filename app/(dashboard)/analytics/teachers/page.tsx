@@ -13,7 +13,7 @@ export default async function TeachersContinuationPage() {
     supabase
       .from('attendances')
       .select('student_id, lesson_id, date, status'),
-    supabase.from('students').select('id, name'),
+    supabase.from('students').select('id, name').eq('is_trial', false),
   ])
 
   // 講師×生徒ペアの受講記録を集計

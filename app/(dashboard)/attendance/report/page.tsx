@@ -20,7 +20,7 @@ export default async function AttendanceReportPage({ searchParams }: PageProps) 
   const supabase = await createClient()
 
   const [{ data: students }, { data: attendances }, { data: enrollments }] = await Promise.all([
-    supabase.from('students').select('id, name, grade').order('grade').order('name'),
+    supabase.from('students').select('id, name, grade').eq('is_trial', false).order('grade').order('name'),
     supabase.from('attendances').select('student_id, status, date').gte('date', startDate).lte('date', endDate),
     supabase.from('lesson_enrollments').select('student_id, lesson_id'),
   ])

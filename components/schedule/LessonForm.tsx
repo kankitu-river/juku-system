@@ -11,6 +11,7 @@ import {
   type IntensiveSlotLimits,
 } from '@/lib/constants/timeSlots'
 import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
 import { getDisplayGrade } from '@/lib/utils/grade'
 
 interface LessonFormProps {
@@ -62,6 +63,8 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
   const [isDeleting, startDeleting] = useTransition()
   const [error, setError] = useState<string>()
   const [undoToast, setUndoToast] = useState<{ id: string; message: string; navTarget: string } | null>(null)
+  type ImpactStudents = { id: string; name: string; hasPendingCredits: boolean }[]
+  const [deleteImpact, setDeleteImpact] = useState<null | 'loading' | ImpactStudents>(null)
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [studentSearch, setStudentSearch] = useState('')
   const [repeat, setRepeat] = useState(false)
@@ -221,19 +224,22 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
     if (!onDelete) return
     setError(undefined)
 
-    let confirmMsg = 'このコマを削除しますか？'
     if (onGetImpact) {
+      setDeleteImpact('loading')
       try {
         const impact = await onGetImpact()
-        if (impact.affectedStudents.length > 0) {
-          const preview = impact.affectedStudents.slice(0, 5).map((s) => `・${s.name}${s.hasPendingCredits ? '（振替残あり）' : ''}`).join('\n')
-          const more = impact.affectedStudents.length > 5 ? `\n他${impact.affectedStudents.length - 5}名` : ''
-          confirmMsg = `このコマを削除すると ${impact.affectedStudents.length}名の生徒に影響が出ます:\n${preview}${more}\n\n削除を続けますか？`
-        }
-      } catch { /* impact check 失敗は無視 */ }
+        setDeleteImpact(impact.affectedStudents)
+      } catch {
+        setDeleteImpact([])
+      }
+    } else {
+      if (!confirm('このコマを削除しますか？')) return
+      execDelete()
     }
+  }
 
-    if (!confirm(confirmMsg)) return
+  function execDelete() {
+    if (!onDelete) return
     startDeleting(async () => {
       const result = await onDelete()
       if (result.error) { setError(result.error) }
@@ -582,6 +588,48 @@ export function LessonForm({ lesson, teachers, booths, students, enrolledStudent
           <Button type="button" variant="danger" loading={isDeleting} onClick={handleDelete}>削除</Button>
         )}
       </div>
+
+      {/* 削除影響確認モーダル */}
+      <Modal
+        open={deleteImpact !== null}
+        onClose={() => setDeleteImpact(null)}
+        title="コマ削除の影響確認"
+        size="sm"
+      >
+        {deleteImpact === 'loading' ? (
+          <p className="text-sm text-gray-500 py-4 text-center">影響を確認中...</p>
+        ) : Array.isArray(deleteImpact) && (
+          <div className="space-y-4">
+            {deleteImpact.length > 0 ? (
+              <>
+                <p className="text-sm text-red-700 dark:text-red-300 font-semibold">
+                  ⚠ このコマを削除すると {deleteImpact.length}名の生徒に影響が出ます
+                </p>
+                <ul className="space-y-1 max-h-48 overflow-y-auto">
+                  {deleteImpact.map((s) => (
+                    <li key={s.id} className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200">
+                      ・{s.name}
+                      {s.hasPendingCredits && (
+                        <span className="text-[10px] px-1 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 font-bold">振替残あり</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="text-sm text-gray-600 dark:text-gray-300">影響を受ける受講生徒はいません。</p>
+            )}
+            <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+              <Button variant="danger" loading={isDeleting} onClick={() => { setDeleteImpact(null); execDelete() }}>
+                削除する
+              </Button>
+              <Button variant="ghost" onClick={() => setDeleteImpact(null)}>
+                キャンセル
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {undoToast && (
         <UndoToast

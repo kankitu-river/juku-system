@@ -21,6 +21,7 @@ async function ensureMonthlyTask(
   const monthStart = `${year}-${mm}-01`
   const monthEnd = `${year}-${mm}-28`  // 28日以内なのでオーバーしない
 
+  // 注: dismissed_at が立っている行も「存在」として数える（非表示タスクの再生成を防ぐため、フィルタを追加しないこと）
   const { data: existing } = await supabase
     .from('tasks')
     .select('id')

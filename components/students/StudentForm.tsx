@@ -45,6 +45,7 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
     preferred_teacher_ids: student?.preferred_teacher_ids ?? [],
     ng_teacher_ids: student?.ng_teacher_ids ?? [],
     fixed_slots: student?.fixed_slots ?? [],
+    parent_requests: student?.parent_requests ?? '',
     lesson_ids: enrolledLessonIds,
   })
 
@@ -302,6 +303,19 @@ export function StudentForm({ student, teachers = [], lessons = [], enrolledLess
           </div>
         </div>
       )}
+
+      {/* 保護者要望 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">保護者要望メモ</label>
+        <p className="text-xs text-gray-400 mb-2">講習割り振り画面で参照できます（「午前希望」「◯◯先生希望」など）</p>
+        <textarea
+          value={form.parent_requests}
+          onChange={(e) => setForm({ ...form, parent_requests: e.target.value })}
+          rows={3}
+          placeholder="例：午前中希望。田中先生との相性が良い。"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none"
+        />
+      </div>
 
       <div className="flex items-center justify-between pt-2">
         <div className="flex gap-3">
