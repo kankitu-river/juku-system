@@ -276,6 +276,39 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
             土曜日（{weekDates[5].getMonth() + 1}/{weekDates[5].getDate()}）
           </h2>
           <div className="space-y-3 print:space-y-1">
+            {currentTermType === 'intensive' ? (
+              /* 講習期間の土曜は1〜5コマ（個別・集団まとめて表示） */
+              <table className="w-full border-collapse text-xs wpl-table">
+                <thead>
+                  <tr>
+                    <th className="border border-gray-300 bg-navy text-white px-2 py-1 text-left">時間帯</th>
+                    <th className="border border-gray-300 bg-navy text-white px-2 py-1 text-center">コマ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {INTENSIVE_SLOTS.filter((s) => s.index <= 5).map((slot) => {
+                    const cellLessons = [
+                      ...(lessonMap.get(`6-${slot.index}-individual`) ?? []),
+                      ...(lessonMap.get(`6-${slot.index}-group`) ?? []),
+                    ]
+                    return (
+                      <tr key={slot.index}>
+                        <td className="border border-gray-300 bg-gray-50 px-2 py-1 text-center whitespace-nowrap">
+                          <div className="font-bold">第{slot.index}コマ</div>
+                          <div className="text-gray-500 text-[10px]">{slot.start}〜{slot.end}</div>
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 align-top">
+                          {cellLessons.map((lesson) => (
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} />
+                          ))}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            ) : (
+            <>
             {/* Saturday individual */}
             <div>
               <h3 className="text-xs font-medium text-teal-700 mb-1 wpl-h3">個別指導</h3>
@@ -339,6 +372,8 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                 </tbody>
               </table>
             </div>
+            </>
+            )}
           </div>
         </section>
 
