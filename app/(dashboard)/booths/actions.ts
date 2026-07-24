@@ -76,7 +76,7 @@ type AssignLesson = { id: string; type: string; slot_index: number; specific_dat
 type AssignBooth = { id: string; name: string; booth_type: string }
 
 // 優先ブース番号（空きがあればここから使う）
-const PRIORITY_NUMS = [2, 5, 6, 7, 10, 12, 14]
+const PRIORITY_NUMS = [2, 5, 6, 7, 11, 12, 14]
 // 鶴丸・奥山が優先するブース番号
 const PREFER_25 = [2, 5]
 
@@ -103,8 +103,8 @@ function orderCandidates(indivBooths: AssignBooth[], isPref: boolean, hasGroup: 
   if (hasGroup) pool = pool.filter((b) => { const n = boothNum(b.name); return n !== 2 && n !== 5 })
 
   const prioNums = isPref
-    ? [2, 5, 6, 7, 10, 12, 14]
-    : [6, 7, 10, 12, 14, 2, 5]
+    ? [2, 5, 6, 7, 11, 12, 14]
+    : [6, 7, 11, 12, 14, 2, 5]
   const prio: AssignBooth[] = []
   for (const n of prioNums) {
     const b = pool.find((x) => boothNum(x.name) === n)
@@ -170,14 +170,35 @@ async function applyBoothAssignments(
         used.add(b.id); thisSlot.set(b.id, l.teacher_id ?? ''); add(b.id, l.id)
       }
 
-      // 個別: 鶴丸/奥山を先に割り当てて 2,5 を確保
-      const ordered = [...indivs].sort(
+      // 前コマの「先生→ブース」対応
+      const prevBoothByTeacher = new Map<string, string>()
+      for (const [bId, tId] of prevSlot) { if (tId) prevBoothByTeacher.set(tId, bId) }
+
+      // Pass A: 前コマと同じ先生は同じブースを継続（移動なし）
+      const remaining: AssignLesson[] = []
+      for (const l of indivs) {
+        const tId = l.teacher_id ?? ''
+        const prevBooth = tId ? prevBoothByTeacher.get(tId) : undefined
+        if (prevBooth && !used.has(prevBooth)) {
+          const bObj = booths.find((b) => b.id === prevBooth)
+          const n = bObj ? boothNum(bObj.name) : null
+          const blockedByGroup = hasGroup && (n === 2 || n === 5)
+          if (bObj && !isGroupBooth(bObj) && !blockedByGroup) {
+            used.add(prevBooth); thisSlot.set(prevBooth, tId); add(prevBooth, l.id)
+            continue
+          }
+        }
+        remaining.push(l)
+      }
+
+      // Pass B: 残り。鶴丸/奥山を先に割り当てて 2,5 を確保
+      const ordered = remaining.sort(
         (a, b) => (preferIds.has(b.teacher_id ?? '') ? 1 : 0) - (preferIds.has(a.teacher_id ?? '') ? 1 : 0)
       )
       for (const l of ordered) {
         const isPref = preferIds.has(l.teacher_id ?? '')
         const cand = orderCandidates(indivBooths, isPref, hasGroup).filter((b) => !used.has(b.id))
-        // 連続コマで別の先生が使ったブースを避ける（無ければ許容）
+        // 入れ替わり回避: 前コマで別の先生が使ったブースは避け、空いている他ブースを使う（無ければ許容）
         const noSwap = cand.filter((b) => {
           const t = prevSlot.get(b.id)
           return !t || t === (l.teacher_id ?? '')
