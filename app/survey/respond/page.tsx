@@ -47,11 +47,15 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
     return <ErrorPage message="URLが正しくありません" />
   }
 
-  const { data: survey } = await supabase
-    .from('shift_surveys')
-    .select('*')
-    .eq('id', surveyId)
-    .single()
+  // P1-2: 未ログイン(anon)の先生でも読めるよう security definer RPC 経由で取得
+  const { data: surveyData } = await supabase.rpc('get_survey_public', { p_survey_id: surveyId })
+  const survey = surveyData as {
+    id: string
+    target_month: string
+    deadline: string
+    term_type?: string | null
+    term_period_id?: string | null
+  } | null
 
   if (!survey) return <ErrorPage message="アンケートが見つかりません" />
   if (new Date(survey.deadline) < new Date()) {
@@ -62,15 +66,9 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   const { data: tokenRows } = await supabase.rpc('get_survey_tokens', { p_survey_id: surveyId })
   const tokens = (tokenRows as unknown as Token[]) ?? []
 
-  const tokenIds = tokens.map((t) => t.id)
   const [{ data: responses }, { data: closures }] = await Promise.all([
-    tokenIds.length > 0
-      ? supabase.from('shift_survey_responses').select('teacher_id, available_slots, maybe_slots, ng_reasons, ng_reason_note').in('token_id', tokenIds)
-      : Promise.resolve({ data: [] }),
-    supabase.from('school_closures')
-      .select('date')
-      .gte('date', `${survey.target_month}-01`)
-      .lte('date', `${survey.target_month}-31`),
+    supabase.rpc('get_survey_responses_public', { p_survey_id: surveyId }),
+    supabase.rpc('get_closures_public', { p_target_month: survey.target_month }),
   ])
 
   const slotsMap: Record<string, Record<string, number[]>> = {}
@@ -86,13 +84,9 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   // 講習期間の場合: term_period_id があればその期間のみ、なければ全講習期間
   let intensivePeriodDates: string[] | null = null
   if (termType === 'intensive') {
-    let query = supabase.from('term_periods').select('start_date, end_date').order('start_date')
-    if (survey.term_period_id) {
-      query = query.eq('id', survey.term_period_id) as typeof query
-    } else {
-      query = query.eq('type', 'intensive') as typeof query
-    }
-    const { data: termPeriods } = await query
+    const { data: termPeriods } = await supabase.rpc('get_intensive_periods_public', {
+      p_term_period_id: survey.term_period_id ?? null,
+    })
 
     if (termPeriods && termPeriods.length > 0) {
       const allDates: string[] = []
@@ -112,38 +106,15 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   // 前回の回答パターンを取得（差分警告用）
   let previousDayPattern: Record<number, number[]> | null = null
   if (preselectedTeacherId) {
-    // P1-2: security definer RPC経由で前回トークン取得
-    const { data: prevTokenRows } = await supabase.rpc('get_teacher_prev_tokens', {
+    // P1-2: 未ログイン(anon)でも読めるよう security definer RPC 経由で前回回答を取得
+    const { data: prevSlots } = await supabase.rpc('get_teacher_prev_response_public', {
       p_teacher_id: preselectedTeacherId,
       p_current_survey_id: surveyId,
+      p_term_type: termType,
     })
-    const prevTokens = (prevTokenRows as unknown as { id: string; survey_id: string }[] | null) ?? []
 
-    if (prevTokens.length > 0) {
-      const prevSurveyIds = prevTokens.map((t) => t.survey_id)
-      const { data: prevSurveys } = await supabase
-        .from('shift_surveys')
-        .select('id, term_type')
-        .in('id', prevSurveyIds)
-        .eq('term_type', termType)
-
-      const matchingTokenIds = prevTokens
-        .filter((t) => prevSurveys?.some((s) => s.id === t.survey_id))
-        .map((t) => t.id)
-
-      if (matchingTokenIds.length > 0) {
-        const { data: prevResponse } = await supabase
-          .from('shift_survey_responses')
-          .select('available_slots, submitted_at')
-          .in('token_id', matchingTokenIds)
-          .order('submitted_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (prevResponse?.available_slots) {
-          previousDayPattern = toDayPattern(prevResponse.available_slots as Record<string, number[]>)
-        }
-      }
+    if (prevSlots) {
+      previousDayPattern = toDayPattern(prevSlots as Record<string, number[]>)
     }
   }
 
