@@ -6,7 +6,7 @@ import type { Teacher, SubjectGrade } from '@/types'
 import { Button } from '@/components/ui/Button'
 import type { TeacherFormData } from '@/app/(dashboard)/teachers/actions'
 
-const SUBJECT_OPTIONS = ['数学', '英語', '国語', '理科', '社会', '物理', '化学', '生物', '日本史', '世界史', '地理']
+const SUBJECT_OPTIONS = ['数学', '英語', '国語', '理科', '社会', '物理', '化学', '生物', '日本史', '世界史', '地理', '古典', '政経']
 const GRADE_OPTIONS = ['小1', '小2', '小3', '小4', '小5', '小6', '中1', '中2', '中3', '高1', '高2', '高3']
 
 interface TeacherFormProps {
