@@ -128,7 +128,7 @@ function RegularSection({ file, onDone }: { file: File | null; onDone: () => voi
       {result?.error && <ErrBox msg={result.error} />}
       {result && !result.error && (
         <>
-          <OkBox msg={`通常コマ ${result.insertedLessons}件・受講 ${result.insertedEnrollments}件を登録（既存 ${result.deleted}件を削除）。${result.unresolvedTeacherLessons > 0 ? `担当空欄 ${result.unresolvedTeacherLessons}件。` : ''}${result.skippedEnrollments > 0 ? `未一致生徒の受講 ${result.skippedEnrollments}件はスキップ。` : ''}`} />
+          <OkBox msg={`通常コマ ${result.insertedLessons}件・受講 ${result.insertedEnrollments}件を登録（既存 ${result.deleted}件を削除）。生徒の固定曜日 ${result.updatedStudents}名を更新。${result.unresolvedTeacherLessons > 0 ? `担当空欄 ${result.unresolvedTeacherLessons}件。` : ''}${result.skippedEnrollments > 0 ? `未一致生徒の受講 ${result.skippedEnrollments}件はスキップ。` : ''}`} />
           {result.enrollWarning && <ErrBox msg={result.enrollWarning} />}
         </>
       )}

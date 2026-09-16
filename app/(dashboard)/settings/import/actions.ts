@@ -441,6 +441,7 @@ export interface RegularResult {
   insertedEnrollments: number
   skippedEnrollments: number
   unresolvedTeacherLessons: number
+  updatedStudents: number
 }
 
 // teacherMap: 講師名→teacherId, studentMap: 生徒表記→studentId（未一致をUIで手動解決した分）
@@ -450,7 +451,7 @@ export async function commitRegular(
   studentMap: Record<string, string> = {},
 ): Promise<RegularResult> {
   const fail = (error: string): RegularResult => ({
-    error, deleted: 0, insertedLessons: 0, insertedEnrollments: 0, skippedEnrollments: 0, unresolvedTeacherLessons: 0,
+    error, deleted: 0, insertedLessons: 0, insertedEnrollments: 0, skippedEnrollments: 0, unresolvedTeacherLessons: 0, updatedStudents: 0,
   })
   try {
     const { lessons } = await parseRegularFile(formData)
@@ -459,7 +460,7 @@ export async function commitRegular(
 
     const [{ data: teachers }, { data: students }] = await Promise.all([
       supabase.from('teachers').select('id, name'),
-      supabase.from('students').select('id, name, display_name'),
+      supabase.from('students').select('id, name, display_name, fixed_slots'),
     ])
     const tByName = new Map((teachers ?? []).map((t) => [t.name, t.id as string]))
     const sByDisplay = new Map<string, string>()
@@ -496,6 +497,10 @@ export async function commitRegular(
     let skippedEnrollments = 0
     let unresolvedTeacherLessons = 0
 
+    // 生徒ごとの固定曜日（fixed_slots）を新しいコマから再構築
+    type FixedSlot = { day: number; slot: number; subject?: string; teacher_id?: string }
+    const fixedByStudent = new Map<string, FixedSlot[]>()
+
     for (const l of lessons) {
       const id = crypto.randomUUID()
       const teacherId = resolveTeacher(l.teacherName)
@@ -523,7 +528,11 @@ export async function commitRegular(
         if (s.subject) perLesson.get(sid)!.add(s.subject)
       }
       for (const [sid, subs] of perLesson) {
-        enrollRows.push({ lesson_id: id, student_id: sid, subject: [...subs].join('・') })
+        const subject = [...subs].join('・')
+        enrollRows.push({ lesson_id: id, student_id: sid, subject })
+        const list = fixedByStudent.get(sid) ?? []
+        list.push({ day: l.dayOfWeek, slot: l.slot, subject: subject || undefined, teacher_id: teacherId ?? undefined })
+        fixedByStudent.set(sid, list)
       }
     }
 
@@ -541,11 +550,25 @@ export async function commitRegular(
       insertedEnrollments += c.length
     }
 
+    // 生徒の固定曜日（fixed_slots）を新しい通常コマから再構築（全入れ替えに合わせて同期）
+    let updatedStudents = 0
+    const sortSlots = (arr: FixedSlot[]) => [...arr].sort((a, b) => a.day - b.day || a.slot - b.slot)
+    const norm = (arr: FixedSlot[]) => JSON.stringify(sortSlots(arr))
+    for (const s of students ?? []) {
+      const sid = s.id as string
+      const next = sortSlots(fixedByStudent.get(sid) ?? [])
+      const cur = ((s as { fixed_slots?: FixedSlot[] }).fixed_slots ?? []) as FixedSlot[]
+      if (norm(cur) === norm(next)) continue
+      const { error } = await supabase.from('students').update({ fixed_slots: next }).eq('id', sid)
+      if (!error) updatedStudents++
+    }
+
     revalidatePath('/schedule')
     revalidatePath('/students')
     revalidatePath('/shifts')
     return {
       deleted, insertedLessons, insertedEnrollments, skippedEnrollments, unresolvedTeacherLessons,
+      updatedStudents,
       enrollWarning: enrollError ? `一部の受講登録でエラー: ${enrollError}` : undefined,
     }
   } catch (e) {
