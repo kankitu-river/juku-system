@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   previewImport, commitImport, type ImportPreview, type ImportResult,
   previewSchedule, commitSchedule, type SchedulePreview, type ScheduleResult,
+  previewRegular, commitRegular, type RegularPreview, type RegularResult,
 } from './actions'
 
 export function ImportClient() {
@@ -28,6 +29,150 @@ export function ImportClient() {
 
       <RosterSection file={file} onDone={() => router.refresh()} />
       <ScheduleSection file={file} onDone={() => router.refresh()} />
+      <RegularSection file={file} onDone={() => router.refresh()} />
+    </div>
+  )
+}
+
+const DOW_LABELS: Record<number, string> = { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土' }
+
+// ── 新学期の通常授業インポート ──────────────────────────────
+function RegularSection({ file, onDone }: { file: File | null; onDone: () => void }) {
+  const [preview, setPreview] = useState<RegularPreview | null>(null)
+  const [result, setResult] = useState<RegularResult | null>(null)
+  const [pending, startTransition] = useTransition()
+  // 未一致の手動解決: key(表記/講師名) -> 選択したid
+  const [teacherSel, setTeacherSel] = useState<Record<string, string>>({})
+  const [studentSel, setStudentSel] = useState<Record<string, string>>({})
+
+  function runPreview() {
+    if (!file) return
+    const fd = new FormData(); fd.set('file', file)
+    setResult(null); setTeacherSel({}); setStudentSel({})
+    startTransition(async () => { setPreview(await previewRegular(fd)) })
+  }
+
+  function runCommit() {
+    if (!file || !preview) return
+    const unresolvedS = preview.unmatchedStudents.filter((u) => !studentSel[u.key]).length
+    const unresolvedT = preview.unmatchedTeachers.filter((u) => !teacherSel[u.key]).length
+    const warn = (unresolvedT > 0 || unresolvedS > 0)
+      ? `未一致のまま進めると、講師 ${unresolvedT}件は担当空欄、生徒 ${unresolvedS}件は受講登録がスキップされます。\n`
+      : ''
+    if (!confirm(`${warn}既存の通常コマ ${preview.existingRegularCount}件を全て削除して、${preview.lessonCount}件を新規登録します。よろしいですか？`)) return
+    const fd = new FormData(); fd.set('file', file)
+    setResult(null)
+    startTransition(async () => {
+      const r = await commitRegular(fd, teacherSel, studentSel)
+      setResult(r)
+      if (!r.error) { setPreview(null); onDone() }
+    })
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5 space-y-4">
+      <div>
+        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">③ 新学期の通常授業（マスターExcel）</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          「マスター」シートから毎週の通常コマ（曜日×コマ×担当×生徒）を取り込みます。既存の通常コマは全て削除して入れ替えます（講習コマは残ります）。
+        </p>
+        <a
+          href="/api/export/schedule-master"
+          className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        >
+          ⬇ 現在の通常授業をExcelで書き出す（同じ型）
+        </a>
+      </div>
+
+      <button onClick={runPreview} disabled={!file || pending}
+        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+        {pending ? '処理中…' : '内容を確認する'}
+      </button>
+
+      {preview?.error && <ErrBox msg={preview.error} />}
+      {preview && !preview.error && (
+        <div className="space-y-4">
+          <div className="text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 space-y-1">
+            <p>コマ: <span className="font-semibold">{preview.lessonCount}</span>（個別 {preview.individualCount}・集団 {preview.groupCount}）</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              曜日別: {[1, 2, 3, 4, 5, 6].map((d) => `${DOW_LABELS[d]}${preview.byDow[d] ?? 0}`).join(' / ')}
+            </p>
+            <p>生徒一致: <span className="font-semibold">{preview.matchedStudents}/{preview.totalStudents}</span></p>
+            <p className="text-red-600 dark:text-red-400">既存の通常コマ {preview.existingRegularCount}件を削除して入れ替えます。</p>
+          </div>
+
+          {preview.unmatchedTeachers.length > 0 && (
+            <MatchResolver
+              title={`未一致の講師（${preview.unmatchedTeachers.length}）— 正しい先生を選ぶと担当に設定されます`}
+              items={preview.unmatchedTeachers} all={preview.allTeachers}
+              sel={teacherSel} setSel={setTeacherSel}
+            />
+          )}
+          {preview.unmatchedStudents.length > 0 && (
+            <MatchResolver
+              title={`未一致の生徒（${preview.unmatchedStudents.length}）— 正しい生徒を選ぶと今後は自動一致します`}
+              items={preview.unmatchedStudents} all={preview.allStudents}
+              sel={studentSel} setSel={setStudentSel}
+            />
+          )}
+          {preview.unmatchedTeachers.length === 0 && preview.unmatchedStudents.length === 0 && (
+            <p className="text-sm text-green-600 dark:text-green-400">全ての講師・生徒が一致しました。</p>
+          )}
+
+          <button onClick={runCommit} disabled={pending}
+            className="px-4 py-2 text-sm bg-navy text-white rounded-lg hover:bg-navy-light disabled:opacity-50 font-medium">
+            {pending ? '登録中…' : 'この内容で入れ替え登録する'}
+          </button>
+        </div>
+      )}
+      {result?.error && <ErrBox msg={result.error} />}
+      {result && !result.error && (
+        <>
+          <OkBox msg={`通常コマ ${result.insertedLessons}件・受講 ${result.insertedEnrollments}件を登録（既存 ${result.deleted}件を削除）。${result.unresolvedTeacherLessons > 0 ? `担当空欄 ${result.unresolvedTeacherLessons}件。` : ''}${result.skippedEnrollments > 0 ? `未一致生徒の受講 ${result.skippedEnrollments}件はスキップ。` : ''}`} />
+          {result.enrollWarning && <ErrBox msg={result.enrollWarning} />}
+        </>
+      )}
+    </div>
+  )
+}
+
+function MatchResolver({ title, items, all, sel, setSel }: {
+  title: string
+  items: { key: string; candidates: { id: string; name: string }[] }[]
+  all: { id: string; name: string }[]
+  sel: Record<string, string>
+  setSel: (fn: (prev: Record<string, string>) => Record<string, string>) => void
+}) {
+  return (
+    <div>
+      <p className="text-sm font-semibold text-amber-700 dark:text-amber-300 mb-2">{title}</p>
+      <div className="space-y-2">
+        {items.map((it) => {
+          const candIds = new Set(it.candidates.map((c) => c.id))
+          const others = all.filter((o) => !candIds.has(o.id))
+          return (
+            <div key={it.key} className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-100 w-32 shrink-0 truncate">{it.key}</span>
+              <span className="text-gray-400">→</span>
+              <select
+                value={sel[it.key] ?? ''}
+                onChange={(e) => setSel((prev) => ({ ...prev, [it.key]: e.target.value }))}
+                className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-navy"
+              >
+                <option value="">（未選択）</option>
+                {it.candidates.length > 0 && (
+                  <optgroup label="候補">
+                    {it.candidates.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </optgroup>
+                )}
+                <optgroup label="すべて">
+                  {others.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </optgroup>
+              </select>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
