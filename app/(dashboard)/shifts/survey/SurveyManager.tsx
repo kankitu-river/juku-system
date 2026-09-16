@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
@@ -43,14 +43,231 @@ type ResponseEntry = {
   surveyNote: string
 }
 
+interface SurveyLesson {
+  id: string
+  title: string
+  subject: string
+  day_of_week: number
+  slot_index: number
+  term_type: 'regular' | 'intensive'
+  teacher_id: string | null
+  teacher: { id: string; name: string } | null
+}
+
 interface SurveyManagerProps {
   surveys: Survey[]
   teacherCount: number
   intensivePeriods: IntensivePeriod[]
   responsesBySurvey?: Record<string, ResponseEntry[]>
+  lessons?: SurveyLesson[]
+  closureDates?: string[]
 }
 
 const DOW_NAMES = ['日', '月', '火', '水', '木', '金', '土']
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const mdLabel = (dateStr: string) => {
+  const d = new Date(dateStr + 'T12:00:00')
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
+
+// アンケート回答と通常コマを突き合わせ、担当講師が確保できないコマを検出する
+function MismatchPanel({
+  survey,
+  responses,
+  lessons,
+  closureDates,
+  intensivePeriods,
+}: {
+  survey: Survey
+  responses: ResponseEntry[]
+  lessons: SurveyLesson[]
+  closureDates: string[]
+  intensivePeriods: IntensivePeriod[]
+}) {
+  const [open, setOpen] = useState(false)
+
+  const result = useMemo(() => {
+    const termType = (survey.term_type ?? 'regular') as 'regular' | 'intensive'
+    const [y, m] = survey.target_month.split('-').map(Number)
+    const daysInMonth = new Date(y, m, 0).getDate()
+    const closureSet = new Set(closureDates)
+
+    // 対象月内で「授業がありうる日」を算出（講習期間の内外・休講日を考慮）
+    const intensiveRanges = intensivePeriods
+      .filter((p) => !survey.term_period_id || p.id === survey.term_period_id)
+      .map((p) => [p.start_date, p.end_date] as [string, string])
+    const applicableDates: string[] = []
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${y}-${pad2(m)}-${pad2(day)}`
+      if (closureSet.has(dateStr)) continue
+      const inIntensive = intensiveRanges.some(([s, e]) => dateStr >= s && dateStr <= e)
+      if (termType === 'intensive') {
+        if (!inIntensive) continue
+      } else if (inIntensive) {
+        continue // 通常アンケートは講習期間の日を対象外に
+      }
+      applicableDates.push(dateStr)
+    }
+
+    const relevant = lessons.filter((l) => (l.term_type ?? 'regular') === termType)
+    const assigned = relevant.filter((l) => l.teacher_id)
+    const unassigned = relevant.filter((l) => !l.teacher_id)
+    const respByTeacher = new Map(responses.map((r) => [r.teacherId, r]))
+
+    interface LessonIssue {
+      lesson: SurveyLesson
+      teacherName: string
+      ngDates: string[]
+      maybeDates: string[]
+      noResponse: boolean
+    }
+    const ngIssues: LessonIssue[] = [] // 出勤不可 or 未回答（担当不在の可能性）
+    const maybeIssues: LessonIssue[] = [] // △調整可のみ
+
+    for (const lesson of assigned) {
+      const res = respByTeacher.get(lesson.teacher_id as string)
+      const teacherName = lesson.teacher?.name ?? '—'
+      if (!res) {
+        ngIssues.push({ lesson, teacherName, ngDates: [], maybeDates: [], noResponse: true })
+        continue
+      }
+      const ngDates: string[] = []
+      const maybeDates: string[] = []
+      for (const dateStr of applicableDates) {
+        const dow = new Date(dateStr + 'T12:00:00').getDay()
+        if (dow !== lesson.day_of_week) continue
+        const ok = (res.availableSlots[dateStr] ?? []).includes(lesson.slot_index)
+        if (ok) continue
+        const maybe = (res.maybeSlots[dateStr] ?? []).includes(lesson.slot_index)
+        if (maybe) maybeDates.push(dateStr)
+        else ngDates.push(dateStr)
+      }
+      if (ngDates.length > 0) ngIssues.push({ lesson, teacherName, ngDates, maybeDates, noResponse: false })
+      else if (maybeDates.length > 0) maybeIssues.push({ lesson, teacherName, ngDates, maybeDates, noResponse: false })
+    }
+
+    const sortFn = (a: LessonIssue, b: LessonIssue) =>
+      a.lesson.day_of_week - b.lesson.day_of_week || a.lesson.slot_index - b.lesson.slot_index
+    ngIssues.sort(sortFn)
+    maybeIssues.sort(sortFn)
+    const sortedUnassigned = [...unassigned].sort(
+      (a, b) => a.day_of_week - b.day_of_week || a.slot_index - b.slot_index
+    )
+
+    return { ngIssues, maybeIssues, unassigned: sortedUnassigned }
+  }, [survey, responses, lessons, closureDates, intensivePeriods])
+
+  const total = result.ngIssues.length + result.maybeIssues.length + result.unassigned.length
+
+  const lessonLabel = (l: SurveyLesson) =>
+    `${DOW_NAMES[l.day_of_week]}曜 第${l.slot_index}コマ${l.subject ? ` ${l.subject}` : ''}`
+
+  return (
+    <div className="border-t border-gray-100 dark:border-gray-700 mt-4 pt-4">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-blue-300"
+      >
+        <span>🔍 通常コマとのずれ確認</span>
+        {total > 0 && (
+          <span className="text-[10px] bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300 px-1.5 py-0.5 rounded-full font-bold">
+            {total}件
+          </span>
+        )}
+        <span className="text-gray-400">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-4">
+          <p className="text-[11px] text-gray-400">
+            アンケート回答（○出勤可）と登録済みの通常コマの担当を突き合わせた結果です。休講日・講習期間は考慮済み。
+          </p>
+
+          {total === 0 ? (
+            <p className="text-xs text-teal-600 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-100 dark:border-teal-900 rounded-lg px-3 py-2">
+              ✓ ずれは見つかりませんでした。担当講師は全コマ出勤可能です。
+            </p>
+          ) : (
+            <>
+              {/* 担当講師が確保できない可能性のあるコマ */}
+              {result.ngIssues.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-red-600 dark:text-red-300 mb-2">
+                    ✕ 担当講師がいない授業（出勤不可・未回答）{result.ngIssues.length}件
+                  </p>
+                  <div className="space-y-1.5">
+                    {result.ngIssues.map((iss) => (
+                      <div
+                        key={iss.lesson.id}
+                        className="text-xs bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900 rounded-lg px-3 py-2"
+                      >
+                        <span className="font-medium text-gray-800 dark:text-gray-100">{lessonLabel(iss.lesson)}</span>
+                        <span className="text-gray-500 dark:text-gray-400"> ・ {iss.teacherName}</span>
+                        {iss.noResponse ? (
+                          <span className="ml-2 text-[10px] text-red-500 dark:text-red-300 font-medium">先生が未回答</span>
+                        ) : (
+                          <span className="ml-2 text-[10px] text-red-500 dark:text-red-300">
+                            出勤不可: {iss.ngDates.map(mdLabel).join('・')}
+                            {iss.maybeDates.length > 0 && (
+                              <span className="text-amber-500 dark:text-amber-400">（△{iss.maybeDates.map(mdLabel).join('・')}）</span>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* △調整可のみ（確定不足） */}
+              {result.maybeIssues.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-300 mb-2">
+                    △ 担当が「調整可」のみで未確定 {result.maybeIssues.length}件
+                  </p>
+                  <div className="space-y-1.5">
+                    {result.maybeIssues.map((iss) => (
+                      <div
+                        key={iss.lesson.id}
+                        className="text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 rounded-lg px-3 py-2"
+                      >
+                        <span className="font-medium text-gray-800 dark:text-gray-100">{lessonLabel(iss.lesson)}</span>
+                        <span className="text-gray-500 dark:text-gray-400"> ・ {iss.teacherName}</span>
+                        <span className="ml-2 text-[10px] text-amber-600 dark:text-amber-400">
+                          △調整可: {iss.maybeDates.map(mdLabel).join('・')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 講師未割当のコマ */}
+              {result.unassigned.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                    ⚠ 講師未割当のコマ {result.unassigned.length}件
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.unassigned.map((l) => (
+                      <span
+                        key={l.id}
+                        className="text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-lg"
+                      >
+                        {lessonLabel(l)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: ResponseEntry[] }) {
   if (tokens.length === 0) return null
@@ -189,7 +406,7 @@ function ResponseSummary({ tokens, responses }: { tokens: Token[]; responses: Re
   )
 }
 
-export function SurveyManager({ surveys: initialSurveys, teacherCount, intensivePeriods, responsesBySurvey = {} }: SurveyManagerProps) {
+export function SurveyManager({ surveys: initialSurveys, teacherCount, intensivePeriods, responsesBySurvey = {}, lessons = [], closureDates = [] }: SurveyManagerProps) {
   const router = useRouter()
   const toast = useToast()
   const [surveys, setSurveys] = useState(initialSurveys)
@@ -439,6 +656,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                 onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
               />
+              <p className="text-[11px] text-gray-400 mt-1">指定日の23:59まで回答可能です</p>
             </div>
           </div>
 
@@ -465,7 +683,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
             const responded = survey.tokens.filter((t) => t.responded_at).length
             const total = survey.tokens.length
             const isExpanded = expandedId === survey.id
-            const isExpired = new Date(survey.deadline) < new Date()
+            const isExpired = new Date(survey.deadline + 'T23:59:59+09:00') < new Date()
             const termType = survey.term_type ?? 'regular'
 
             return (
@@ -485,7 +703,7 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                         )}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        期限：{survey.deadline}
+                        期限：{survey.deadline} 23:59まで
                         {isExpired && <span className="ml-2 text-red-400">（締切済み）</span>}
                       </p>
                     </div>
@@ -530,6 +748,14 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
                       ))}
                     </div>
                     <ResponseSummary tokens={survey.tokens} responses={responsesBySurvey[survey.id] ?? []} />
+
+                    <MismatchPanel
+                      survey={survey}
+                      responses={responsesBySurvey[survey.id] ?? []}
+                      lessons={lessons}
+                      closureDates={closureDates}
+                      intensivePeriods={intensivePeriods}
+                    />
 
                     <div className="flex gap-2 flex-wrap mt-4">
                       <Button

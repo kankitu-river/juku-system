@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { WeeklyShiftTable } from '@/components/shifts/WeeklyShiftTable'
 import { CopyShiftsButton } from './CopyShiftsButton'
+import { WeekDatePicker } from './WeekDatePicker'
 import Link from 'next/link'
 import { getJstTodayStr } from '@/lib/utils/datetime'
 import type { Teacher, Lesson } from '@/types'
@@ -101,6 +102,7 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
         >
           翌週 ›
         </Link>
+        <WeekDatePicker value={weekDates[0]} />
         <Link
           href="/shifts"
           className="ml-auto px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-500 dark:text-gray-400"

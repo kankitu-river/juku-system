@@ -58,8 +58,8 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
   } | null
 
   if (!survey) return <ErrorPage message="アンケートが見つかりません" />
-  if (new Date(survey.deadline) < new Date()) {
-    return <ErrorPage message={`このアンケートは締め切られています（期限: ${new Date(survey.deadline).toLocaleDateString('ja-JP')}）`} />
+  if (new Date(survey.deadline + 'T23:59:59+09:00') < new Date()) {
+    return <ErrorPage message={`このアンケートは締め切られています（期限: ${new Date(survey.deadline).toLocaleDateString('ja-JP')} 23:59）`} />
   }
 
   // P1-2: security definer RPC経由でトークン一覧取得（先生選択UI用）
@@ -127,7 +127,7 @@ export default async function SurveyRespondPage({ searchParams }: PageProps) {
           <p className="text-sm opacity-80 mt-1">
             {survey.target_month.replace('-', '年')}月分
             {termType === 'intensive' && ' 【講習期間】'}
-            {' · '}回答期限: {new Date(survey.deadline).toLocaleDateString('ja-JP')}
+            {' · '}回答期限: {new Date(survey.deadline).toLocaleDateString('ja-JP')} 23:59まで
           </p>
         </div>
 

@@ -5,7 +5,7 @@ import { SurveyManager } from './SurveyManager'
 export default async function ShiftSurveyPage() {
   const supabase = await createClient()
 
-  const [{ data: surveys }, { data: teachers }, { data: termPeriods }] = await Promise.all([
+  const [{ data: surveys }, { data: teachers }, { data: termPeriods }, { data: lessons }, { data: closures }] = await Promise.all([
     supabase
       .from('shift_surveys')
       .select(`
@@ -20,6 +20,12 @@ export default async function ShiftSurveyPage() {
     supabase.from('term_periods').select('id, name, type, start_date, end_date')
       .eq('type', 'intensive')
       .order('start_date', { ascending: false }),
+    // 通常コマ（specific_date が無い＝毎週の繰り返しコマ）を担当講師つきで取得
+    supabase
+      .from('lessons')
+      .select('id, title, subject, day_of_week, slot_index, term_type, teacher_id, teacher:teachers(id, name)')
+      .is('specific_date', null),
+    supabase.from('school_closures').select('date'),
   ])
 
   // 全アンケートの回答内容を取得
@@ -72,6 +78,21 @@ export default async function ShiftSurveyPage() {
         teacherCount={teachers?.length ?? 0}
         intensivePeriods={(termPeriods ?? []) as { id: string; name: string; type: string; start_date: string; end_date: string }[]}
         responsesBySurvey={responsesBySurvey}
+        lessons={(lessons ?? []).map((l: {
+          id: string; title: string; subject: string | null; day_of_week: number
+          slot_index: number; term_type: string; teacher_id: string | null
+          teacher: { id: string; name: string } | { id: string; name: string }[] | null
+        }) => ({
+          id: l.id,
+          title: l.title,
+          subject: l.subject ?? '',
+          day_of_week: l.day_of_week,
+          slot_index: l.slot_index,
+          term_type: (l.term_type ?? 'regular') as 'regular' | 'intensive',
+          teacher_id: l.teacher_id,
+          teacher: Array.isArray(l.teacher) ? (l.teacher[0] ?? null) : l.teacher,
+        }))}
+        closureDates={(closures ?? []).map((c: { date: string }) => c.date)}
       />
     </div>
   )

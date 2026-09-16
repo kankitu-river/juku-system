@@ -18,7 +18,7 @@ export async function sendSurveyEmail({
   surveyUrl,
 }: SendSurveyEmailParams): Promise<{ error?: string }> {
   const [year, month] = targetMonth.split('-')
-  const deadlineDate = new Date(deadline).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
+  const deadlineDate = `${new Date(deadline).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })} 23:59まで`
 
   try {
     const { error } = await resend.emails.send({

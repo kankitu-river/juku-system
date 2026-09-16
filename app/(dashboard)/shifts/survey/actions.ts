@@ -35,7 +35,7 @@ export async function createSurvey(data: {
       survey_id: survey.id,
       teacher_id: t.id,
       token: randomUUID(),
-      expires_at: new Date(data.deadline + 'T23:59:59').toISOString(),
+      expires_at: new Date(data.deadline + 'T23:59:59+09:00').toISOString(),
     }))
     await supabase.from('shift_survey_tokens').insert(tokens)
   }
