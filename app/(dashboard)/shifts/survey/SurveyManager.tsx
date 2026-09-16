@@ -78,12 +78,14 @@ function MismatchPanel({
   lessons,
   closureDates,
   intensivePeriods,
+  mergedCount = 1,
 }: {
   survey: Survey
   responses: ResponseEntry[]
   lessons: SurveyLesson[]
   closureDates: string[]
   intensivePeriods: IntensivePeriod[]
+  mergedCount?: number
 }) {
   const [open, setOpen] = useState(false)
 
@@ -183,6 +185,11 @@ function MismatchPanel({
           <p className="text-[11px] text-gray-400">
             アンケート回答（○出勤可）と登録済みの通常コマの担当を突き合わせた結果です。休講日・講習期間は考慮済み。
           </p>
+          {mergedCount > 1 && (
+            <p className="text-[11px] text-navy dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-lg px-3 py-1.5">
+              同じ月（{survey.target_month.replace('-', '年')}月）の {mergedCount} 件のアンケート回答を合算して判定しています。
+            </p>
+          )}
 
           {total === 0 ? (
             <p className="text-xs text-teal-600 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-100 dark:border-teal-900 rounded-lg px-3 py-2">
@@ -521,6 +528,37 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
 
   const selectedPeriod = intensivePeriods.find((p) => p.id === form.term_period_id)
 
+  // 同じ年月・期間種別のアンケート回答を先生ごとに合算する（2つ作った場合のずれ確認をまとめる）
+  function mergeSlotMaps(target: Record<string, number[]>, src: Record<string, number[]>) {
+    for (const [date, slots] of Object.entries(src)) {
+      const set = new Set([...(target[date] ?? []), ...slots])
+      target[date] = [...set]
+    }
+  }
+  function sameMonthSurveys(target: Survey): Survey[] {
+    const tt = target.term_type ?? 'regular'
+    return surveys.filter((s) => s.target_month === target.target_month && (s.term_type ?? 'regular') === tt)
+  }
+  function mergedResponsesForMonth(target: Survey): ResponseEntry[] {
+    const byTeacher = new Map<string, ResponseEntry>()
+    for (const s of sameMonthSurveys(target)) {
+      for (const r of responsesBySurvey[s.id] ?? []) {
+        const ex = byTeacher.get(r.teacherId)
+        if (!ex) {
+          byTeacher.set(r.teacherId, {
+            ...r,
+            availableSlots: { ...r.availableSlots },
+            maybeSlots: { ...r.maybeSlots },
+          })
+          continue
+        }
+        mergeSlotMaps(ex.availableSlots, r.availableSlots)
+        mergeSlotMaps(ex.maybeSlots, r.maybeSlots)
+      }
+    }
+    return [...byTeacher.values()]
+  }
+
   return (
     <div className="space-y-6 max-w-2xl">
       {error && (
@@ -751,10 +789,11 @@ export function SurveyManager({ surveys: initialSurveys, teacherCount, intensive
 
                     <MismatchPanel
                       survey={survey}
-                      responses={responsesBySurvey[survey.id] ?? []}
+                      responses={mergedResponsesForMonth(survey)}
                       lessons={lessons}
                       closureDates={closureDates}
                       intensivePeriods={intensivePeriods}
+                      mergedCount={sameMonthSurveys(survey).length}
                     />
 
                     <div className="flex gap-2 flex-wrap mt-4">
