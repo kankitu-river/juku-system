@@ -123,7 +123,9 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   const dayShifts = (shiftsData ?? []) as { teacher_id: string; date: string; start_time: string; end_time: string }[]
 
   function shiftCoversSlot(shift: { start_time: string; end_time: string }, slotStart: string, slotEnd: string) {
-    return shift.start_time <= slotStart && shift.end_time >= slotEnd
+    // シフト時刻は "HH:MM:SS"、コマ時刻は "HH:MM" なので HH:MM に揃えて比較（開始一致の漏れ防止）
+    const hm = (t: string) => t.slice(0, 5)
+    return hm(shift.start_time) <= slotStart && hm(shift.end_time) >= slotEnd
   }
 
   function getWaitingTeachers(slotStart: string, slotEnd: string, slotLessons: Lesson[]) {

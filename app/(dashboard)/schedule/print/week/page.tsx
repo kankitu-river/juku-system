@@ -85,7 +85,10 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   }
 
   function shiftCoversSlot(shift: { start_time: string; end_time: string }, slotStart: string, slotEnd: string) {
-    return shift.start_time <= slotStart && shift.end_time >= slotEnd
+    // シフト時刻は "HH:MM:SS"、コマ時刻は "HH:MM"。秒付きのまま文字列比較すると
+    // 開始が一致する場合に "16:30:00" > "16:30" となり漏れるため HH:MM に揃えて比較する
+    const hm = (t: string) => t.slice(0, 5)
+    return hm(shift.start_time) <= slotStart && hm(shift.end_time) >= slotEnd
   }
 
   // Group lessons by day and slot key
