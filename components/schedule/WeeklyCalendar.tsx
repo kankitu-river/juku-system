@@ -155,6 +155,22 @@ const lessonMap = useMemo(() => {
     return map
   }, [allLessons, lessons, termType])
 
+  // 臨時コマは日付固有なので「日付×スロット → 担当中 teacher_id」で別途判定する。
+  // busyTeacherMap は曜日ベースで臨時コマを含まないため、これがないと
+  // 既に臨時コマを持つ先生が「待機」として表示され、追加保存時に重複エラーになる。
+  const tempBusyByDate = useMemo(() => {
+    const base = allLessons ?? lessons
+    const map = new Map<string, Set<string>>()
+    for (const lesson of base) {
+      if (!lesson.teacher_id) continue
+      if (lesson.lesson_kind !== 'temporary' || !lesson.specific_date) continue
+      const key = `${lesson.specific_date}-${lesson.slot_index}`
+      if (!map.has(key)) map.set(key, new Set())
+      map.get(key)!.add(lesson.teacher_id)
+    }
+    return map
+  }, [allLessons, lessons])
+
   // シフトを date → ShiftRecord[] にマップ
   const shiftByDate = useMemo(() => {
     const map = new Map<string, ShiftRecord[]>()
@@ -330,9 +346,11 @@ const lessonMap = useMemo(() => {
 
                     // 空き先生: その日シフトありかつこのスロット未担当
                     const busySet = busyTeacherMap.get(`${day.value}-${slot.index}`) ?? new Set<string>()
+                    const tempBusySet = tempBusyByDate.get(`${dateStr}-${slot.index}`) ?? new Set<string>()
                     const dayShifts = isClosed ? [] : (shiftByDate.get(dateStr) ?? [])
                     const availableTeachers = teachers.filter(t =>
                       !busySet.has(t.id) &&
+                      !tempBusySet.has(t.id) &&
                       dayShifts.some(s => s.teacher_id === t.id && shiftCoversSlot(s, slot.start, slot.end))
                     )
 

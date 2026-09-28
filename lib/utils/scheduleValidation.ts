@@ -32,13 +32,23 @@ export async function validateLessonConflicts(
   let query = supabase
     .from('lessons')
     .select('id, teacher_id, booth_id, enrollments:lesson_enrollments(student_id)')
-    .eq('lesson_kind', input.lesson_kind)
     .eq('slot_index', input.slot_index)
 
+  // 対象コマが実際に開催される時間に重なる既存コマを取得する。
+  // 通常コマ: 同じ曜日×期間で毎週開催。臨時コマ: specific_date のみ開催。
+  // 通常⇔臨時をまたいだ重なり（例: 毎週の通常コマがあるブースに、同じ曜日の臨時コマを入れる）も
+  // 検出するため、両方の種別を対象にする。
   if (input.lesson_kind === 'regular') {
-    query = query.eq('day_of_week', input.day_of_week).eq('term_type', input.term_type)
+    query = query
+      .eq('lesson_kind', 'regular')
+      .eq('day_of_week', input.day_of_week)
+      .eq('term_type', input.term_type)
   } else {
-    query = query.eq('specific_date', input.specific_date ?? '')
+    // 同じ日の臨時コマ、または その曜日・期間の通常コマ
+    query = query.or(
+      `and(lesson_kind.eq.temporary,specific_date.eq.${input.specific_date ?? ''}),` +
+        `and(lesson_kind.eq.regular,day_of_week.eq.${input.day_of_week},term_type.eq.${input.term_type})`
+    )
   }
 
   if (excludeLessonId) {
