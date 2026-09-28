@@ -55,12 +55,20 @@ export default async function MakeupPage() {
         title="振替管理"
         subtitle="台帳の未消化を選んで、相性の良いコマに割り当て"
         actions={
-          <Link
-            href="/attendance/makeup/ledger"
-            className="px-3 py-1.5 text-sm font-medium text-white bg-navy rounded-lg hover:bg-navy-light transition-colors"
-          >
-            振替台帳を見る
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/attendance/makeup/reconcile"
+              className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              決定分をコマに照合
+            </Link>
+            <Link
+              href="/attendance/makeup/ledger"
+              className="px-3 py-1.5 text-sm font-medium text-white bg-navy rounded-lg hover:bg-navy-light transition-colors"
+            >
+              振替台帳を見る
+            </Link>
+          </div>
         }
       />
       <MakeupManager
