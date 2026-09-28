@@ -9,6 +9,7 @@ import { getSlotLabel } from '@/lib/constants/timeSlots'
 import Link from 'next/link'
 import { UndoButton } from '@/app/(dashboard)/history/UndoButton'
 import { WaitlistSection } from './WaitlistSection'
+import { LessonMakeupPanel } from '@/components/schedule/LessonMakeupPanel'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -18,7 +19,7 @@ export default async function LessonDetailPage({ params }: PageProps) {
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: lesson }, { data: teachers }, { data: booths }, { data: students }, { data: enrollments }, { data: auditLogs }, { data: closures }, { data: events }, { data: waitlist }] =
+  const [{ data: lesson }, { data: teachers }, { data: booths }, { data: students }, { data: enrollments }, { data: auditLogs }, { data: closures }, { data: events }, { data: waitlist }, { data: ledgerUnresolved }, { data: makeupAssignments }] =
     await Promise.all([
       supabase
         .from('lessons')
@@ -49,6 +50,16 @@ export default async function LessonDetailPage({ params }: PageProps) {
         .eq('lesson_id', id)
         .eq('status', 'waiting')
         .order('position', { ascending: true }),
+      supabase
+        .from('makeup_requests')
+        .select('id, student_name, subject, status, student:students(id, name)')
+        .in('status', ['pending', 'scheduled'])
+        .order('student_name', { ascending: true }),
+      supabase
+        .from('makeup_assignments')
+        .select('id, assigned_date, student:students(id, name)')
+        .eq('lesson_id', id)
+        .order('assigned_date', { ascending: true }),
     ])
 
   if (!lesson) notFound()
@@ -67,6 +78,29 @@ export default async function LessonDetailPage({ params }: PageProps) {
   const waitlistStudentIds = new Set(typedWaitlist.map((w) => w.student?.id).filter(Boolean))
   const waitlistAvailableStudents = ((students as { id: string; name: string; grade: string }[]) ?? [])
     .filter((s) => !enrolledStudentIds.includes(s.id) && !waitlistStudentIds.has(s.id))
+
+  // 振替パネル用データ（振替台帳ベース）
+  type LedgerRow = { id: string; student_name: string; subject: string; status: 'pending' | 'scheduled'; student: { id: string; name: string } | null }
+  const ledgerItems = ((ledgerUnresolved ?? []) as unknown as LedgerRow[]).map((r) => ({
+    id: r.id,
+    studentName: r.student?.name ?? r.student_name,
+    subject: r.subject,
+    status: r.status,
+  }))
+  type MakeupRow = { id: string; assigned_date: string; student: { id: string; name: string } | null }
+  const existingMakeups = ((makeupAssignments ?? []) as unknown as MakeupRow[]).map((m) => ({
+    id: m.id,
+    studentName: m.student?.name ?? '—',
+    date: m.assigned_date,
+  }))
+  const enrolledForPanel = typedEnrollments.map((e) => ({
+    id: e.student_id,
+    name: e.student?.name ?? '—',
+    grade: e.student?.grade,
+    subject: enrolledStudentSubjects[e.student_id] ?? '',
+  }))
+  const panelFixedDate = typedLesson.lesson_kind === 'temporary' ? typedLesson.specific_date : null
+  const panelLessonLabel = getSlotLabel(typedLesson.slot_index, typedLesson.day_of_week, typedLesson.term_type, typedLesson.type)
 
   return (
     <div>
@@ -201,6 +235,17 @@ export default async function LessonDetailPage({ params }: PageProps) {
             </div>
           )}
         </div>
+
+        {/* 振替・欠席（特定日） */}
+        <LessonMakeupPanel
+          lessonId={id}
+          fixedDate={panelFixedDate}
+          dayOfWeek={typedLesson.day_of_week}
+          lessonLabel={panelLessonLabel}
+          enrolled={enrolledForPanel}
+          ledgerItems={ledgerItems}
+          existingMakeups={existingMakeups}
+        />
 
         {/* キャンセル待ち */}
         <WaitlistSection

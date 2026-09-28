@@ -4,7 +4,8 @@ import { useState, useTransition, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { assignMakeup, getMakeupMLScores } from '@/app/(dashboard)/attendance/actions'
+import { getMakeupMLScores } from '@/app/(dashboard)/attendance/actions'
+import { assignMakeupFromLedger } from '@/app/(dashboard)/attendance/makeup/ledger/actions'
 import { getSlotLabel } from '@/lib/constants/timeSlots'
 import { DAYS_OF_WEEK } from '@/lib/constants/timeSlots'
 import { getDisplayGrade } from '@/lib/utils/grade'
@@ -28,12 +29,13 @@ interface StudentInfo {
   ng_teacher_ids: string[]
 }
 
-interface Credit {
+// 振替台帳の未消化1件
+interface LedgerItem {
   id: string
-  student_id: string
-  total_credits: number
-  used_credits: number
-  expires_at?: string | null
+  subject: string
+  status: 'pending' | 'scheduled'
+  scheduledDate: string | null // 決定日（あればコマ割り当て時に初期表示）
+  isPlaced: boolean // 既にコマに配置済みか（再振替は選び直して割り当て直せば置き換わる）
   student: StudentInfo | null
 }
 
@@ -52,7 +54,7 @@ interface TermPeriodInfo {
 }
 
 interface MakeupManagerProps {
-  credits: Credit[]
+  items: LedgerItem[]
   lessons: LessonCandidate[]
   shifts: Shift[]
   termPeriods?: TermPeriodInfo[]
@@ -62,15 +64,17 @@ interface MakeupManagerProps {
 const today = toDateStr(new Date())
 const twoWeeksLater = toDateStr(new Date(Date.now() + 14 * 86400000))
 
+const STATUS_LABEL: Record<LedgerItem['status'], string> = { pending: '未定', scheduled: '決定' }
+
 export function MakeupManager({
-  credits,
+  items,
   lessons,
   shifts,
   termPeriods = [],
   recentAssignments = [],
 }: MakeupManagerProps) {
   const router = useRouter()
-  const [selectedCredit, setSelectedCredit] = useState<Credit | null>(null)
+  const [selectedItem, setSelectedItem] = useState<LedgerItem | null>(null)
   const [selectedLessonId, setSelectedLessonId] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [assignedDate, setAssignedDate] = useState(today)
@@ -80,20 +84,20 @@ export function MakeupManager({
   const [mlScores, setMlScores] = useState<Record<string, { score: number; reasons: string[] }> | null>(null)
   const [mlLoading, setMlLoading] = useState(false)
 
-  const student = selectedCredit?.student ?? null
+  const student = selectedItem?.student ?? null
 
   // 生徒選択時にML APIでスコア取得（バックグラウンド、失敗しても問題なし）
   useEffect(() => {
     setMlScores(null)
-    if (!selectedCredit?.student) return
+    if (!selectedItem?.student) return
     const teacherIds = [...new Set(lessons.map((l) => l.teacher_id).filter(Boolean) as string[])]
     if (teacherIds.length === 0) return
     setMlLoading(true)
-    getMakeupMLScores(selectedCredit.student.id, teacherIds)
+    getMakeupMLScores(selectedItem.student.id, teacherIds)
       .then((result) => setMlScores(result))
       .catch(() => setMlScores(null))
       .finally(() => setMlLoading(false))
-  }, [selectedCredit?.student?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedItem?.student?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Single-date mode: lessons on the selected date
   const dateLessons = useMemo(() => {
@@ -125,12 +129,12 @@ export function MakeupManager({
 
   function handleAssign(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedCredit || !selectedLessonId || !selectedDate) return
+    if (!selectedItem || !selectedLessonId || !selectedDate) return
     setError(undefined)
     startTransition(async () => {
-      const result = await assignMakeup(selectedCredit.student_id, selectedLessonId, selectedDate)
+      const result = await assignMakeupFromLedger(selectedItem.id, selectedLessonId, selectedDate)
       if (result.error) { setError(result.error); return }
-      setSelectedCredit(null)
+      setSelectedItem(null)
       setSelectedLessonId('')
       setSelectedDate('')
       router.refresh()
@@ -147,34 +151,35 @@ export function MakeupManager({
     }
   }
 
-  function handleCreditSelect(credit: Credit) {
-    const isSelected = selectedCredit?.id === credit.id
-    setSelectedCredit(isSelected ? null : credit)
+  function handleItemSelect(item: LedgerItem) {
+    const isSelected = selectedItem?.id === item.id
+    setSelectedItem(isSelected ? null : item)
     setSelectedLessonId('')
     setSelectedDate('')
     setViewMode('date')
+    // 決定済みなら、その決定日をコマ割り当ての対象日に初期セット（その日のコマ候補がすぐ出る）
+    if (!isSelected && item.scheduledDate) setAssignedDate(item.scheduledDate)
   }
 
   const dayLabel = (dow: number) =>
     DAYS_OF_WEEK.find((d) => d.value === dow)?.label ?? ''
 
-  if (credits.length === 0) {
+  if (items.length === 0) {
     return <EmptyState message="未消化の振替はありません 🎉" />
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* 振替クレジット一覧 */}
+      {/* 未消化の振替（台帳） */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">振替クレジット残数</h2>
+        <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">未消化の振替（台帳）</h2>
         <div className="space-y-2">
-          {credits.map((credit) => {
-            const remaining = credit.total_credits - credit.used_credits
-            const isSelected = selectedCredit?.id === credit.id
+          {items.map((item) => {
+            const isSelected = selectedItem?.id === item.id
             return (
               <button
-                key={credit.id}
-                onClick={() => handleCreditSelect(credit)}
+                key={item.id}
+                onClick={() => handleItemSelect(item)}
                 className={[
                   'w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors',
                   isSelected
@@ -183,33 +188,31 @@ export function MakeupManager({
                 ].join(' ')}
               >
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{credit.student?.name}</p>
-                  <p className="text-xs text-gray-400">{credit.student?.grade ? getDisplayGrade(credit.student.grade) : ''}</p>
-                  {(credit.student?.subjects?.length ?? 0) > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {credit.student?.subjects?.map((s) => (
-                        <span key={s} className="text-[10px] bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full">{s}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1.5 justify-end">
-                    {Array.from({ length: Math.min(remaining, 5) }).map((_, i) => (
-                      <span key={i} className="inline-block w-3 h-3 rounded-full bg-amber-brand" />
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{item.student?.name}</p>
+                  <p className="text-xs text-gray-400">{item.student?.grade ? getDisplayGrade(item.student.grade) : ''}</p>
+                  <div className="flex flex-wrap items-center gap-1 mt-1">
+                    {item.subject && (
+                      <span className="text-[10px] bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full">{item.subject}</span>
+                    )}
+                    {(item.student?.subjects?.length ?? 0) > 0 && item.student?.subjects?.map((s) => (
+                      <span key={s} className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-1.5 py-0.5 rounded-full">{s}</span>
                     ))}
-                    <span className="text-sm font-bold text-amber-brand ml-1">{remaining}</span>
-                    <span className="text-xs text-gray-400">残</span>
                   </div>
-                  {credit.expires_at && (
-                    <p className={[
-                      'text-[10px] mt-0.5',
-                      new Date(credit.expires_at) < new Date(Date.now() + 14 * 86400000)
-                        ? 'text-red-500 font-medium'
-                        : 'text-gray-400',
-                    ].join(' ')}>
-                      期限 {new Date(credit.expires_at).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                    </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className={[
+                    'text-xs font-medium px-2 py-0.5 rounded-full',
+                    item.status === 'pending'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+                      : 'bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300',
+                  ].join(' ')}>
+                    {STATUS_LABEL[item.status]}
+                  </span>
+                  {item.isPlaced && (
+                    <p className="text-[10px] text-navy dark:text-blue-300 mt-0.5">コマ配置済</p>
+                  )}
+                  {item.status === 'scheduled' && item.scheduledDate && (
+                    <p className="text-[10px] text-gray-400 mt-0.5">{item.scheduledDate}</p>
                   )}
                 </div>
               </button>
@@ -221,12 +224,12 @@ export function MakeupManager({
       {/* 振替コマ割り当て */}
       <div>
         <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">
-          {selectedCredit
-            ? `${selectedCredit.student?.name}さんの振替コマを割り当て`
-            : '生徒を選択してください'}
+          {selectedItem
+            ? `${selectedItem.student?.name}さんの振替コマを割り当て`
+            : '振替を選択してください'}
         </h2>
 
-        {selectedCredit ? (
+        {selectedItem ? (
           <form onSubmit={handleAssign} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-4">
             {error && (
               <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-3 py-2 text-sm text-red-700 dark:text-red-300">
@@ -366,7 +369,7 @@ export function MakeupManager({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setSelectedCredit(null)}
+                onClick={() => setSelectedItem(null)}
               >
                 キャンセル
               </Button>
@@ -374,7 +377,7 @@ export function MakeupManager({
           </form>
         ) : (
           <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-10 text-center text-gray-400 text-sm">
-            左から生徒を選択すると<br />振替コマを割り当てられます
+            左から振替を選択すると<br />相性の良いコマを提案します
           </div>
         )}
       </div>

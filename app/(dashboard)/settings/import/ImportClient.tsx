@@ -6,6 +6,7 @@ import {
   previewImport, commitImport, type ImportPreview, type ImportResult,
   previewSchedule, commitSchedule, type SchedulePreview, type ScheduleResult,
   previewRegular, commitRegular, type RegularPreview, type RegularResult,
+  previewMakeup, commitMakeup, type MakeupPreview, type MakeupResult,
 } from './actions'
 
 export function ImportClient() {
@@ -16,7 +17,7 @@ export function ImportClient() {
     <div className="max-w-2xl space-y-6">
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-          スケ組みソフトの Excel（.xlsm / .xlsx）を1つ選んでください。名簿・夏期講習コマの両方をこのファイルから取り込みます。
+          Excel（.xlsm / .xlsx）を1つ選んでください。①〜③はスケ組みソフト（名簿・講習・マスター）、④は振替ファイル（振替.xlsx）を選び、それぞれ該当セクションで実行します。該当シートが無いファイルではそのセクションは0件になります。
         </p>
         <input
           type="file"
@@ -30,6 +31,77 @@ export function ImportClient() {
       <RosterSection file={file} onDone={() => router.refresh()} />
       <ScheduleSection file={file} onDone={() => router.refresh()} />
       <RegularSection file={file} onDone={() => router.refresh()} />
+      <MakeupSection file={file} onDone={() => router.refresh()} />
+    </div>
+  )
+}
+
+// ── 授業振替インポート ──────────────────────────────
+function MakeupSection({ file, onDone }: { file: File | null; onDone: () => void }) {
+  const [preview, setPreview] = useState<MakeupPreview | null>(null)
+  const [result, setResult] = useState<MakeupResult | null>(null)
+  const [pending, startTransition] = useTransition()
+
+  function runPreview() {
+    if (!file) return
+    const fd = new FormData(); fd.set('file', file)
+    setResult(null)
+    startTransition(async () => { setPreview(await previewMakeup(fd)) })
+  }
+
+  function runCommit() {
+    if (!file || !preview) return
+    const warn = preview.unmatchedStudents.length > 0
+      ? `名簿に無い生徒 ${preview.unmatchedStudents.length}名分は、氏名だけ保持して登録します（生徒リンクなし）。\n`
+      : ''
+    if (!confirm(`${warn}既存の振替台帳を全件入れ替えて、${preview.total}件を登録します。よろしいですか？`)) return
+    const fd = new FormData(); fd.set('file', file)
+    setResult(null)
+    startTransition(async () => {
+      const r = await commitMakeup(fd)
+      setResult(r)
+      if (!r.error) { setPreview(null); onDone() }
+    })
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5 space-y-4">
+      <div>
+        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">④ 授業振替（初回移行）</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <b>Excelからシステムへの初回引っ越し用</b>です。「授業振替」「授業振替終了済み」シートを取り込みます。塗り色（オレンジ）で振替日<b>未定</b>、それ以外を<b>決定</b>、終了済みシートは<b>消化済み</b>として登録。取り込み後はアプリの「振替台帳」で管理してください（Excel不要）。<b className="text-red-500">※再実行するとアプリで追加・編集した内容も含め全件入れ替わります</b>。
+        </p>
+      </div>
+      <button onClick={runPreview} disabled={!file || pending}
+        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+        {pending ? '処理中…' : '内容を確認する'}
+      </button>
+
+      {preview?.error && <ErrBox msg={preview.error} />}
+      {preview && !preview.error && (
+        <div className="space-y-3">
+          <div className="text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 space-y-1">
+            <p>合計: <span className="font-semibold">{preview.total}</span> 件</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              未定 <span className="font-semibold text-amber-600 dark:text-amber-400">{preview.pendingCount}</span> ／
+              決定 <span className="font-semibold text-green-600 dark:text-green-400">{preview.scheduledCount}</span> ／
+              済 <span className="font-semibold text-gray-500">{preview.completedCount}</span>
+            </p>
+            <p>生徒一致: <span className="font-semibold">{preview.matchedStudents}/{preview.total}</span></p>
+          </div>
+          {preview.unmatchedStudents.length > 0 && (
+            <Chips title={`⚠ 名簿に無い生徒（${preview.unmatchedStudents.length}）— 氏名のみで登録（先に①名簿取込を推奨）`} color="amber" items={preview.unmatchedStudents} />
+          )}
+          <button onClick={runCommit} disabled={pending}
+            className="px-4 py-2 text-sm bg-navy text-white rounded-lg hover:bg-navy-light disabled:opacity-50 font-medium">
+            {pending ? '登録中…' : 'この内容で入れ替え登録する'}
+          </button>
+        </div>
+      )}
+      {result?.error && <ErrBox msg={result.error} />}
+      {result && !result.error && (
+        <OkBox msg={`振替台帳 ${result.inserted}件を移行しました（既存 ${result.deleted}件を入れ替え、生徒未一致 ${result.skippedStudents}件は氏名のみ保持）。以降は「振替管理 > 振替台帳」でアプリ内管理できます。`} />
+      )}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { parseRoster } from '@/lib/import/rosterParser'
 import { parseIntensiveSchedule } from '@/lib/import/scheduleParser'
 import { parseRegularMaster } from '@/lib/import/regularMasterParser'
+import { parseMakeupWorkbook } from '@/lib/import/makeupParser'
 import { revalidatePath } from 'next/cache'
 
 export interface ImportPreview {
@@ -571,6 +572,123 @@ export async function commitRegular(
       updatedStudents,
       enrollWarning: enrollError ? `一部の受講登録でエラー: ${enrollError}` : undefined,
     }
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : '登録に失敗しました')
+  }
+}
+
+// ── 授業振替のインポート（振替.xlsx の「授業振替」「授業振替終了済み」） ──────────
+
+export interface MakeupPreview {
+  error?: string
+  total: number
+  pendingCount: number
+  scheduledCount: number
+  completedCount: number
+  matchedStudents: number
+  unmatchedStudents: string[]
+}
+
+export interface MakeupResult {
+  error?: string
+  inserted: number
+  deleted: number
+  skippedStudents: number
+}
+
+// 氏名マッチ用に空白（半角/全角）を除去して正規化
+function normName(s: string): string {
+  return s.replace(/[\s　]+/g, '')
+}
+
+async function parseMakeupFile(formData: FormData) {
+  const file = formData.get('file') as File | null
+  if (!file) throw new Error('ファイルが選択されていません')
+  const buf = Buffer.from(await file.arrayBuffer())
+  return parseMakeupWorkbook(buf)
+}
+
+export async function previewMakeup(formData: FormData): Promise<MakeupPreview> {
+  try {
+    const { rows, pendingCount, scheduledCount, completedCount } = await parseMakeupFile(formData)
+    const supabase = await createClient()
+    const { data: students } = await supabase.from('students').select('id, name')
+    const nameSet = new Set((students ?? []).map((s) => normName(s.name)))
+
+    const unmatched = new Set<string>()
+    let matched = 0
+    for (const r of rows) {
+      if (nameSet.has(normName(r.studentName))) matched++
+      else unmatched.add(r.studentName)
+    }
+    return {
+      total: rows.length, pendingCount, scheduledCount, completedCount,
+      matchedStudents: matched,
+      unmatchedStudents: [...unmatched],
+    }
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : '解析に失敗しました',
+      total: 0, pendingCount: 0, scheduledCount: 0, completedCount: 0,
+      matchedStudents: 0, unmatchedStudents: [],
+    }
+  }
+}
+
+export async function commitMakeup(formData: FormData): Promise<MakeupResult> {
+  const fail = (msg: string): MakeupResult => ({ error: msg, inserted: 0, deleted: 0, skippedStudents: 0 })
+  try {
+    const { rows } = await parseMakeupFile(formData)
+    const supabase = await createClient()
+    const { data: students } = await supabase.from('students').select('id, name')
+    const idByName = new Map<string, string>()
+    for (const s of students ?? []) {
+      const k = normName(s.name)
+      if (!idByName.has(k)) idByName.set(k, s.id)
+    }
+
+    // 台帳はExcelのミラーなので全件入れ替える
+    const { count: existing } = await supabase
+      .from('makeup_requests')
+      .select('id', { count: 'exact', head: true })
+    const { error: delError } = await supabase
+      .from('makeup_requests')
+      .delete()
+      .not('id', 'is', null)
+    if (delError) return fail(`既存データの削除に失敗: ${delError.message}`)
+
+    let skippedStudents = 0
+    const records = rows.map((r) => {
+      const student_id = idByName.get(normName(r.studentName)) ?? null
+      if (!student_id) skippedStudents++
+      return {
+        student_id,
+        student_name: r.studentName,
+        received_date: r.receivedDate,
+        original_lesson: r.originalLesson,
+        subject: r.subject,
+        desired_raw: r.desiredRaw,
+        scheduled_date: r.scheduledDate,
+        status: r.status,
+        next_test_date: r.nextTestDate,
+        notes: r.notes,
+        source_sheet: r.sourceSheet,
+      }
+    })
+
+    let inserted = 0
+    const CHUNK = 500
+    for (let i = 0; i < records.length; i += CHUNK) {
+      const { error } = await supabase.from('makeup_requests').insert(records.slice(i, i + CHUNK))
+      if (error) return fail(`登録に失敗（${inserted}件登録済み）: ${error.message}`)
+      inserted += Math.min(CHUNK, records.length - i)
+    }
+
+    // 取り込みは「初回移行」の位置づけ。以降は台帳をアプリ内で管理する（Excel非依存）。
+    // 残数は台帳の未消化件数から算出して表示するため、ここでは makeup_credits を触らない。
+    revalidatePath('/attendance/makeup')
+    revalidatePath('/attendance/makeup/ledger')
+    return { inserted, deleted: existing ?? 0, skippedStudents }
   } catch (e) {
     return fail(e instanceof Error ? e.message : '登録に失敗しました')
   }
