@@ -204,6 +204,31 @@ const lessonMap = useMemo(() => {
   const weekdays = DAYS_OF_WEEK.filter(d => d.value !== 6)
   const slots = termType === 'intensive' ? slots_intensive : slots_regular
 
+  // 担当不足の検出: そのコマの担当先生が、その日シフトに入っていない（アンケート反映後に出勤しないと判明）／担当未設定
+  // シフトが1件も無い日は判定不能とみなしスキップ（未回答の週で誤検知しないため）。代講設定済みは解決とみなす。
+  const understaffedMap = useMemo(() => {
+    const map = new Map<string, '未設定' | '不在'>() // key: `${lessonId}__${dateStr}`
+    for (let i = 0; i < weekdays.length; i++) {
+      const dow = weekdays[i].value
+      const dateStr = weekDateStrings[i]
+      if (closureDates.includes(dateStr)) continue
+      const dayShifts = shiftByDate.get(dateStr) ?? []
+      if (dayShifts.length === 0) continue
+      for (const slot of slots) {
+        const key = termType === 'intensive' ? `${dow}-${slot.index}` : `${dow}-i-${slot.index}`
+        for (const l of (lessonMap.get(key) ?? [])) {
+          if (teacherOverrides.some(o => o.lesson_id === l.id && o.date === dateStr)) continue // 代講済み=解決
+          const k = `${l.id}__${dateStr}`
+          if (!l.teacher_id) { map.set(k, '未設定'); continue }
+          const covered = dayShifts.some(s => s.teacher_id === l.teacher_id && shiftCoversSlot(s, slot.start, slot.end))
+          if (!covered) map.set(k, '不在')
+        }
+      }
+    }
+    return map
+  }, [lessonMap, shiftByDate, teacherOverrides, closureDates, slots, termType, weekDateStrings, weekdays])
+  const understaffedCount = understaffedMap.size
+
   // 週ナビリンク
   const prevWeekDate = new Date(monday); prevWeekDate.setDate(monday.getDate() - 7)
   const nextWeekDate = new Date(monday); nextWeekDate.setDate(monday.getDate() + 7)
@@ -247,6 +272,16 @@ const lessonMap = useMemo(() => {
           </Link>
         </div>
       </div>
+
+      {/* 担当不足アラート */}
+      {understaffedCount > 0 && (
+        <div className="mb-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-900 px-4 py-2.5 flex items-center gap-2">
+          <span className="text-lg">⚠️</span>
+          <span className="text-sm text-red-700 dark:text-red-300">
+            今週、<span className="font-bold">{understaffedCount}件</span>のコマで担当の先生が出勤しない／未設定です（赤枠のコマ）。シフトを確認して代講の設定などをしてください。
+          </span>
+        </div>
+      )}
 
       {/* タブ＋表示オプション */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -387,7 +422,7 @@ const lessonMap = useMemo(() => {
                           </div>
                         ) : (
                           <div className="space-y-1">
-                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} absences={absences} teacherOverrides={teacherOverrides} density={density} selectedTeacherId={selectedTeacherId} />
+                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} absences={absences} teacherOverrides={teacherOverrides} understaffedMap={understaffedMap} density={density} selectedTeacherId={selectedTeacherId} />
                             {cellLessons.length === 0 && availableTeachers.length === 0 && (
                               <div className="h-10 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-300">—</span>
@@ -573,12 +608,13 @@ function mergeLessonsByTeacher(lessons: Lesson[]): MergedLesson[] {
   })
 }
 
-function CellLessons({ lessons, dateStr, makeups = [], absences = [], teacherOverrides = [], density = 'full', selectedTeacherId = null }: {
+function CellLessons({ lessons, dateStr, makeups = [], absences = [], teacherOverrides = [], understaffedMap, density = 'full', selectedTeacherId = null }: {
   lessons: Lesson[]
   dateStr?: string
   makeups?: MakeupAssignment[]
   absences?: AbsenceRecord[]
   teacherOverrides?: TeacherOverride[]
+  understaffedMap?: Map<string, '未設定' | '不在'>
   density?: 'full' | 'compact'
   selectedTeacherId?: string | null
 }) {
@@ -589,6 +625,9 @@ function CellLessons({ lessons, dateStr, makeups = [], absences = [], teacherOve
       {merged.map(lesson => {
         const ids = lesson._mergedIds ?? [lesson.id]
         const ov = teacherOverrides.find((o) => ids.includes(o.lesson_id) && o.date === dateStr)
+        const understaffed = understaffedMap
+          ? (ids.map((id) => understaffedMap.get(`${id}__${dateStr}`)).find(Boolean) ?? undefined)
+          : undefined
         return (
           <div key={lesson.id} className={selectedTeacherId && lesson.teacher_id !== selectedTeacherId ? 'opacity-30' : ''}>
             <LessonCard
@@ -601,6 +640,7 @@ function CellLessons({ lessons, dateStr, makeups = [], absences = [], teacherOve
                 .filter((a) => ids.includes(a.lesson_id) && a.date === dateStr)
                 .map((a) => a.student_id)}
               overrideTeacherName={ov ? (ov.teacher_name ?? '') : undefined}
+              understaffedReason={understaffed}
             />
           </div>
         )

@@ -14,9 +14,10 @@ interface LessonCardProps {
   makeupStudents?: MakeupStudent[]  // その日にこのコマへ振替/臨時で入る生徒
   absentStudentIds?: string[]  // その日だけ外れる（欠席）通常メンバーの生徒ID
   overrideTeacherName?: string | null  // その日だけの代講先生名（設定時のみ）
+  understaffedReason?: '未設定' | '不在'  // 担当が出勤しない/未設定の警告
 }
 
-export function LessonCard({ lesson, compact = false, makeupStudents = [], absentStudentIds = [], overrideTeacherName }: LessonCardProps) {
+export function LessonCard({ lesson, compact = false, makeupStudents = [], absentStudentIds = [], overrideTeacherName, understaffedReason }: LessonCardProps) {
   const isGroup = lesson.type === 'group'
   const absentSet = new Set(absentStudentIds)
   const enrollmentStudents = (lesson.enrollments ?? [])
@@ -42,11 +43,15 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
         href={`/schedule/${lesson.id}`}
         className={[
           'flex items-center gap-1 rounded px-1.5 py-1 text-xs leading-tight transition-all duration-150 ease-out hover:shadow-md hover:-translate-y-px',
-          isGroup
+          understaffedReason ? 'ring-2 ring-red-500 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800'
+          : isGroup
             ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-900 border border-purple-200 dark:border-purple-800'
             : 'bg-teal-50 dark:bg-teal-900/40 text-teal-900 border border-teal-200 dark:border-teal-800',
         ].join(' ')}
       >
+        {understaffedReason && (
+          <span className="flex-shrink-0 text-[10px] font-bold px-1 rounded bg-red-500 text-white" title={understaffedReason === '不在' ? '担当がこの日シフトに入っていません' : '担当が未設定です'}>⚠{understaffedReason === '不在' ? '不在' : '未設定'}</span>
+        )}
         {lesson.lesson_kind === 'temporary' && (
           <span className="flex-shrink-0 text-[10px] font-bold px-1 rounded bg-orange-400 text-white">臨時</span>
         )}
@@ -98,7 +103,8 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
       className={[
         'block rounded-md px-2 py-2 text-xs transition-all duration-150 ease-out hover:shadow-md hover:-translate-y-px overflow-hidden',
         extraStudents.length > 0 ? 'min-h-[72px]' : 'h-[72px]',
-        isGroup
+        understaffedReason ? 'ring-2 ring-red-500 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 border-l-2 border-l-red-500'
+        : isGroup
           ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-900 border border-purple-200 dark:border-purple-800 border-l-2 border-l-purple-400'
           : 'bg-teal-50 dark:bg-teal-900/40 text-teal-900 border border-teal-200 dark:border-teal-800 border-l-2 border-l-teal-400',
       ].join(' ')}
@@ -106,6 +112,9 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
       {/* 先生 + 科目 + 定員 を1行に */}
       <div className="flex items-center justify-between gap-1 mb-1.5">
         <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+          {understaffedReason && (
+            <span className="flex-shrink-0 text-[9px] font-bold px-1 rounded bg-red-500 text-white" title={understaffedReason === '不在' ? '担当がこの日シフトに入っていません' : '担当が未設定です'}>⚠{understaffedReason === '不在' ? '不在' : '未設定'}</span>
+          )}
           {lesson.lesson_kind === 'temporary' && (
             <span className="flex-shrink-0 text-[9px] font-bold px-1 rounded bg-orange-400 text-white">臨時</span>
           )}
