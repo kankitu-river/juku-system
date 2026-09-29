@@ -50,7 +50,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   const nextDay = new Date(refDate); nextDay.setDate(refDate.getDate() + 1)
 
   const supabase = await createClient()
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }, { data: makeupData }, { data: tempData }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }, { data: makeupData }, { data: tempData }, { data: overrideData }] = await Promise.all([
     supabase
       .from('lessons')
       .select(`
@@ -67,6 +67,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
     supabase.from('daily_notes').select('content').eq('date', dateStr).maybeSingle(),
     supabase.from('makeup_assignments').select('lesson_id, student:students(id, name)').eq('assigned_date', dateStr),
     supabase.from('temporary_students').select('lesson_id, subject, student:students(id, name)').eq('date', dateStr),
+    supabase.from('lesson_teacher_overrides').select('lesson_id, teacher:teachers(name)').eq('date', dateStr),
   ])
 
   // lesson_id -> 振替/臨時生徒リスト
@@ -80,6 +81,11 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
     if (!t.student) continue
     if (!makeupByLesson.has(t.lesson_id)) makeupByLesson.set(t.lesson_id, [])
     makeupByLesson.get(t.lesson_id)!.push({ ...t.student, kind: 'temporary', subject: t.subject ?? undefined })
+  }
+  // lesson_id -> 代講先生名（その日だけ担当差し替え）
+  const overrideByLesson = new Map<string, string>()
+  for (const o of (overrideData ?? []) as unknown as { lesson_id: string; teacher: { name: string } | null }[]) {
+    overrideByLesson.set(o.lesson_id, o.teacher?.name ?? '担当未定')
   }
 
   const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
@@ -319,7 +325,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
                         return ba.localeCompare(bb, 'ja')
                       })
                       .map((lesson) => (
-                        <LessonPosterCard key={lesson.id} lesson={lesson} makeupStudents={makeupByLesson.get(lesson.id) ?? []} />
+                        <LessonPosterCard key={lesson.id} lesson={lesson} makeupStudents={makeupByLesson.get(lesson.id) ?? []} overrideTeacherName={overrideByLesson.has(lesson.id) ? overrideByLesson.get(lesson.id)! : undefined} />
                       ))
                   ) : (
                     <div className="dpp-empty flex-1 flex items-center justify-center text-gray-300 text-sm print:text-xs">
@@ -356,11 +362,13 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   )
 }
 
-function LessonPosterCard({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary'; subject?: string }[] }) {
+function LessonPosterCard({ lesson, makeupStudents = [], overrideTeacherName }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary'; subject?: string }[]; overrideTeacherName?: string }) {
   const isGroup = lesson.type === 'group'
   const isPS1 = Boolean((lesson as { is_ps1?: boolean }).is_ps1)
   const isPurple = isGroup || isPS1
-  const teacher = (lesson as { teacher?: { name: string } }).teacher
+  const baseTeacher = (lesson as { teacher?: { name: string } }).teacher
+  const teacher = overrideTeacherName !== undefined ? { name: overrideTeacherName } : baseTeacher
+  const hasOverride = overrideTeacherName !== undefined
   const booth = (lesson as { booth?: { name: string } }).booth
   const students = (lesson.enrollments ?? [])
     .map((e) => e.student)
@@ -392,9 +400,9 @@ function LessonPosterCard({ lesson, makeupStudents = [] }: { lesson: Lesson; mak
         {teacher?.name ? (
           <p className={[
             'dpp-card-teacher font-bold text-lg print:text-sm leading-tight',
-            isPurple ? 'text-purple-900' : 'text-teal-900',
+            hasOverride ? 'text-orange-700' : isPurple ? 'text-purple-900' : 'text-teal-900',
           ].join(' ')}>
-            {teacher.name}
+            {hasOverride && '代 '}{teacher.name}
           </p>
         ) : (
           <p className="text-sm text-gray-400 print:text-xs">担当未設定</p>

@@ -86,6 +86,13 @@ export default async function LessonDetailPage({ params }: PageProps) {
     .eq('lesson_kind', 'regular')
     .neq('id', id)
     .order('slot_index')
+
+  // このコマの担当差し替え（その日だけ別の先生）
+  const { data: lessonTeacherOverrides } = await supabase
+    .from('lesson_teacher_overrides')
+    .select('id, date, teacher:teachers(id, name)')
+    .eq('lesson_id', id)
+    .order('date', { ascending: true })
   const typedEnrollments = (enrollments as LessonEnrollment[]) ?? []
   type AuditLogRow = { id: string; action: string; summary: string | null; created_at: string }
   const typedAuditLogs = (auditLogs ?? []) as AuditLogRow[]
@@ -140,6 +147,12 @@ export default async function LessonDetailPage({ params }: PageProps) {
   const moveTargets = ((moveTargetLessons ?? []) as unknown as MoveTargetRow[]).map((l) => ({
     id: l.id,
     label: `第${l.slot_index}コマ ${l.teacher?.name ?? '担当未定'}${l.subject ? `・${l.subject}` : ''}`,
+  }))
+  const teachersForPanel = ((teachers as { id: string; name: string }[]) ?? []).map((t) => ({ id: t.id, name: t.name }))
+  type OverrideRow = { id: string; date: string; teacher: { id: string; name: string } | null }
+  const existingTeacherOverrides = ((lessonTeacherOverrides ?? []) as unknown as OverrideRow[]).map((o) => ({
+    date: o.date,
+    teacherName: o.teacher?.name ?? '担当未定',
   }))
   const panelFixedDate = typedLesson.lesson_kind === 'temporary' ? typedLesson.specific_date : null
   const panelLessonLabel = getSlotLabel(typedLesson.slot_index, typedLesson.day_of_week, typedLesson.term_type, typedLesson.type)
@@ -291,6 +304,8 @@ export default async function LessonDetailPage({ params }: PageProps) {
           existingTemporary={existingTemporary}
           existingAbsences={existingAbsences}
           moveTargets={moveTargets}
+          teachers={teachersForPanel}
+          existingTeacherOverrides={existingTeacherOverrides}
         />
 
         {/* キャンセル待ち */}

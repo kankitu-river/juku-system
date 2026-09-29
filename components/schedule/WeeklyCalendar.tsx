@@ -48,12 +48,19 @@ interface WeeklyCalendarProps {
   customSlots?: TimeSlotConfig | null
   makeupAssignments?: MakeupAssignment[]
   absences?: AbsenceRecord[]
+  teacherOverrides?: TeacherOverride[]
 }
 
 interface AbsenceRecord {
   lesson_id: string
   student_id: string
   date: string
+}
+
+interface TeacherOverride {
+  lesson_id: string
+  date: string
+  teacher_name: string | null
 }
 
 function getTermTypeForDate(date: Date, termPeriods: TermPeriod[]): 'regular' | 'intensive' {
@@ -90,6 +97,7 @@ export function WeeklyCalendar({
   customSlots,
   makeupAssignments = [],
   absences = [],
+  teacherOverrides = [],
 }: WeeklyCalendarProps) {
   const router = useRouter()
   const [dayView, setDayView] = useState<DayView>('weekday')
@@ -379,7 +387,7 @@ const lessonMap = useMemo(() => {
                           </div>
                         ) : (
                           <div className="space-y-1">
-                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} absences={absences} density={density} selectedTeacherId={selectedTeacherId} />
+                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} absences={absences} teacherOverrides={teacherOverrides} density={density} selectedTeacherId={selectedTeacherId} />
                             {cellLessons.length === 0 && availableTeachers.length === 0 && (
                               <div className="h-10 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-300">—</span>
@@ -445,7 +453,7 @@ const lessonMap = useMemo(() => {
                       <td className={['px-2 py-2 align-top border-b border-b-gray-100 dark:border-b-gray-700/50', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                         style={{ minHeight: '80px' }}>
                         <div className="space-y-1">
-                          <CellLessons lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} absences={absences} density={density} selectedTeacherId={selectedTeacherId} />
+                          <CellLessons lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} absences={absences} teacherOverrides={teacherOverrides} density={density} selectedTeacherId={selectedTeacherId} />
                           {cellLessons.length === 0 && !isSatClosed && (
                             <div className="h-10 flex items-center justify-center">
                               <span className="text-[10px] text-gray-300">—</span>
@@ -565,11 +573,12 @@ function mergeLessonsByTeacher(lessons: Lesson[]): MergedLesson[] {
   })
 }
 
-function CellLessons({ lessons, dateStr, makeups = [], absences = [], density = 'full', selectedTeacherId = null }: {
+function CellLessons({ lessons, dateStr, makeups = [], absences = [], teacherOverrides = [], density = 'full', selectedTeacherId = null }: {
   lessons: Lesson[]
   dateStr?: string
   makeups?: MakeupAssignment[]
   absences?: AbsenceRecord[]
+  teacherOverrides?: TeacherOverride[]
   density?: 'full' | 'compact'
   selectedTeacherId?: string | null
 }) {
@@ -579,6 +588,7 @@ function CellLessons({ lessons, dateStr, makeups = [], absences = [], density = 
     <>
       {merged.map(lesson => {
         const ids = lesson._mergedIds ?? [lesson.id]
+        const ov = teacherOverrides.find((o) => ids.includes(o.lesson_id) && o.date === dateStr)
         return (
           <div key={lesson.id} className={selectedTeacherId && lesson.teacher_id !== selectedTeacherId ? 'opacity-30' : ''}>
             <LessonCard
@@ -590,6 +600,7 @@ function CellLessons({ lessons, dateStr, makeups = [], absences = [], density = 
               absentStudentIds={absences
                 .filter((a) => ids.includes(a.lesson_id) && a.date === dateStr)
                 .map((a) => a.student_id)}
+              overrideTeacherName={ov ? (ov.teacher_name ?? '') : undefined}
             />
           </div>
         )

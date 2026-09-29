@@ -34,7 +34,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const weekStart = weekDates[0]
   const weekEnd = weekDates[weekDates.length - 1]
 
-  const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }, { data: makeupAssignments }, { data: temporaryStudents }, { data: absencesData }, { data: schoolEvents }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }, { data: makeupAssignments }, { data: temporaryStudents }, { data: absencesData }, { data: teacherOverridesData }, { data: schoolEvents }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student_id, subject, student:students(id, name))')
@@ -48,6 +48,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     supabase.from('makeup_assignments').select('id, lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDates),
     supabase.from('temporary_students').select('id, lesson_id, date, subject, student:students(id, name)').in('date', weekDates),
     supabase.from('attendances').select('lesson_id, student_id, date').eq('status', 'absent').in('date', weekDates),
+    supabase.from('lesson_teacher_overrides').select('lesson_id, date, teacher:teachers(name)').in('date', weekDates),
     supabase
       .from('school_events')
       .select('id, school_name, event_type, title, start_date, end_date')
@@ -67,6 +68,8 @@ export default async function SchedulePage({ searchParams }: PageProps) {
       .map((t) => ({ id: t.id, lesson_id: t.lesson_id, assigned_date: t.date, student: t.student, kind: 'temporary' as const, subject: t.subject ?? undefined })),
   ]
   const absences = (absencesData ?? []) as unknown as { lesson_id: string; student_id: string; date: string }[]
+  const teacherOverrides = ((teacherOverridesData ?? []) as unknown as { lesson_id: string; date: string; teacher: { name: string } | null }[])
+    .map((o) => ({ lesson_id: o.lesson_id, date: o.date, teacher_name: o.teacher?.name ?? null }))
 
   // Determine current term type for the reference date
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -187,6 +190,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
             shifts={(shifts as { id: string; teacher_id: string; date: string; start_time: string; end_time: string }[]) ?? []}
             makeupAssignments={cellStudents}
             absences={absences}
+            teacherOverrides={teacherOverrides}
           />
         )}
         {view === 'month' && (
@@ -200,7 +204,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
         {view === 'day' && (
           <>
             <DailyNoteEditor date={dateStr} />
-            <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={cellStudents} absences={absences} />
+            <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={cellStudents} absences={absences} teacherOverrides={teacherOverrides} />
           </>
         )}
       </div>
@@ -318,7 +322,7 @@ function MonthlyViewPlaceholder({ date, lessons, termPeriods, closureDates }: {
   )
 }
 
-function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments, absences = [] }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind?: 'makeup' | 'temporary'; subject?: string }[]; absences?: { lesson_id: string; student_id: string; date: string }[] }) {
+function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments, absences = [], teacherOverrides = [] }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind?: 'makeup' | 'temporary'; subject?: string }[]; absences?: { lesson_id: string; student_id: string; date: string }[]; teacherOverrides?: { lesson_id: string; date: string; teacher_name: string | null }[] }) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dayOfWeek = date.getDay()
@@ -339,6 +343,7 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
     slotIndex: number
     type: string
     teacher: { id: string; name: string } | null
+    overrideTeacherName: string | null | undefined
     lessons: Lesson[]
     allStudents: { id: string; name: string }[]
     absentStudentIds: Set<string>
@@ -374,11 +379,13 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
     const absentStudentIds = new Set(
       absences.filter((a) => a.date === dayStr && groupLessonIds.has(a.lesson_id)).map((a) => a.student_id)
     )
+    const ov = teacherOverrides.find((o) => o.date === dayStr && groupLessonIds.has(o.lesson_id))
     mergedGroups.push({
       key,
       slotIndex: rep.slot_index,
       type: rep.type,
       teacher: teacher ?? null,
+      overrideTeacherName: ov ? (ov.teacher_name ?? '担当未定') : undefined,
       lessons: group,
       allStudents,
       absentStudentIds,
@@ -434,12 +441,12 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {group.teacher?.name && (
+                    {(group.overrideTeacherName !== undefined ? group.overrideTeacherName : group.teacher?.name) && (
                       <span className={[
                         'text-xs font-bold px-2 py-0.5 rounded-full',
-                        isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
+                        group.overrideTeacherName !== undefined ? 'bg-orange-500 text-white' : isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
                       ].join(' ')}>
-                        {group.teacher.name}
+                        {group.overrideTeacherName !== undefined ? `代 ${group.overrideTeacherName}` : group.teacher?.name}
                       </span>
                     )}
                     {group.allStudents.map((s) => (

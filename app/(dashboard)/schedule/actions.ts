@@ -450,3 +450,37 @@ export async function updateTemporaryStudentSubject(
   revalidatePath(`/schedule/${lessonId}`)
   return {}
 }
+
+// ── その日だけ担当を別の先生に差し替え（テンプレは変えない） ──────────
+
+export async function setLessonTeacherOverride(
+  lessonId: string,
+  date: string,
+  teacherId: string | null
+): Promise<{ error?: string }> {
+  if (!date) return { error: '日付を選んでください' }
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('lesson_teacher_overrides')
+    .upsert({ lesson_id: lessonId, date, teacher_id: teacherId }, { onConflict: 'lesson_id,date' })
+  if (error) return { error: error.message }
+  revalidatePath('/schedule')
+  revalidatePath(`/schedule/${lessonId}`)
+  return {}
+}
+
+export async function clearLessonTeacherOverride(
+  lessonId: string,
+  date: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('lesson_teacher_overrides')
+    .delete()
+    .eq('lesson_id', lessonId)
+    .eq('date', date)
+  if (error) return { error: error.message }
+  revalidatePath('/schedule')
+  revalidatePath(`/schedule/${lessonId}`)
+  return {}
+}

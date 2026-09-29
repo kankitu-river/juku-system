@@ -13,15 +13,17 @@ interface LessonCardProps {
   compact?: boolean
   makeupStudents?: MakeupStudent[]  // その日にこのコマへ振替/臨時で入る生徒
   absentStudentIds?: string[]  // その日だけ外れる（欠席）通常メンバーの生徒ID
+  overrideTeacherName?: string | null  // その日だけの代講先生名（設定時のみ）
 }
 
-export function LessonCard({ lesson, compact = false, makeupStudents = [], absentStudentIds = [] }: LessonCardProps) {
+export function LessonCard({ lesson, compact = false, makeupStudents = [], absentStudentIds = [], overrideTeacherName }: LessonCardProps) {
   const isGroup = lesson.type === 'group'
   const absentSet = new Set(absentStudentIds)
   const enrollmentStudents = (lesson.enrollments ?? [])
     .filter(e => e.student != null)
     .map(e => ({ ...e.student!, enrollmentSubject: e.subject ?? null, isAbsent: absentSet.has(e.student!.id) }))
-  const teacherName = lesson.teacher?.name
+  const hasOverride = overrideTeacherName !== undefined && overrideTeacherName !== null
+  const teacherName = hasOverride ? (overrideTeacherName || '担当未定') : lesson.teacher?.name
   const subject = lesson.subject
 
   const students = enrollmentStudents
@@ -51,9 +53,9 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
         {teacherName && (
           <span className={[
             'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-            isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
+            hasOverride ? 'bg-orange-500 text-white' : isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
           ].join(' ')}>
-            {teacherName}
+            {hasOverride && '代 '}{teacherName}
           </span>
         )}
         {isGroup && subject && (
@@ -110,9 +112,9 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
           {teacherName ? (
             <span className={[
               'flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-              isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
+              hasOverride ? 'bg-orange-500 text-white' : isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
             ].join(' ')}>
-              {teacherName}
+              {hasOverride && '代 '}{teacherName}
             </span>
           ) : null}
           {subject && (!hasPerStudentSubjects || isGroup) && (

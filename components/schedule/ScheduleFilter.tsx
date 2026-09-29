@@ -32,6 +32,12 @@ interface AbsenceRecord {
   date: string
 }
 
+interface TeacherOverride {
+  lesson_id: string
+  date: string
+  teacher_name: string | null
+}
+
 interface ScheduleFilterProps {
   lessons: Lesson[]
   teachers: Teacher[]
@@ -43,6 +49,7 @@ interface ScheduleFilterProps {
   shifts: Shift[]
   makeupAssignments?: MakeupAssignment[]
   absences?: AbsenceRecord[]
+  teacherOverrides?: TeacherOverride[]
 }
 
 function getTermTypeForDate(date: Date, termPeriods: TermPeriod[]): 'regular' | 'intensive' {
@@ -74,6 +81,7 @@ export function ScheduleFilter({
   shifts,
   makeupAssignments = [],
   absences = [],
+  teacherOverrides = [],
 }: ScheduleFilterProps) {
   const [teacherFilter, setTeacherFilter] = useState('')
   const [studentFilter, setStudentFilter] = useState('')
@@ -163,6 +171,7 @@ export function ScheduleFilter({
         customSlots={customSlots}
         makeupAssignments={makeupAssignments}
         absences={absences}
+        teacherOverrides={teacherOverrides}
       />
 
       {/* 現在の期間区分と異なるコマ（カレンダーに出ないもの）*/}

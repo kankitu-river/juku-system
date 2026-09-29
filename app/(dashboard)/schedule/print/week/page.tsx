@@ -35,7 +35,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     const d = new Date(start); d.setDate(start.getDate() + i); return toLocalDate(d)
   })
 
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: makeupData }, { data: tempData }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: makeupData }, { data: tempData }, { data: overrideData }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, subject, student:students(id, name))')
@@ -46,6 +46,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     supabase.from('shifts').select('teacher_id, date, start_time, end_time').in('date', weekDateStrs),
     supabase.from('makeup_assignments').select('lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDateStrs),
     supabase.from('temporary_students').select('lesson_id, date, subject, student:students(id, name)').in('date', weekDateStrs),
+    supabase.from('lesson_teacher_overrides').select('lesson_id, date, teacher:teachers(name)').in('date', weekDateStrs),
   ])
 
   // `${lesson_id}__${date}` -> 振替/臨時生徒リスト
@@ -61,6 +62,11 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     const k = `${t.lesson_id}__${t.date}`
     if (!makeupByLessonDate.has(k)) makeupByLessonDate.set(k, [])
     makeupByLessonDate.get(k)!.push({ ...t.student, kind: 'temporary', subject: t.subject ?? undefined })
+  }
+  // `${lesson_id}__${date}` -> 代講先生名
+  const overrideByLessonDate = new Map<string, string>()
+  for (const o of (overrideData ?? []) as unknown as { lesson_id: string; date: string; teacher: { name: string } | null }[]) {
+    overrideByLessonDate.set(`${o.lesson_id}__${o.date}`, o.teacher?.name ?? '担当未定')
   }
   // 週（月〜土）のいずれかが講習期間に重なれば intensive とみなす（移行週で月曜だけ判定するとズレるため）
   const termsArr = (termPeriods as TermPeriod[]) ?? []
@@ -259,7 +265,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                       return (
                         <td key={dow} className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${dateStr2}`) ?? []} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${dateStr2}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${dateStr2}`) ? overrideByLessonDate.get(`${lesson.id}__${dateStr2}`)! : undefined} />
                           ))}
                           {showWaiting && waitingTeachers.length > 0 && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
@@ -309,7 +315,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         </td>
                         <td className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} />
                           ))}
                         </td>
                       </tr>
@@ -341,7 +347,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         </td>
                         <td className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} />
                           ))}
                         </td>
                       </tr>
@@ -373,7 +379,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         </td>
                         <td className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} />
                           ))}
                         </td>
                       </tr>
@@ -399,9 +405,10 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   )
 }
 
-function LessonCell({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary'; subject?: string }[] }) {
+function LessonCell({ lesson, makeupStudents = [], overrideTeacherName }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary'; subject?: string }[]; overrideTeacherName?: string }) {
   const isGroup = lesson.type === 'group'
-  const teacher = (lesson as { teacher?: { name: string } }).teacher
+  const hasOverride = overrideTeacherName !== undefined
+  const teacher = hasOverride ? { name: overrideTeacherName } : (lesson as { teacher?: { name: string } }).teacher
   const enrollments = lesson.enrollments ?? []
   const students = enrollments
     .map((e) => ({ student: e.student, subject: (e as { subject?: string | null }).subject ?? null }))
@@ -422,9 +429,9 @@ function LessonCell({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStu
         {teacher?.name && (
           <span className={[
             'text-[10px] font-bold px-1.5 py-0.5 rounded-full wpl-pill',
-            isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
+            hasOverride ? 'bg-orange-500 text-white' : isGroup ? 'bg-purple-700 text-white' : 'bg-teal-700 text-white',
           ].join(' ')}>
-            {teacher.name}
+            {hasOverride && '代 '}{teacher.name}
           </span>
         )}
         <span className={[
