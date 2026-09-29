@@ -55,6 +55,7 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
   const router = useRouter()
   const [date, setDate] = useState<string>(fixedDate ?? nextDateForDow(dayOfWeek))
   const [ledgerItemId, setLedgerItemId] = useState('')
+  const [scheduledLedgerId, setScheduledLedgerId] = useState('')
   const [absentStudentId, setAbsentStudentId] = useState('')
   const [absentConfirm, setAbsentConfirm] = useState<EnrolledOpt | null>(null)
   const [tempStudentId, setTempStudentId] = useState('')
@@ -183,6 +184,20 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
     })
   }
 
+  function handleLinkScheduled() {
+    if (!scheduledLedgerId) return
+    const item = ledgerItems.find((i) => i.id === scheduledLedgerId)
+    const useDate = item?.scheduledDate || date
+    setError(undefined); setMessage(undefined)
+    startTransition(async () => {
+      const result = await assignMakeupFromLedger(scheduledLedgerId, lessonId, useDate)
+      if (result.error) { setError(result.error); return }
+      setMessage(`${item?.studentName ?? '生徒'}さんの決定済み振替を${useDate}でこのコマに紐づけました`)
+      setScheduledLedgerId('')
+      router.refresh()
+    })
+  }
+
   function handleAbsent() {
     if (!absentConfirm || !date) return
     const student = absentConfirm
@@ -237,32 +252,50 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
         )}
       </div>
 
-      {/* 振替で追加（台帳の未消化をこのコマに割り当て） */}
+      {/* 振替で追加（台帳の未定をこのコマに割り当て） */}
       <div className="mb-4">
-        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">振替で追加（台帳の未消化から）</label>
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">振替で追加（未定の振替から）</label>
         <div className="flex gap-2">
           <select
             value={ledgerItemId}
-            onChange={(e) => {
-              const id = e.target.value
-              setLedgerItemId(id)
-              // 決定済みを選んだら、対象日をその決定日に合わせる（通常コマのみ）
-              const item = ledgerItems.find((x) => x.id === id)
-              if (item?.scheduledDate && !fixedDate) { setDate(item.scheduledDate); setMessage(undefined); setError(undefined) }
-            }}
+            onChange={(e) => setLedgerItemId(e.target.value)}
             className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           >
-            <option value="">— 振替を選択 —</option>
-            {ledgerItems.map((i) => (
+            <option value="">— 未定の振替を選択 —</option>
+            {ledgerItems.filter((i) => i.status === 'pending').map((i) => (
               <option key={i.id} value={i.id}>
-                {i.studentName}{i.subject ? `・${i.subject}` : ''}（{i.status === 'pending' ? '未定' : i.scheduledDate ? `決定 ${i.scheduledDate}` : '決定'}）
+                {i.studentName}{i.subject ? `・${i.subject}` : ''}
               </option>
             ))}
           </select>
           <Button type="button" onClick={handleAddMakeup} loading={isPending} disabled={!ledgerItemId}>追加</Button>
         </div>
-        {ledgerItems.length === 0 && (
-          <p className="text-[11px] text-gray-400 mt-1">台帳に未消化の振替がありません</p>
+        {ledgerItems.filter((i) => i.status === 'pending').length === 0 && (
+          <p className="text-[11px] text-gray-400 mt-1">未定の振替がありません</p>
+        )}
+      </div>
+
+      {/* 決定済みの振替から、このコマに紐づけ */}
+      <div className="mb-4">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">決定済みの振替から紐づけ</label>
+        <div className="flex gap-2">
+          <select
+            value={scheduledLedgerId}
+            onChange={(e) => setScheduledLedgerId(e.target.value)}
+            className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+          >
+            <option value="">— 決定済みの振替を選択 —</option>
+            {ledgerItems.filter((i) => i.status === 'scheduled').map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.studentName}{i.subject ? `・${i.subject}` : ''}（決定 {i.scheduledDate ?? '日付未設定'}）
+              </option>
+            ))}
+          </select>
+          <Button type="button" onClick={handleLinkScheduled} loading={isPending} disabled={!scheduledLedgerId}>紐づけ</Button>
+        </div>
+        <p className="text-[11px] text-gray-400 mt-1">決定日でこのコマに紐づけます。紐づけると下の「このコマへの振替予定」に出ます</p>
+        {ledgerItems.filter((i) => i.status === 'scheduled').length === 0 && (
+          <p className="text-[11px] text-gray-400 mt-1">決定済みの振替がありません</p>
         )}
       </div>
 
