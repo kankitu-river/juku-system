@@ -59,19 +59,6 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
     return lessons.filter((l) => getBoothId(l) === boothId && l.slot_index === slotIndex)
   }
 
-  // 指定スロットでPS1授業が隣接しているかチェック
-  // activeBoothsはname順でソート済み。隣接 = index±1
-  function isBlockedByPS1(boothIndex: number, slotIndex: number): Lesson | null {
-    const checkNeighbors = [boothIndex - 1, boothIndex + 1]
-    for (const ni of checkNeighbors) {
-      if (ni < 0 || ni >= activeBooths.length) continue
-      const neighborBoothId = activeBooths[ni].id
-      const neighborLessons = getLessonsForBoothAndSlot(neighborBoothId, slotIndex)
-      const ps1Lesson = neighborLessons.find((l) => l.is_ps1)
-      if (ps1Lesson) return ps1Lesson
-    }
-    return null
-  }
 
   function handleBoothNameSave(boothId: string) {
     const name = editingBoothName.trim()
@@ -196,13 +183,12 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
                     const cellLessons = getLessonsForBoothAndSlot(booth.id, slot.index)
                     const isOccupied = cellLessons.length > 0
                     const hasPS1 = cellLessons.some((l) => l.is_ps1)
-                    const blockedBy = !isOccupied ? isBlockedByPS1(rowIdx, slot.index) : null
                     return (
                       <td
                         key={slot.index}
                         className={[
                           'border border-gray-200 dark:border-gray-700 px-2 py-1.5 align-top',
-                          hasPS1 ? 'bg-purple-50 dark:bg-purple-950/40' : isOccupied ? 'bg-teal-50 dark:bg-teal-950/40' : blockedBy ? 'bg-orange-50 dark:bg-orange-950/40' : '',
+                          hasPS1 ? 'bg-purple-50 dark:bg-purple-950/40' : isOccupied ? 'bg-teal-50 dark:bg-teal-950/40' : '',
                         ].join(' ')}
                         style={{ minWidth: '130px', minHeight: '52px' }}
                       >
@@ -271,13 +257,7 @@ export function BoothBoard({ booths, lessons, currentTermType, allBooths, dateSt
                             )}
                           </div>
                         ))}
-                        {!isOccupied && blockedBy && (
-                          <div className="h-8 flex items-center justify-center gap-1 text-orange-500 text-[10px]">
-                            <span>🚫</span>
-                            <span>PS1隣席</span>
-                          </div>
-                        )}
-                        {!isOccupied && !blockedBy && (
+                        {!isOccupied && (
                           <div className="h-8 flex items-center justify-center">
                             <span className="text-gray-200">—</span>
                           </div>
