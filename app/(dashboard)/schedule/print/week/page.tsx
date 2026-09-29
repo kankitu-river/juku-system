@@ -413,6 +413,8 @@ function LessonCell({ lesson, makeupStudents = [], overrideTeacherName }: { less
   const students = enrollments
     .map((e) => ({ student: e.student, subject: (e as { subject?: string | null }).subject ?? null }))
     .filter((e): e is { student: NonNullable<typeof e.student>; subject: string | null } => e.student != null)
+  const enrolledIds = new Set(students.map((s) => s.student.id))
+  const extraStudents = makeupStudents.filter((m) => !enrolledIds.has(m.id))
 
   return (
     <div className={[
@@ -438,18 +440,18 @@ function LessonCell({ lesson, makeupStudents = [], overrideTeacherName }: { less
           'ml-auto text-[8px] font-bold px-1 rounded-full flex-shrink-0',
           isGroup ? 'bg-purple-200 text-purple-800' : 'bg-teal-200 text-teal-800',
         ].join(' ')}>
-          {students.length + makeupStudents.length}/{lesson.capacity}名
+          {students.length + extraStudents.length}/{lesson.capacity}名
         </span>
       </div>
       {/* 生徒一覧（全員表示、名前を切り捨てない） */}
-      {students.length > 0 || makeupStudents.length > 0 ? (
+      {students.length > 0 || extraStudents.length > 0 ? (
         <div className="text-[10px] text-gray-800">
           {students.map(({ student: s, subject }, i) => (
             <p key={i} className="whitespace-nowrap">
               {s.name}{subject ? `（${subject}）` : ''}
             </p>
           ))}
-          {makeupStudents.map((m) => (
+          {extraStudents.map((m) => (
             m.kind === 'temporary' ? (
               <p key={m.id} className="whitespace-nowrap font-bold text-orange-800 bg-orange-100 rounded px-0.5">
                 {m.name}{m.subject ? `（${m.subject}）` : ''}<span className="text-[8px] ml-0.5">臨時</span>

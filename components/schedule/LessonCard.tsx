@@ -30,8 +30,11 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
   const displayStudents = students.slice(0, 2)
   const extraCount = students.length - 2
   const hasPerStudentSubjects = enrollmentStudents.some(s => s.enrollmentSubject)
+  // 既にこのコマに受講登録がある生徒を、振替/臨時で二重表示しない
+  const enrolledIds = new Set(enrollmentStudents.map(s => s.id))
+  const extraStudents = makeupStudents.filter(m => !enrolledIds.has(m.id))
   const presentCount = students.filter(s => !s.isAbsent).length
-  const totalCount = presentCount + makeupStudents.length
+  const totalCount = presentCount + extraStudents.length
 
   if (compact) {
     return (
@@ -69,14 +72,14 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
           ))}
           {extraCount > 0 && ` +${extraCount}`}
         </span>
-        {makeupStudents.filter((m) => m.kind !== 'temporary').length > 0 && (
+        {extraStudents.filter((m) => m.kind !== 'temporary').length > 0 && (
           <span className="flex-shrink-0 truncate text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 rounded">
-            振替 {makeupStudents.filter((m) => m.kind !== 'temporary').map((m) => m.name).join('・')}
+            振替 {extraStudents.filter((m) => m.kind !== 'temporary').map((m) => m.name).join('・')}
           </span>
         )}
-        {makeupStudents.filter((m) => m.kind === 'temporary').length > 0 && (
+        {extraStudents.filter((m) => m.kind === 'temporary').length > 0 && (
           <span className="flex-shrink-0 truncate text-[10px] font-bold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/60 px-1 rounded">
-            臨時 {makeupStudents.filter((m) => m.kind === 'temporary').map((m) => m.subject ? `${m.name}(${m.subject})` : m.name).join('・')}
+            臨時 {extraStudents.filter((m) => m.kind === 'temporary').map((m) => m.subject ? `${m.name}(${m.subject})` : m.name).join('・')}
           </span>
         )}
         <span className={[
@@ -94,7 +97,7 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
       href={`/schedule/${lesson.id}`}
       className={[
         'block rounded-md px-2 py-2 text-xs transition-all duration-150 ease-out hover:shadow-md hover:-translate-y-px overflow-hidden',
-        makeupStudents.length > 0 ? 'min-h-[72px]' : 'h-[72px]',
+        extraStudents.length > 0 ? 'min-h-[72px]' : 'h-[72px]',
         isGroup
           ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-900 border border-purple-200 dark:border-purple-800 border-l-2 border-l-purple-400'
           : 'bg-teal-50 dark:bg-teal-900/40 text-teal-900 border border-teal-200 dark:border-teal-800 border-l-2 border-l-teal-400',
@@ -132,7 +135,7 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
       </div>
 
       {/* 生徒（生徒ごとの科目を表示） */}
-      {displayStudents.length > 0 || makeupStudents.length > 0 ? (
+      {displayStudents.length > 0 || extraStudents.length > 0 ? (
         <div className="leading-snug">
           {displayStudents.map((s, i) => (
             <p key={i} className={s.isAbsent
@@ -142,7 +145,7 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
             </p>
           ))}
           {extraCount > 0 && <p className="text-gray-400 text-[10px]">+{extraCount}名</p>}
-          {makeupStudents.map((m) => (
+          {extraStudents.map((m) => (
             m.kind === 'temporary' ? (
               <p key={m.id} className="truncate text-[11px] font-medium text-orange-700 dark:text-orange-300 bg-orange-100/70 dark:bg-orange-900/40 rounded px-1 -mx-1">
                 {m.name}{m.subject ? `（${m.subject}）` : ''}<span className="text-[9px] font-bold ml-1">臨時</span>

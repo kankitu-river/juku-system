@@ -370,11 +370,12 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
       (l.enrollments ?? []).map((e) => e.student).filter((s): s is NonNullable<typeof s> => s != null)
     )
     const dayStr = toLocalDate(date)
+    const enrolledIdSet = new Set(allStudents.map((s) => s.id))
     const allMakeupStudents = group.flatMap((l) =>
       makeupAssignments
         .filter((m) => m.lesson_id === l.id && m.assigned_date === dayStr && m.student)
         .map((m) => ({ ...m.student!, kind: m.kind ?? 'makeup' as const, subject: m.subject }))
-    )
+    ).filter((m) => !enrolledIdSet.has(m.id)) // 既に受講登録の生徒は二重表示しない
     const groupLessonIds = new Set(group.map((l) => l.id))
     const absentStudentIds = new Set(
       absences.filter((a) => a.date === dayStr && groupLessonIds.has(a.lesson_id)).map((a) => a.student_id)

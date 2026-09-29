@@ -400,6 +400,8 @@ function LessonPosterCard({ lesson, makeupStudents = [], overrideTeacherName, ab
     .filter((s): s is NonNullable<typeof s> => s != null)
     .map((s) => ({ ...s, isAbsent: absentStudentIds.has(s.id) }))
     .filter((s) => !(hideAbsent && s.isAbsent))
+  const enrolledIds = new Set((lesson.enrollments ?? []).map((e) => e.student?.id).filter(Boolean))
+  const extraStudents = makeupStudents.filter((m) => !enrolledIds.has(m.id))
 
   return (
     <div className={[
@@ -446,10 +448,10 @@ function LessonPosterCard({ lesson, makeupStudents = [], overrideTeacherName, ab
                 {s.isAbsent && <span className="ml-1 text-[10px] print:text-[8px] no-underline text-gray-400">休</span>}
               </p>
             ))
-          ) : makeupStudents.length === 0 ? (
+          ) : extraStudents.length === 0 ? (
             <p className="text-xs text-gray-400">生徒未登録</p>
           ) : null}
-          {makeupStudents.map((m) => (
+          {extraStudents.map((m) => (
             m.kind === 'temporary' ? (
               <p key={m.id} className="dpp-card-student text-sm print:text-[10px] leading-snug font-bold text-orange-800 bg-orange-100 rounded px-1 -mx-0.5">
                 {m.name}{m.subject ? `（${m.subject}）` : ''}
