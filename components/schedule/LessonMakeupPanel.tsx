@@ -161,20 +161,25 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
         <div className="mb-3 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 px-3 py-2 text-xs text-green-700 dark:text-green-300">{message}</div>
       )}
 
-      {/* 対象日 */}
-      <div className="mb-4">
-        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">対象日</label>
+      {/* 対象日：以下すべての操作はこの日付に対して行われる */}
+      <div className="mb-4 rounded-lg border border-navy/30 bg-blue-50/50 dark:bg-blue-950/30 p-3">
+        <label className="block text-xs font-bold text-navy dark:text-blue-300 mb-1">📅 対象日（下の操作はすべてこの日付に反映されます）</label>
         {fixedDate ? (
           <div className="text-sm font-medium text-gray-800 dark:text-gray-100 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 rounded-lg px-3 py-2">
             {fixedDate}（臨時コマの開催日）
           </div>
         ) : (
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => { setDate(e.target.value); setMessage(undefined); setError(undefined) }}
-            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
-          />
+          <>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => { setDate(e.target.value); setMessage(undefined); setError(undefined) }}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            />
+            <p className="text-[11px] text-navy dark:text-blue-300 mt-1 font-medium">
+              → {new Date(`${date}T12:00:00`).toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })} の回に対して操作します。別の週にするには日付を変えてください
+            </p>
+          </>
         )}
       </div>
 
@@ -252,9 +257,9 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
               <option key={s.id} value={s.id}>{s.grade ? `${s.name}（${getDisplayGrade(s.grade)}）` : s.name}</option>
             ))}
           </select>
-          <Button type="button" variant="secondary" onClick={handleAddTemporary} loading={isPending} disabled={!tempStudentId}>臨時追加</Button>
+          <Button type="button" variant="secondary" onClick={handleAddTemporary} loading={isPending} disabled={!tempStudentId}>{date} に追加</Button>
         </div>
-        <p className="text-[11px] text-gray-400 mt-1">通常メンバーは変えずに、選んだ日だけこのコマに参加させます（他の週に影響しません）</p>
+        <p className="text-[11px] text-gray-400 mt-1">通常メンバーは変えずに、<b>{date}</b> だけこのコマに参加させます（他の週に影響しません）</p>
         {existingTemporary.length > 0 && (
           <div className="mt-2 space-y-1">
             {existingTemporary.map((t) => (
@@ -284,9 +289,9 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
               <option key={s.id} value={s.id}>{s.grade ? `${s.name}（${getDisplayGrade(s.grade)}）` : s.name}</option>
             ))}
           </select>
-          <Button type="button" variant="secondary" onClick={handleSkip} loading={isPending} disabled={!skipStudentId}>外す</Button>
+          <Button type="button" variant="secondary" onClick={handleSkip} loading={isPending} disabled={!skipStudentId}>{date} だけ外す</Button>
         </div>
-        <p className="text-[11px] text-gray-400 mt-1">選んだ日だけこのコマから外します（欠席扱い・振替なし）。他の週はそのままです</p>
+        <p className="text-[11px] text-gray-400 mt-1"><b>{date}</b> だけこのコマから外します（欠席扱い・振替なし）。他の週はそのままです</p>
         {existingAbsences.length > 0 && (
           <div className="mt-2 space-y-1">
             {existingAbsences.map((a) => (
@@ -328,10 +333,10 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
                   <option key={t.id} value={t.id}>{t.label}</option>
                 ))}
               </select>
-              <Button type="button" onClick={handleMove} loading={isPending} disabled={!moveStudentId || !moveTargetId}>移動</Button>
+              <Button type="button" onClick={handleMove} loading={isPending} disabled={!moveStudentId || !moveTargetId}>{date} 移動</Button>
             </div>
           </div>
-          <p className="text-[11px] text-gray-400 mt-1">選んだ日だけ、このコマから外して移動先コマに臨時で入れます（他の週はそのまま）</p>
+          <p className="text-[11px] text-gray-400 mt-1"><b>{date}</b> だけ、このコマから外して移動先コマに臨時で入れます（他の週はそのまま）</p>
         </div>
       )}
 
