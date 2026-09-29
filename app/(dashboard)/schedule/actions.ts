@@ -335,3 +335,75 @@ export async function getLessonImpact(lessonId: string): Promise<LessonImpact> {
       : null,
   }
 }
+
+// ── 臨時参加の生徒（その日だけそのコマに参加） ──────────────────
+
+export async function addTemporaryStudent(
+  studentId: string,
+  lessonId: string,
+  date: string
+): Promise<{ error?: string }> {
+  if (!studentId || !date) return { error: '生徒と日付を選んでください' }
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('temporary_students')
+    .upsert(
+      { student_id: studentId, lesson_id: lessonId, date },
+      { onConflict: 'lesson_id,student_id,date' }
+    )
+  if (error) return { error: error.message }
+  revalidatePath('/schedule')
+  revalidatePath(`/schedule/${lessonId}`)
+  return {}
+}
+
+export async function removeTemporaryStudent(
+  id: string,
+  lessonId: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from('temporary_students').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/schedule')
+  revalidatePath(`/schedule/${lessonId}`)
+  return {}
+}
+
+// ── その週だけ通常メンバーを外す（出欠を欠席で記録。テンプレは変えない） ──────
+
+export async function skipStudentForDate(
+  studentId: string,
+  lessonId: string,
+  date: string
+): Promise<{ error?: string }> {
+  if (!studentId || !date) return { error: '生徒と日付を選んでください' }
+  const supabase = await createClient()
+  const { error } = await supabase.from('attendances').upsert(
+    { student_id: studentId, lesson_id: lessonId, date, status: 'absent', makeup_credited: false },
+    { onConflict: 'student_id,lesson_id,date' }
+  )
+  if (error) return { error: error.message }
+  revalidatePath('/schedule')
+  revalidatePath(`/schedule/${lessonId}`)
+  return {}
+}
+
+// 「外す」を取り消す（その日の欠席記録だけ削除して元に戻す）
+export async function unskipStudentForDate(
+  studentId: string,
+  lessonId: string,
+  date: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('attendances')
+    .delete()
+    .eq('student_id', studentId)
+    .eq('lesson_id', lessonId)
+    .eq('date', date)
+    .eq('status', 'absent')
+  if (error) return { error: error.message }
+  revalidatePath('/schedule')
+  revalidatePath(`/schedule/${lessonId}`)
+  return {}
+}

@@ -34,7 +34,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const weekStart = weekDates[0]
   const weekEnd = weekDates[weekDates.length - 1]
 
-  const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }, { data: makeupAssignments }, { data: schoolEvents }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: closures }, { data: slotSetting }, { data: teachers }, { data: students }, { data: shifts }, { data: makeupAssignments }, { data: temporaryStudents }, { data: absencesData }, { data: schoolEvents }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, student_id, subject, student:students(id, name))')
@@ -46,6 +46,8 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     supabase.from('students').select('id, name, grade').order('name'),
     supabase.from('shifts').select('id, teacher_id, date, start_time, end_time').in('date', weekDates),
     supabase.from('makeup_assignments').select('id, lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDates),
+    supabase.from('temporary_students').select('id, lesson_id, date, student:students(id, name)').in('date', weekDates),
+    supabase.from('attendances').select('lesson_id, student_id, date').eq('status', 'absent').in('date', weekDates),
     supabase
       .from('school_events')
       .select('id, school_name, event_type, title, start_date, end_date')
@@ -56,6 +58,15 @@ export default async function SchedulePage({ searchParams }: PageProps) {
 
   const closureDates = (closures ?? []).map((c: { date: string }) => c.date)
   const customSlots = (slotSetting?.value as TimeSlotConfig) ?? null
+
+  // 振替＋臨時をカレンダー表示用に1つの配列にまとめる（kindで区別）
+  type CellStudent = { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind: 'makeup' | 'temporary' }
+  const cellStudents: CellStudent[] = [
+    ...((makeupAssignments ?? []) as unknown as Omit<CellStudent, 'kind'>[]).map((m) => ({ ...m, kind: 'makeup' as const })),
+    ...((temporaryStudents ?? []) as unknown as { id: string; lesson_id: string; date: string; student: { id: string; name: string } | null }[])
+      .map((t) => ({ id: t.id, lesson_id: t.lesson_id, assigned_date: t.date, student: t.student, kind: 'temporary' as const })),
+  ]
+  const absences = (absencesData ?? []) as unknown as { lesson_id: string; student_id: string; date: string }[]
 
   // Determine current term type for the reference date
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -174,7 +185,8 @@ export default async function SchedulePage({ searchParams }: PageProps) {
             closureDates={closureDates}
             customSlots={customSlots}
             shifts={(shifts as { id: string; teacher_id: string; date: string; start_time: string; end_time: string }[]) ?? []}
-            makeupAssignments={(makeupAssignments ?? []) as unknown as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]}
+            makeupAssignments={cellStudents}
+            absences={absences}
           />
         )}
         {view === 'month' && (
@@ -188,7 +200,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
         {view === 'day' && (
           <>
             <DailyNoteEditor date={dateStr} />
-            <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={(makeupAssignments ?? []) as unknown as { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]} />
+            <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={cellStudents} absences={absences} />
           </>
         )}
       </div>
@@ -306,7 +318,7 @@ function MonthlyViewPlaceholder({ date, lessons, termPeriods, closureDates }: {
   )
 }
 
-function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[] }) {
+function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments, absences = [] }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind?: 'makeup' | 'temporary' }[]; absences?: { lesson_id: string; student_id: string; date: string }[] }) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dayOfWeek = date.getDay()
@@ -329,7 +341,8 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
     teacher: { id: string; name: string } | null
     lessons: Lesson[]
     allStudents: { id: string; name: string }[]
-    allMakeupStudents: { id: string; name: string }[]
+    absentStudentIds: Set<string>
+    allMakeupStudents: { id: string; name: string; kind: 'makeup' | 'temporary' }[]
     capacity: number
     subject: string
     boothName: string | null
@@ -353,7 +366,13 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
     )
     const dayStr = toLocalDate(date)
     const allMakeupStudents = group.flatMap((l) =>
-      makeupAssignments.filter((m) => m.lesson_id === l.id && m.assigned_date === dayStr && m.student).map((m) => m.student!)
+      makeupAssignments
+        .filter((m) => m.lesson_id === l.id && m.assigned_date === dayStr && m.student)
+        .map((m) => ({ ...m.student!, kind: m.kind ?? 'makeup' as const }))
+    )
+    const groupLessonIds = new Set(group.map((l) => l.id))
+    const absentStudentIds = new Set(
+      absences.filter((a) => a.date === dayStr && groupLessonIds.has(a.lesson_id)).map((a) => a.student_id)
     )
     mergedGroups.push({
       key,
@@ -362,6 +381,7 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
       teacher: teacher ?? null,
       lessons: group,
       allStudents,
+      absentStudentIds,
       allMakeupStudents,
       capacity: rep.capacity,
       subject: rep.subject ?? '',
@@ -395,7 +415,7 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
         <div className="space-y-2">
           {mergedGroups.map((group) => {
             const isGroup = group.type === 'group'
-            const totalCount = group.allStudents.length + group.allMakeupStudents.length
+            const totalCount = group.allStudents.filter((s) => !group.absentStudentIds.has(s.id)).length + group.allMakeupStudents.length
             return (
               <Link
                 key={group.key}
@@ -423,13 +443,24 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
                       </span>
                     )}
                     {group.allStudents.map((s) => (
-                      <span key={s.id} className="text-sm text-gray-700 dark:text-gray-300">{s.name}</span>
+                      group.absentStudentIds.has(s.id) ? (
+                        <span key={s.id} className="text-sm text-gray-400 line-through">{s.name}<span className="text-[10px] no-underline ml-0.5">休</span></span>
+                      ) : (
+                        <span key={s.id} className="text-sm text-gray-700 dark:text-gray-300">{s.name}</span>
+                      )
                     ))}
                     {group.allMakeupStudents.map((s) => (
-                      <span key={s.id} className="inline-flex items-center gap-1 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 px-1.5 py-0.5 rounded-md">
-                        {s.name}
-                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-300">振替</span>
-                      </span>
+                      s.kind === 'temporary' ? (
+                        <span key={s.id} className="inline-flex items-center gap-1 text-sm text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 px-1.5 py-0.5 rounded-md">
+                          {s.name}
+                          <span className="text-[10px] font-bold text-orange-600 dark:text-orange-300">臨時</span>
+                        </span>
+                      ) : (
+                        <span key={s.id} className="inline-flex items-center gap-1 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 px-1.5 py-0.5 rounded-md">
+                          {s.name}
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-300">振替</span>
+                        </span>
+                      )
                     ))}
                     {totalCount === 0 && (
                       <span className="text-xs text-gray-400">生徒未登録</span>

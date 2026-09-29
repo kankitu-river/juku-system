@@ -22,6 +22,13 @@ interface MakeupAssignment {
   lesson_id: string
   assigned_date: string
   student: { id: string; name: string } | null
+  kind?: 'makeup' | 'temporary'
+}
+
+interface AbsenceRecord {
+  lesson_id: string
+  student_id: string
+  date: string
 }
 
 interface ScheduleFilterProps {
@@ -34,6 +41,7 @@ interface ScheduleFilterProps {
   customSlots: TimeSlotConfig | null
   shifts: Shift[]
   makeupAssignments?: MakeupAssignment[]
+  absences?: AbsenceRecord[]
 }
 
 function getTermTypeForDate(date: Date, termPeriods: TermPeriod[]): 'regular' | 'intensive' {
@@ -64,6 +72,7 @@ export function ScheduleFilter({
   customSlots,
   shifts,
   makeupAssignments = [],
+  absences = [],
 }: ScheduleFilterProps) {
   const [teacherFilter, setTeacherFilter] = useState('')
   const [studentFilter, setStudentFilter] = useState('')
@@ -152,6 +161,7 @@ export function ScheduleFilter({
         closureDates={closureDates}
         customSlots={customSlots}
         makeupAssignments={makeupAssignments}
+        absences={absences}
       />
 
       {/* 現在の期間区分と異なるコマ（カレンダーに出ないもの）*/}

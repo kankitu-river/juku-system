@@ -19,7 +19,7 @@ export default async function LessonDetailPage({ params }: PageProps) {
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: lesson }, { data: teachers }, { data: booths }, { data: students }, { data: enrollments }, { data: auditLogs }, { data: closures }, { data: events }, { data: waitlist }, { data: ledgerUnresolved }, { data: makeupAssignments }] =
+  const [{ data: lesson }, { data: teachers }, { data: booths }, { data: students }, { data: enrollments }, { data: auditLogs }, { data: closures }, { data: events }, { data: waitlist }, { data: ledgerUnresolved }, { data: makeupAssignments }, { data: temporaryStudents }, { data: lessonAbsences }] =
     await Promise.all([
       supabase
         .from('lessons')
@@ -52,7 +52,7 @@ export default async function LessonDetailPage({ params }: PageProps) {
         .order('position', { ascending: true }),
       supabase
         .from('makeup_requests')
-        .select('id, student_name, subject, status, student:students(id, name)')
+        .select('id, student_name, subject, status, scheduled_date, student:students(id, name)')
         .in('status', ['pending', 'scheduled'])
         .order('student_name', { ascending: true }),
       supabase
@@ -60,6 +60,17 @@ export default async function LessonDetailPage({ params }: PageProps) {
         .select('id, assigned_date, student:students(id, name)')
         .eq('lesson_id', id)
         .order('assigned_date', { ascending: true }),
+      supabase
+        .from('temporary_students')
+        .select('id, date, student:students(id, name)')
+        .eq('lesson_id', id)
+        .order('date', { ascending: true }),
+      supabase
+        .from('attendances')
+        .select('id, student_id, date, student:students(id, name)')
+        .eq('lesson_id', id)
+        .eq('status', 'absent')
+        .order('date', { ascending: true }),
     ])
 
   if (!lesson) notFound()
@@ -80,12 +91,13 @@ export default async function LessonDetailPage({ params }: PageProps) {
     .filter((s) => !enrolledStudentIds.includes(s.id) && !waitlistStudentIds.has(s.id))
 
   // 振替パネル用データ（振替台帳ベース）
-  type LedgerRow = { id: string; student_name: string; subject: string; status: 'pending' | 'scheduled'; student: { id: string; name: string } | null }
+  type LedgerRow = { id: string; student_name: string; subject: string; status: 'pending' | 'scheduled'; scheduled_date: string | null; student: { id: string; name: string } | null }
   const ledgerItems = ((ledgerUnresolved ?? []) as unknown as LedgerRow[]).map((r) => ({
     id: r.id,
     studentName: r.student?.name ?? r.student_name,
     subject: r.subject,
     status: r.status,
+    scheduledDate: r.scheduled_date,
   }))
   type MakeupRow = { id: string; assigned_date: string; student: { id: string; name: string } | null }
   const existingMakeups = ((makeupAssignments ?? []) as unknown as MakeupRow[]).map((m) => ({
@@ -98,6 +110,20 @@ export default async function LessonDetailPage({ params }: PageProps) {
     name: e.student?.name ?? '—',
     grade: e.student?.grade,
     subject: enrolledStudentSubjects[e.student_id] ?? '',
+  }))
+  type TempRow = { id: string; date: string; student: { id: string; name: string } | null }
+  const existingTemporary = ((temporaryStudents ?? []) as unknown as TempRow[]).map((t) => ({
+    id: t.id,
+    studentName: t.student?.name ?? '—',
+    date: t.date,
+  }))
+  const allStudentsForPanel = ((students as { id: string; name: string; grade: string }[]) ?? [])
+    .map((s) => ({ id: s.id, name: s.name, grade: s.grade }))
+  type AbsenceRow = { id: string; student_id: string; date: string; student: { id: string; name: string } | null }
+  const existingAbsences = ((lessonAbsences ?? []) as unknown as AbsenceRow[]).map((a) => ({
+    studentId: a.student_id,
+    studentName: a.student?.name ?? '—',
+    date: a.date,
   }))
   const panelFixedDate = typedLesson.lesson_kind === 'temporary' ? typedLesson.specific_date : null
   const panelLessonLabel = getSlotLabel(typedLesson.slot_index, typedLesson.day_of_week, typedLesson.term_type, typedLesson.type)
@@ -245,6 +271,9 @@ export default async function LessonDetailPage({ params }: PageProps) {
           enrolled={enrolledForPanel}
           ledgerItems={ledgerItems}
           existingMakeups={existingMakeups}
+          allStudents={allStudentsForPanel}
+          existingTemporary={existingTemporary}
+          existingAbsences={existingAbsences}
         />
 
         {/* キャンセル待ち */}

@@ -4,19 +4,22 @@ import type { Lesson } from '@/types'
 interface MakeupStudent {
   id: string
   name: string
+  kind?: 'makeup' | 'temporary'  // makeup=振替（既定）, temporary=臨時
 }
 
 interface LessonCardProps {
   lesson: Lesson
   compact?: boolean
-  makeupStudents?: MakeupStudent[]  // その日にこのコマへ振替で入る生徒（アンバー表示）
+  makeupStudents?: MakeupStudent[]  // その日にこのコマへ振替/臨時で入る生徒
+  absentStudentIds?: string[]  // その日だけ外れる（欠席）通常メンバーの生徒ID
 }
 
-export function LessonCard({ lesson, compact = false, makeupStudents = [] }: LessonCardProps) {
+export function LessonCard({ lesson, compact = false, makeupStudents = [], absentStudentIds = [] }: LessonCardProps) {
   const isGroup = lesson.type === 'group'
+  const absentSet = new Set(absentStudentIds)
   const enrollmentStudents = (lesson.enrollments ?? [])
     .filter(e => e.student != null)
-    .map(e => ({ ...e.student!, enrollmentSubject: e.subject ?? null }))
+    .map(e => ({ ...e.student!, enrollmentSubject: e.subject ?? null, isAbsent: absentSet.has(e.student!.id) }))
   const teacherName = lesson.teacher?.name
   const subject = lesson.subject
 
@@ -24,7 +27,8 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [] }: Les
   const displayStudents = students.slice(0, 2)
   const extraCount = students.length - 2
   const hasPerStudentSubjects = enrollmentStudents.some(s => s.enrollmentSubject)
-  const totalCount = students.length + makeupStudents.length
+  const presentCount = students.filter(s => !s.isAbsent).length
+  const totalCount = presentCount + makeupStudents.length
 
   if (compact) {
     return (
@@ -51,13 +55,25 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [] }: Les
             {teacherName}
           </span>
         )}
+        {isGroup && subject && (
+          <span className="flex-shrink-0 text-[10px] font-semibold text-purple-700 dark:text-purple-300">{subject}</span>
+        )}
         <span className="truncate text-[10px] opacity-80">
-          {displayStudents.map((s) => s.enrollmentSubject ? `${s.name}(${s.enrollmentSubject})` : s.name).join('・')}
+          {displayStudents.map((s, i) => (
+            <span key={i} className={s.isAbsent ? 'line-through text-gray-400' : ''}>
+              {i > 0 ? '・' : ''}{s.enrollmentSubject ? `${s.name}(${s.enrollmentSubject})` : s.name}
+            </span>
+          ))}
           {extraCount > 0 && ` +${extraCount}`}
         </span>
-        {makeupStudents.length > 0 && (
+        {makeupStudents.filter((m) => m.kind !== 'temporary').length > 0 && (
           <span className="flex-shrink-0 truncate text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 rounded">
-            振替 {makeupStudents.map((m) => m.name).join('・')}
+            振替 {makeupStudents.filter((m) => m.kind !== 'temporary').map((m) => m.name).join('・')}
+          </span>
+        )}
+        {makeupStudents.filter((m) => m.kind === 'temporary').length > 0 && (
+          <span className="flex-shrink-0 truncate text-[10px] font-bold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/60 px-1 rounded">
+            臨時 {makeupStudents.filter((m) => m.kind === 'temporary').map((m) => m.name).join('・')}
           </span>
         )}
         <span className={[
@@ -99,7 +115,9 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [] }: Les
             </span>
           ) : null}
           {subject && (!hasPerStudentSubjects || isGroup) && (
-            <span className="truncate text-[10px] text-gray-400">{subject}</span>
+            <span className={isGroup
+              ? 'flex-shrink-0 truncate text-[10px] font-semibold text-purple-700 dark:text-purple-300'
+              : 'truncate text-[10px] text-gray-400'}>{subject}</span>
           )}
         </div>
         <span className={[
@@ -114,15 +132,23 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [] }: Les
       {displayStudents.length > 0 || makeupStudents.length > 0 ? (
         <div className="leading-snug">
           {displayStudents.map((s, i) => (
-            <p key={i} className="truncate text-[11px] text-gray-800 dark:text-gray-100">
-              {s.name}{s.enrollmentSubject ? `（${s.enrollmentSubject}）` : ''}
+            <p key={i} className={s.isAbsent
+              ? 'truncate text-[11px] text-gray-400 line-through'
+              : 'truncate text-[11px] text-gray-800 dark:text-gray-100'}>
+              {s.name}{s.enrollmentSubject ? `（${s.enrollmentSubject}）` : ''}{s.isAbsent ? ' 休' : ''}
             </p>
           ))}
           {extraCount > 0 && <p className="text-gray-400 text-[10px]">+{extraCount}名</p>}
           {makeupStudents.map((m) => (
-            <p key={m.id} className="truncate text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-900/40 rounded px-1 -mx-1">
-              {m.name}<span className="text-[9px] font-bold ml-1">振替</span>
-            </p>
+            m.kind === 'temporary' ? (
+              <p key={m.id} className="truncate text-[11px] font-medium text-orange-700 dark:text-orange-300 bg-orange-100/70 dark:bg-orange-900/40 rounded px-1 -mx-1">
+                {m.name}<span className="text-[9px] font-bold ml-1">臨時</span>
+              </p>
+            ) : (
+              <p key={m.id} className="truncate text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-900/40 rounded px-1 -mx-1">
+                {m.name}<span className="text-[9px] font-bold ml-1">振替</span>
+              </p>
+            )
           ))}
         </div>
       ) : (

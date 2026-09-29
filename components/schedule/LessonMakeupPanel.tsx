@@ -5,11 +5,15 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { assignMakeupFromLedger, markAbsentToLedger } from '@/app/(dashboard)/attendance/makeup/ledger/actions'
+import { addTemporaryStudent, removeTemporaryStudent, skipStudentForDate, unskipStudentForDate } from '@/app/(dashboard)/schedule/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
 
 interface EnrolledOpt { id: string; name: string; grade?: string; subject?: string }
-interface LedgerItem { id: string; studentName: string; subject: string; status: 'pending' | 'scheduled' }
+interface LedgerItem { id: string; studentName: string; subject: string; status: 'pending' | 'scheduled'; scheduledDate: string | null }
 interface ExistingMakeup { id: string; studentName: string; date: string }
+interface StudentOpt { id: string; name: string; grade: string }
+interface TemporaryEntry { id: string; studentName: string; date: string }
+interface AbsenceEntry { studentId: string; studentName: string; date: string }
 
 interface Props {
   lessonId: string
@@ -19,6 +23,9 @@ interface Props {
   enrolled: EnrolledOpt[]
   ledgerItems: LedgerItem[] // 台帳の未消化（未定・決定）
   existingMakeups: ExistingMakeup[]
+  allStudents: StudentOpt[] // 臨時追加用（全生徒）
+  existingTemporary: TemporaryEntry[] // このコマの臨時参加
+  existingAbsences: AbsenceEntry[] // このコマで「その日だけ外した」記録
 }
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -35,15 +42,61 @@ function nextDateForDow(dow: number): string {
   return toDateStr(d)
 }
 
-export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel, enrolled, ledgerItems, existingMakeups }: Props) {
+export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel, enrolled, ledgerItems, existingMakeups, allStudents, existingTemporary, existingAbsences }: Props) {
   const router = useRouter()
   const [date, setDate] = useState<string>(fixedDate ?? nextDateForDow(dayOfWeek))
   const [ledgerItemId, setLedgerItemId] = useState('')
   const [absentStudentId, setAbsentStudentId] = useState('')
   const [absentConfirm, setAbsentConfirm] = useState<EnrolledOpt | null>(null)
+  const [tempStudentId, setTempStudentId] = useState('')
+  const [skipStudentId, setSkipStudentId] = useState('')
+
+  function handleSkip() {
+    if (!skipStudentId || !date) return
+    setError(undefined); setMessage(undefined)
+    startTransition(async () => {
+      const result = await skipStudentForDate(skipStudentId, lessonId, date)
+      if (result.error) { setError(result.error); return }
+      const name = enrolled.find((s) => s.id === skipStudentId)?.name ?? '生徒'
+      setMessage(`${name}さんを${date}だけ外しました（他の週はそのまま）`)
+      setSkipStudentId('')
+      router.refresh()
+    })
+  }
+
+  function handleUnskip(studentId: string, d: string) {
+    setError(undefined); setMessage(undefined)
+    startTransition(async () => {
+      const result = await unskipStudentForDate(studentId, lessonId, d)
+      if (result.error) { setError(result.error); return }
+      router.refresh()
+    })
+  }
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>()
   const [message, setMessage] = useState<string>()
+
+  function handleAddTemporary() {
+    if (!tempStudentId || !date) return
+    setError(undefined); setMessage(undefined)
+    startTransition(async () => {
+      const result = await addTemporaryStudent(tempStudentId, lessonId, date)
+      if (result.error) { setError(result.error); return }
+      const name = allStudents.find((s) => s.id === tempStudentId)?.name ?? '生徒'
+      setMessage(`${name}さんを${date}の臨時参加として追加しました（この日だけ）`)
+      setTempStudentId('')
+      router.refresh()
+    })
+  }
+
+  function handleRemoveTemporary(id: string) {
+    setError(undefined); setMessage(undefined)
+    startTransition(async () => {
+      const result = await removeTemporaryStudent(id, lessonId)
+      if (result.error) { setError(result.error); return }
+      router.refresh()
+    })
+  }
 
   function handleAddMakeup() {
     if (!ledgerItemId || !date) return
@@ -113,13 +166,19 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
         <div className="flex gap-2">
           <select
             value={ledgerItemId}
-            onChange={(e) => setLedgerItemId(e.target.value)}
+            onChange={(e) => {
+              const id = e.target.value
+              setLedgerItemId(id)
+              // 決定済みを選んだら、対象日をその決定日に合わせる（通常コマのみ）
+              const item = ledgerItems.find((x) => x.id === id)
+              if (item?.scheduledDate && !fixedDate) { setDate(item.scheduledDate); setMessage(undefined); setError(undefined) }
+            }}
             className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           >
             <option value="">— 振替を選択 —</option>
             {ledgerItems.map((i) => (
               <option key={i.id} value={i.id}>
-                {i.studentName}{i.subject ? `・${i.subject}` : ''}（{i.status === 'pending' ? '未定' : '決定'}）
+                {i.studentName}{i.subject ? `・${i.subject}` : ''}（{i.status === 'pending' ? '未定' : i.scheduledDate ? `決定 ${i.scheduledDate}` : '決定'}）
               </option>
             ))}
           </select>
@@ -159,6 +218,70 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
           </Button>
         </div>
         <p className="text-[11px] text-gray-400 mt-1">選んだ日に欠席として記録し、台帳に「未定」の振替を1件追加します</p>
+      </div>
+
+      {/* 臨時で追加（この日だけ・通常メンバー以外を1回だけ参加） */}
+      <div className="mb-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">臨時で追加（この日だけ）</label>
+        <div className="flex gap-2">
+          <select
+            value={tempStudentId}
+            onChange={(e) => setTempStudentId(e.target.value)}
+            className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+          >
+            <option value="">— 生徒を選択 —</option>
+            {allStudents.map((s) => (
+              <option key={s.id} value={s.id}>{s.grade ? `${s.name}（${getDisplayGrade(s.grade)}）` : s.name}</option>
+            ))}
+          </select>
+          <Button type="button" variant="secondary" onClick={handleAddTemporary} loading={isPending} disabled={!tempStudentId}>臨時追加</Button>
+        </div>
+        <p className="text-[11px] text-gray-400 mt-1">通常メンバーは変えずに、選んだ日だけこのコマに参加させます（他の週に影響しません）</p>
+        {existingTemporary.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {existingTemporary.map((t) => (
+              <div key={t.id} className="text-xs text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
+                <span>{t.studentName}</span>
+                <span className="text-[10px] text-gray-400">{t.date}</span>
+                <button type="button" onClick={() => handleRemoveTemporary(t.id)} disabled={isPending}
+                  className="ml-auto text-[10px] text-red-500 hover:underline disabled:opacity-50">削除</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* その日だけ外す（通常メンバーを1回だけ休みにする） */}
+      <div className="mb-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">その日だけ外す（通常メンバー）</label>
+        <div className="flex gap-2">
+          <select
+            value={skipStudentId}
+            onChange={(e) => setSkipStudentId(e.target.value)}
+            className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+          >
+            <option value="">— 生徒を選択 —</option>
+            {enrolled.map((s) => (
+              <option key={s.id} value={s.id}>{s.grade ? `${s.name}（${getDisplayGrade(s.grade)}）` : s.name}</option>
+            ))}
+          </select>
+          <Button type="button" variant="secondary" onClick={handleSkip} loading={isPending} disabled={!skipStudentId}>外す</Button>
+        </div>
+        <p className="text-[11px] text-gray-400 mt-1">選んだ日だけこのコマから外します（欠席扱い・振替なし）。他の週はそのままです</p>
+        {existingAbsences.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {existingAbsences.map((a) => (
+              <div key={`${a.studentId}-${a.date}`} className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0" />
+                <span className="line-through">{a.studentName}</span>
+                <span className="text-[10px] text-gray-400">{a.date}</span>
+                <button type="button" onClick={() => handleUnskip(a.studentId, a.date)} disabled={isPending}
+                  className="ml-auto text-[10px] text-navy dark:text-blue-300 hover:underline disabled:opacity-50">戻す</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* このコマへの振替予定 */}

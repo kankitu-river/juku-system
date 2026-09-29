@@ -35,7 +35,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     const d = new Date(start); d.setDate(start.getDate() + i); return toLocalDate(d)
   })
 
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: makeupData }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: makeupData }, { data: tempData }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, subject, student:students(id, name))')
@@ -45,15 +45,22 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     supabase.from('teachers').select('id, name').order('name'),
     supabase.from('shifts').select('teacher_id, date, start_time, end_time').in('date', weekDateStrs),
     supabase.from('makeup_assignments').select('lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDateStrs),
+    supabase.from('temporary_students').select('lesson_id, date, student:students(id, name)').in('date', weekDateStrs),
   ])
 
-  // `${lesson_id}__${date}` -> 振替生徒リスト
-  const makeupByLessonDate = new Map<string, { id: string; name: string }[]>()
+  // `${lesson_id}__${date}` -> 振替/臨時生徒リスト
+  const makeupByLessonDate = new Map<string, { id: string; name: string; kind: 'makeup' | 'temporary' }[]>()
   for (const m of (makeupData ?? []) as unknown as { lesson_id: string; assigned_date: string; student: { id: string; name: string } | null }[]) {
     if (!m.student) continue
     const k = `${m.lesson_id}__${m.assigned_date}`
     if (!makeupByLessonDate.has(k)) makeupByLessonDate.set(k, [])
-    makeupByLessonDate.get(k)!.push(m.student)
+    makeupByLessonDate.get(k)!.push({ ...m.student, kind: 'makeup' })
+  }
+  for (const t of (tempData ?? []) as unknown as { lesson_id: string; date: string; student: { id: string; name: string } | null }[]) {
+    if (!t.student) continue
+    const k = `${t.lesson_id}__${t.date}`
+    if (!makeupByLessonDate.has(k)) makeupByLessonDate.set(k, [])
+    makeupByLessonDate.get(k)!.push({ ...t.student, kind: 'temporary' })
   }
   // 週（月〜土）のいずれかが講習期間に重なれば intensive とみなす（移行週で月曜だけ判定するとズレるため）
   const termsArr = (termPeriods as TermPeriod[]) ?? []
@@ -392,7 +399,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   )
 }
 
-function LessonCell({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStudents?: { id: string; name: string }[] }) {
+function LessonCell({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary' }[] }) {
   const isGroup = lesson.type === 'group'
   const teacher = (lesson as { teacher?: { name: string } }).teacher
   const enrollments = lesson.enrollments ?? []
@@ -436,9 +443,15 @@ function LessonCell({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStu
             </p>
           ))}
           {makeupStudents.map((m) => (
-            <p key={m.id} className="whitespace-nowrap font-bold text-amber-800 bg-amber-100 rounded px-0.5">
-              {m.name}<span className="text-[8px] ml-0.5">振替</span>
-            </p>
+            m.kind === 'temporary' ? (
+              <p key={m.id} className="whitespace-nowrap font-bold text-orange-800 bg-orange-100 rounded px-0.5">
+                {m.name}<span className="text-[8px] ml-0.5">臨時</span>
+              </p>
+            ) : (
+              <p key={m.id} className="whitespace-nowrap font-bold text-amber-800 bg-amber-100 rounded px-0.5">
+                {m.name}<span className="text-[8px] ml-0.5">振替</span>
+              </p>
+            )
           ))}
         </div>
       ) : (

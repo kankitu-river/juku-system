@@ -50,7 +50,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   const nextDay = new Date(refDate); nextDay.setDate(refDate.getDate() + 1)
 
   const supabase = await createClient()
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }, { data: makeupData }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }, { data: makeupData }, { data: tempData }] = await Promise.all([
     supabase
       .from('lessons')
       .select(`
@@ -66,14 +66,20 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
     supabase.from('shifts').select('teacher_id, date, start_time, end_time').eq('date', dateStr),
     supabase.from('daily_notes').select('content').eq('date', dateStr).maybeSingle(),
     supabase.from('makeup_assignments').select('lesson_id, student:students(id, name)').eq('assigned_date', dateStr),
+    supabase.from('temporary_students').select('lesson_id, student:students(id, name)').eq('date', dateStr),
   ])
 
-  // lesson_id -> 振替生徒リスト
-  const makeupByLesson = new Map<string, { id: string; name: string }[]>()
+  // lesson_id -> 振替/臨時生徒リスト
+  const makeupByLesson = new Map<string, { id: string; name: string; kind: 'makeup' | 'temporary' }[]>()
   for (const m of (makeupData ?? []) as unknown as { lesson_id: string; student: { id: string; name: string } | null }[]) {
     if (!m.student) continue
     if (!makeupByLesson.has(m.lesson_id)) makeupByLesson.set(m.lesson_id, [])
-    makeupByLesson.get(m.lesson_id)!.push(m.student)
+    makeupByLesson.get(m.lesson_id)!.push({ ...m.student, kind: 'makeup' })
+  }
+  for (const t of (tempData ?? []) as unknown as { lesson_id: string; student: { id: string; name: string } | null }[]) {
+    if (!t.student) continue
+    if (!makeupByLesson.has(t.lesson_id)) makeupByLesson.set(t.lesson_id, [])
+    makeupByLesson.get(t.lesson_id)!.push({ ...t.student, kind: 'temporary' })
   }
 
   const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
@@ -350,7 +356,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   )
 }
 
-function LessonPosterCard({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStudents?: { id: string; name: string }[] }) {
+function LessonPosterCard({ lesson, makeupStudents = [] }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary' }[] }) {
   const isGroup = lesson.type === 'group'
   const isPS1 = Boolean((lesson as { is_ps1?: boolean }).is_ps1)
   const isPurple = isGroup || isPS1
@@ -406,10 +412,17 @@ function LessonPosterCard({ lesson, makeupStudents = [] }: { lesson: Lesson; mak
             <p className="text-xs text-gray-400">生徒未登録</p>
           ) : null}
           {makeupStudents.map((m) => (
-            <p key={m.id} className="dpp-card-student text-sm print:text-[10px] leading-snug font-bold text-amber-800 bg-amber-100 rounded px-1 -mx-0.5">
-              {m.name}
-              <span className="ml-1 text-xs print:text-[8px] font-bold text-amber-600">振替</span>
-            </p>
+            m.kind === 'temporary' ? (
+              <p key={m.id} className="dpp-card-student text-sm print:text-[10px] leading-snug font-bold text-orange-800 bg-orange-100 rounded px-1 -mx-0.5">
+                {m.name}
+                <span className="ml-1 text-xs print:text-[8px] font-bold text-orange-600">臨時</span>
+              </p>
+            ) : (
+              <p key={m.id} className="dpp-card-student text-sm print:text-[10px] leading-snug font-bold text-amber-800 bg-amber-100 rounded px-1 -mx-0.5">
+                {m.name}
+                <span className="ml-1 text-xs print:text-[8px] font-bold text-amber-600">振替</span>
+              </p>
+            )
           ))}
         </div>
       </div>

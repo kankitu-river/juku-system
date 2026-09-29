@@ -33,6 +33,7 @@ interface MakeupAssignment {
   lesson_id: string
   assigned_date: string
   student: { id: string; name: string } | null
+  kind?: 'makeup' | 'temporary'
 }
 
 interface WeeklyCalendarProps {
@@ -45,6 +46,13 @@ interface WeeklyCalendarProps {
   closureDates?: string[]
   customSlots?: TimeSlotConfig | null
   makeupAssignments?: MakeupAssignment[]
+  absences?: AbsenceRecord[]
+}
+
+interface AbsenceRecord {
+  lesson_id: string
+  student_id: string
+  date: string
 }
 
 function getTermTypeForDate(date: Date, termPeriods: TermPeriod[]): 'regular' | 'intensive' {
@@ -80,6 +88,7 @@ export function WeeklyCalendar({
   closureDates = [],
   customSlots,
   makeupAssignments = [],
+  absences = [],
 }: WeeklyCalendarProps) {
   const router = useRouter()
   const [dayView, setDayView] = useState<DayView>('weekday')
@@ -369,7 +378,7 @@ const lessonMap = useMemo(() => {
                           </div>
                         ) : (
                           <div className="space-y-1">
-                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} density={density} selectedTeacherId={selectedTeacherId} />
+                            <CellLessons lessons={cellLessons} dateStr={dateStr} makeups={makeupAssignments} absences={absences} density={density} selectedTeacherId={selectedTeacherId} />
                             {cellLessons.length === 0 && availableTeachers.length === 0 && (
                               <div className="h-10 flex items-center justify-center">
                                 <span className="text-[10px] text-gray-300">—</span>
@@ -435,7 +444,7 @@ const lessonMap = useMemo(() => {
                       <td className={['px-2 py-2 align-top border-b border-b-gray-100 dark:border-b-gray-700/50', isSatClosed ? 'bg-red-50/50' : ''].join(' ')}
                         style={{ minHeight: '80px' }}>
                         <div className="space-y-1">
-                          <CellLessons lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} density={density} selectedTeacherId={selectedTeacherId} />
+                          <CellLessons lessons={cellLessons} dateStr={weekDateStrings[5]} makeups={makeupAssignments} absences={absences} density={density} selectedTeacherId={selectedTeacherId} />
                           {cellLessons.length === 0 && !isSatClosed && (
                             <div className="h-10 flex items-center justify-center">
                               <span className="text-[10px] text-gray-300">—</span>
@@ -528,27 +537,62 @@ const lessonMap = useMemo(() => {
   )
 }
 
-function CellLessons({ lessons, dateStr, makeups = [], density = 'full', selectedTeacherId = null }: {
+type MergedLesson = Lesson & { _mergedIds?: string[] }
+
+// 同じ枠内で「同じ先生・同じ授業形式」のコマは1枚のカードにまとめる。
+// （物理的に1人の先生が同一コマで複数枠を持つことはないため、複数レコードは統合表示する）
+function mergeLessonsByTeacher(lessons: Lesson[]): MergedLesson[] {
+  const groups = new Map<string, Lesson[]>()
+  const order: string[] = []
+  for (const l of lessons) {
+    // 先生未割り当てはまとめず個別に扱う
+    const key = l.teacher_id ? `${l.teacher_id}-${l.type}` : `none-${l.id}`
+    if (!groups.has(key)) { groups.set(key, []); order.push(key) }
+    groups.get(key)!.push(l)
+  }
+  return order.map((key) => {
+    const group = groups.get(key)!
+    if (group.length === 1) return group[0]
+    const base = group[0]
+    return {
+      ...base,
+      capacity: group.reduce((s, l) => s + l.capacity, 0),
+      enrollments: group.flatMap((l) => l.enrollments ?? []),
+      subject: [...new Set(group.map((l) => l.subject).filter(Boolean))].join('・') || base.subject,
+      _mergedIds: group.map((l) => l.id),
+    } as MergedLesson
+  })
+}
+
+function CellLessons({ lessons, dateStr, makeups = [], absences = [], density = 'full', selectedTeacherId = null }: {
   lessons: Lesson[]
   dateStr?: string
   makeups?: MakeupAssignment[]
+  absences?: AbsenceRecord[]
   density?: 'full' | 'compact'
   selectedTeacherId?: string | null
 }) {
-  const compact = density === 'compact' || lessons.length >= 3
+  const merged = useMemo(() => mergeLessonsByTeacher(lessons), [lessons])
+  const compact = density === 'compact' || merged.length >= 3
   return (
     <>
-      {lessons.map(lesson => (
-        <div key={lesson.id} className={selectedTeacherId && lesson.teacher_id !== selectedTeacherId ? 'opacity-30' : ''}>
-          <LessonCard
-            lesson={lesson}
-            compact={compact}
-            makeupStudents={makeups
-              .filter((m) => m.lesson_id === lesson.id && m.assigned_date === dateStr && m.student)
-              .map((m) => m.student!)}
-          />
-        </div>
-      ))}
+      {merged.map(lesson => {
+        const ids = lesson._mergedIds ?? [lesson.id]
+        return (
+          <div key={lesson.id} className={selectedTeacherId && lesson.teacher_id !== selectedTeacherId ? 'opacity-30' : ''}>
+            <LessonCard
+              lesson={lesson}
+              compact={compact}
+              makeupStudents={makeups
+                .filter((m) => ids.includes(m.lesson_id) && m.assigned_date === dateStr && m.student)
+                .map((m) => ({ ...m.student!, kind: m.kind ?? 'makeup' }))}
+              absentStudentIds={absences
+                .filter((a) => ids.includes(a.lesson_id) && a.date === dateStr)
+                .map((a) => a.student_id)}
+            />
+          </div>
+        )
+      })}
     </>
   )
 }
