@@ -436,3 +436,17 @@ export async function moveStudentForDate(
   revalidatePath(`/schedule/${toLessonId}`)
   return {}
 }
+
+// 既存の臨時参加レコードの科目を更新（削除して入れ直さずに設定できる）
+export async function updateTemporaryStudentSubject(
+  id: string,
+  subject: string,
+  lessonId: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from('temporary_students').update({ subject }).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/schedule')
+  revalidatePath(`/schedule/${lessonId}`)
+  return {}
+}

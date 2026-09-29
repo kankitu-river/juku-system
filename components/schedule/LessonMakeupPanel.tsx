@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { assignMakeupFromLedger, markAbsentToLedger } from '@/app/(dashboard)/attendance/makeup/ledger/actions'
-import { addTemporaryStudent, removeTemporaryStudent, skipStudentForDate, unskipStudentForDate, moveStudentForDate } from '@/app/(dashboard)/schedule/actions'
+import { addTemporaryStudent, removeTemporaryStudent, skipStudentForDate, unskipStudentForDate, moveStudentForDate, updateTemporaryStudentSubject } from '@/app/(dashboard)/schedule/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
 import { SUBJECTS } from '@/lib/constants/timeSlots'
 
@@ -113,6 +113,15 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
     setError(undefined); setMessage(undefined)
     startTransition(async () => {
       const result = await removeTemporaryStudent(id, lessonId)
+      if (result.error) { setError(result.error); return }
+      router.refresh()
+    })
+  }
+
+  function handleUpdateTempSubject(id: string, subject: string) {
+    setError(undefined); setMessage(undefined)
+    startTransition(async () => {
+      const result = await updateTemporaryStudentSubject(id, subject, lessonId)
       if (result.error) { setError(result.error); return }
       router.refresh()
     })
@@ -279,8 +288,19 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
             {existingTemporary.map((t) => (
               <div key={t.id} className="text-xs text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
-                <span>{t.studentName}{t.subject ? `（${t.subject}）` : ''}</span>
+                <span>{t.studentName}</span>
                 <span className="text-[10px] text-gray-400">{t.date}</span>
+                <select
+                  value={t.subject ?? ''}
+                  onChange={(e) => handleUpdateTempSubject(t.id, e.target.value)}
+                  disabled={isPending}
+                  className="text-[11px] border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 disabled:opacity-50"
+                >
+                  <option value="">科目なし</option>
+                  {SUBJECTS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
                 <button type="button" onClick={() => handleRemoveTemporary(t.id)} disabled={isPending}
                   className="ml-auto text-[10px] text-red-500 hover:underline disabled:opacity-50">削除</button>
               </div>
