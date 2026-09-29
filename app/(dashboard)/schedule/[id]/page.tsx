@@ -5,7 +5,7 @@ import { updateLesson, deleteLesson, getLessonImpact } from '../actions'
 import type { Lesson, Teacher, Booth, Student, LessonEnrollment } from '@/types'
 import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/Badge'
-import { getSlotLabel } from '@/lib/constants/timeSlots'
+import { getSlotLabel, getSlotsForLesson } from '@/lib/constants/timeSlots'
 import Link from 'next/link'
 import { UndoButton } from '@/app/(dashboard)/history/UndoButton'
 import { WaitlistSection } from './WaitlistSection'
@@ -156,6 +156,9 @@ export default async function LessonDetailPage({ params }: PageProps) {
   }))
   const panelFixedDate = typedLesson.lesson_kind === 'temporary' ? typedLesson.specific_date : null
   const panelLessonLabel = getSlotLabel(typedLesson.slot_index, typedLesson.day_of_week, typedLesson.term_type, typedLesson.type)
+  const panelSlot = getSlotsForLesson(typedLesson.type, typedLesson.day_of_week, typedLesson.term_type).find((s) => s.index === typedLesson.slot_index)
+  const panelSlotStart = panelSlot?.start ?? ''
+  const panelSlotEnd = panelSlot?.end ?? ''
 
   return (
     <div>
@@ -306,6 +309,8 @@ export default async function LessonDetailPage({ params }: PageProps) {
           moveTargets={moveTargets}
           teachers={teachersForPanel}
           existingTeacherOverrides={existingTeacherOverrides}
+          slotStart={panelSlotStart}
+          slotEnd={panelSlotEnd}
         />
 
         {/* キャンセル待ち */}

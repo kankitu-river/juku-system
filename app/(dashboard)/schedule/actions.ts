@@ -484,3 +484,39 @@ export async function clearLessonTeacherOverride(
   revalidatePath(`/schedule/${lessonId}`)
   return {}
 }
+
+// スケジュールのコマから「その時間に待機できる先生」を追加＝その先生のシフトを追加/拡張。
+// shifts は (teacher_id, date) 一意なので、既存シフトがあればコマ時間を含むよう時間帯を広げる。
+export async function addStandbyShift(
+  teacherId: string,
+  date: string,
+  slotStart: string, // 'HH:MM'
+  slotEnd: string,   // 'HH:MM'
+  lessonId: string
+): Promise<{ error?: string }> {
+  if (!teacherId || !date) return { error: '先生と日付を選んでください' }
+  const supabase = await createClient()
+  const s = slotStart.length === 5 ? `${slotStart}:00` : slotStart
+  const e = slotEnd.length === 5 ? `${slotEnd}:00` : slotEnd
+
+  const { data: existing } = await supabase
+    .from('shifts')
+    .select('id, start_time, end_time')
+    .eq('teacher_id', teacherId)
+    .eq('date', date)
+    .maybeSingle()
+
+  if (existing) {
+    const start = existing.start_time < s ? existing.start_time : s
+    const end = existing.end_time > e ? existing.end_time : e
+    const { error } = await supabase.from('shifts').update({ start_time: start, end_time: end }).eq('id', existing.id)
+    if (error) return { error: error.message }
+  } else {
+    const { error } = await supabase.from('shifts').insert({ teacher_id: teacherId, date, start_time: s, end_time: e })
+    if (error) return { error: error.message }
+  }
+  revalidatePath('/schedule')
+  revalidatePath('/shifts')
+  revalidatePath(`/schedule/${lessonId}`)
+  return {}
+}

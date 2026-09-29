@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { assignMakeupFromLedger, markAbsentToLedger } from '@/app/(dashboard)/attendance/makeup/ledger/actions'
-import { addTemporaryStudent, removeTemporaryStudent, skipStudentForDate, unskipStudentForDate, moveStudentForDate, updateTemporaryStudentSubject, setLessonTeacherOverride, clearLessonTeacherOverride } from '@/app/(dashboard)/schedule/actions'
+import { addTemporaryStudent, removeTemporaryStudent, skipStudentForDate, unskipStudentForDate, moveStudentForDate, updateTemporaryStudentSubject, setLessonTeacherOverride, clearLessonTeacherOverride, addStandbyShift } from '@/app/(dashboard)/schedule/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
 import { SUBJECTS } from '@/lib/constants/timeSlots'
 
@@ -31,8 +31,10 @@ interface Props {
   existingTemporary: TemporaryEntry[] // このコマの臨時参加
   existingAbsences: AbsenceEntry[] // このコマで「その日だけ外した」記録
   moveTargets: MoveTarget[] // 別のコマへ移動の候補（同曜日・同期間の他コマ）
-  teachers: TeacherOpt[] // 担当差し替え用の先生一覧
+  teachers: TeacherOpt[] // 担当差し替え・待機追加用の先生一覧
   existingTeacherOverrides: TeacherOverrideEntry[] // その日だけ担当差し替えの記録
+  slotStart: string // このコマの開始時刻 'HH:MM'
+  slotEnd: string // このコマの終了時刻 'HH:MM'
 }
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -49,7 +51,7 @@ function nextDateForDow(dow: number): string {
   return toDateStr(d)
 }
 
-export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel, enrolled, ledgerItems, existingMakeups, allStudents, existingTemporary, existingAbsences, moveTargets, teachers, existingTeacherOverrides }: Props) {
+export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel, enrolled, ledgerItems, existingMakeups, allStudents, existingTemporary, existingAbsences, moveTargets, teachers, existingTeacherOverrides, slotStart, slotEnd }: Props) {
   const router = useRouter()
   const [date, setDate] = useState<string>(fixedDate ?? nextDateForDow(dayOfWeek))
   const [ledgerItemId, setLedgerItemId] = useState('')
@@ -61,6 +63,20 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
   const [moveStudentId, setMoveStudentId] = useState('')
   const [moveTargetId, setMoveTargetId] = useState('')
   const [overrideTeacherId, setOverrideTeacherId] = useState('')
+  const [standbyTeacherId, setStandbyTeacherId] = useState('')
+
+  function handleAddStandby() {
+    if (!standbyTeacherId || !date) return
+    setError(undefined); setMessage(undefined)
+    startTransition(async () => {
+      const result = await addStandbyShift(standbyTeacherId, date, slotStart, slotEnd, lessonId)
+      if (result.error) { setError(result.error); return }
+      const name = teachers.find((t) => t.id === standbyTeacherId)?.name ?? '先生'
+      setMessage(`${name}先生を${date}の${slotStart}〜${slotEnd}に待機（シフト）追加しました`)
+      setStandbyTeacherId('')
+      router.refresh()
+    })
+  }
 
   function handleSetTeacherOverride() {
     if (!date) return
@@ -431,6 +447,25 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
             ))}
           </div>
         )}
+      </div>
+
+      {/* この時間に待機できる先生を追加（＝シフト追加） */}
+      <div className="mb-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">この時間に待機できる先生を追加</label>
+        <div className="flex gap-2">
+          <select
+            value={standbyTeacherId}
+            onChange={(e) => setStandbyTeacherId(e.target.value)}
+            className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+          >
+            <option value="">— 先生を選択 —</option>
+            {teachers.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          <Button type="button" variant="secondary" onClick={handleAddStandby} loading={isPending} disabled={!standbyTeacherId}>待機追加</Button>
+        </div>
+        <p className="text-[11px] text-gray-400 mt-1"><b>{date}</b> の {slotStart}〜{slotEnd} にシフトを追加します。コマ未担当ならカレンダー・印刷に「待機（空き）」として出ます（シフト表にも反映）</p>
       </div>
 
       {/* このコマへの振替予定 */}
