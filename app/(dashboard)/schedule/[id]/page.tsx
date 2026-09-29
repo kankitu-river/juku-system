@@ -62,7 +62,7 @@ export default async function LessonDetailPage({ params }: PageProps) {
         .order('assigned_date', { ascending: true }),
       supabase
         .from('temporary_students')
-        .select('id, date, student:students(id, name)')
+        .select('id, date, subject, student:students(id, name)')
         .eq('lesson_id', id)
         .order('date', { ascending: true }),
       supabase
@@ -121,11 +121,12 @@ export default async function LessonDetailPage({ params }: PageProps) {
     grade: e.student?.grade,
     subject: enrolledStudentSubjects[e.student_id] ?? '',
   }))
-  type TempRow = { id: string; date: string; student: { id: string; name: string } | null }
+  type TempRow = { id: string; date: string; subject: string | null; student: { id: string; name: string } | null }
   const existingTemporary = ((temporaryStudents ?? []) as unknown as TempRow[]).map((t) => ({
     id: t.id,
     studentName: t.student?.name ?? '—',
     date: t.date,
+    subject: t.subject ?? '',
   }))
   const allStudentsForPanel = ((students as { id: string; name: string; grade: string }[]) ?? [])
     .map((s) => ({ id: s.id, name: s.name, grade: s.grade }))

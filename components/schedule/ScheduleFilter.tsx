@@ -23,6 +23,7 @@ interface MakeupAssignment {
   assigned_date: string
   student: { id: string; name: string } | null
   kind?: 'makeup' | 'temporary'
+  subject?: string
 }
 
 interface AbsenceRecord {

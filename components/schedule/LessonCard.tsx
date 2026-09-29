@@ -5,6 +5,7 @@ interface MakeupStudent {
   id: string
   name: string
   kind?: 'makeup' | 'temporary'  // makeup=振替（既定）, temporary=臨時
+  subject?: string
 }
 
 interface LessonCardProps {
@@ -142,7 +143,7 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
           {makeupStudents.map((m) => (
             m.kind === 'temporary' ? (
               <p key={m.id} className="truncate text-[11px] font-medium text-orange-700 dark:text-orange-300 bg-orange-100/70 dark:bg-orange-900/40 rounded px-1 -mx-1">
-                {m.name}<span className="text-[9px] font-bold ml-1">臨時</span>
+                {m.name}{m.subject ? `（${m.subject}）` : ''}<span className="text-[9px] font-bold ml-1">臨時</span>
               </p>
             ) : (
               <p key={m.id} className="truncate text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-900/40 rounded px-1 -mx-1">

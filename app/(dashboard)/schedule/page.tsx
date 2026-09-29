@@ -46,7 +46,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     supabase.from('students').select('id, name, grade').order('name'),
     supabase.from('shifts').select('id, teacher_id, date, start_time, end_time').in('date', weekDates),
     supabase.from('makeup_assignments').select('id, lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDates),
-    supabase.from('temporary_students').select('id, lesson_id, date, student:students(id, name)').in('date', weekDates),
+    supabase.from('temporary_students').select('id, lesson_id, date, subject, student:students(id, name)').in('date', weekDates),
     supabase.from('attendances').select('lesson_id, student_id, date').eq('status', 'absent').in('date', weekDates),
     supabase
       .from('school_events')
@@ -60,11 +60,11 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const customSlots = (slotSetting?.value as TimeSlotConfig) ?? null
 
   // 振替＋臨時をカレンダー表示用に1つの配列にまとめる（kindで区別）
-  type CellStudent = { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind: 'makeup' | 'temporary' }
+  type CellStudent = { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind: 'makeup' | 'temporary'; subject?: string }
   const cellStudents: CellStudent[] = [
     ...((makeupAssignments ?? []) as unknown as Omit<CellStudent, 'kind'>[]).map((m) => ({ ...m, kind: 'makeup' as const })),
-    ...((temporaryStudents ?? []) as unknown as { id: string; lesson_id: string; date: string; student: { id: string; name: string } | null }[])
-      .map((t) => ({ id: t.id, lesson_id: t.lesson_id, assigned_date: t.date, student: t.student, kind: 'temporary' as const })),
+    ...((temporaryStudents ?? []) as unknown as { id: string; lesson_id: string; date: string; subject: string | null; student: { id: string; name: string } | null }[])
+      .map((t) => ({ id: t.id, lesson_id: t.lesson_id, assigned_date: t.date, student: t.student, kind: 'temporary' as const, subject: t.subject ?? undefined })),
   ]
   const absences = (absencesData ?? []) as unknown as { lesson_id: string; student_id: string; date: string }[]
 
@@ -318,7 +318,7 @@ function MonthlyViewPlaceholder({ date, lessons, termPeriods, closureDates }: {
   )
 }
 
-function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments, absences = [] }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind?: 'makeup' | 'temporary' }[]; absences?: { lesson_id: string; student_id: string; date: string }[] }) {
+function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments, absences = [] }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind?: 'makeup' | 'temporary'; subject?: string }[]; absences?: { lesson_id: string; student_id: string; date: string }[] }) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dayOfWeek = date.getDay()
@@ -342,7 +342,7 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
     lessons: Lesson[]
     allStudents: { id: string; name: string }[]
     absentStudentIds: Set<string>
-    allMakeupStudents: { id: string; name: string; kind: 'makeup' | 'temporary' }[]
+    allMakeupStudents: { id: string; name: string; kind: 'makeup' | 'temporary'; subject?: string }[]
     capacity: number
     subject: string
     boothName: string | null
@@ -368,7 +368,7 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
     const allMakeupStudents = group.flatMap((l) =>
       makeupAssignments
         .filter((m) => m.lesson_id === l.id && m.assigned_date === dayStr && m.student)
-        .map((m) => ({ ...m.student!, kind: m.kind ?? 'makeup' as const }))
+        .map((m) => ({ ...m.student!, kind: m.kind ?? 'makeup' as const, subject: m.subject }))
     )
     const groupLessonIds = new Set(group.map((l) => l.id))
     const absentStudentIds = new Set(
@@ -452,7 +452,7 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
                     {group.allMakeupStudents.map((s) => (
                       s.kind === 'temporary' ? (
                         <span key={s.id} className="inline-flex items-center gap-1 text-sm text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 px-1.5 py-0.5 rounded-md">
-                          {s.name}
+                          {s.name}{s.subject ? `（${s.subject}）` : ''}
                           <span className="text-[10px] font-bold text-orange-600 dark:text-orange-300">臨時</span>
                         </span>
                       ) : (

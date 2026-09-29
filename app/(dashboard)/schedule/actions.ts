@@ -341,14 +341,15 @@ export async function getLessonImpact(lessonId: string): Promise<LessonImpact> {
 export async function addTemporaryStudent(
   studentId: string,
   lessonId: string,
-  date: string
+  date: string,
+  subject: string = ''
 ): Promise<{ error?: string }> {
   if (!studentId || !date) return { error: '生徒と日付を選んでください' }
   const supabase = await createClient()
   const { error } = await supabase
     .from('temporary_students')
     .upsert(
-      { student_id: studentId, lesson_id: lessonId, date },
+      { student_id: studentId, lesson_id: lessonId, date, subject },
       { onConflict: 'lesson_id,student_id,date' }
     )
   if (error) return { error: error.message }

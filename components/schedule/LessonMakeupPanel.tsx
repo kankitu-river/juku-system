@@ -7,12 +7,13 @@ import { Modal } from '@/components/ui/Modal'
 import { assignMakeupFromLedger, markAbsentToLedger } from '@/app/(dashboard)/attendance/makeup/ledger/actions'
 import { addTemporaryStudent, removeTemporaryStudent, skipStudentForDate, unskipStudentForDate, moveStudentForDate } from '@/app/(dashboard)/schedule/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
+import { SUBJECTS } from '@/lib/constants/timeSlots'
 
 interface EnrolledOpt { id: string; name: string; grade?: string; subject?: string }
 interface LedgerItem { id: string; studentName: string; subject: string; status: 'pending' | 'scheduled'; scheduledDate: string | null }
 interface ExistingMakeup { id: string; studentName: string; date: string }
 interface StudentOpt { id: string; name: string; grade: string }
-interface TemporaryEntry { id: string; studentName: string; date: string }
+interface TemporaryEntry { id: string; studentName: string; date: string; subject?: string }
 interface AbsenceEntry { studentId: string; studentName: string; date: string }
 interface MoveTarget { id: string; label: string }
 
@@ -51,6 +52,7 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
   const [absentStudentId, setAbsentStudentId] = useState('')
   const [absentConfirm, setAbsentConfirm] = useState<EnrolledOpt | null>(null)
   const [tempStudentId, setTempStudentId] = useState('')
+  const [tempSubject, setTempSubject] = useState('')
   const [skipStudentId, setSkipStudentId] = useState('')
   const [moveStudentId, setMoveStudentId] = useState('')
   const [moveTargetId, setMoveTargetId] = useState('')
@@ -98,11 +100,11 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
     if (!tempStudentId || !date) return
     setError(undefined); setMessage(undefined)
     startTransition(async () => {
-      const result = await addTemporaryStudent(tempStudentId, lessonId, date)
+      const result = await addTemporaryStudent(tempStudentId, lessonId, date, tempSubject)
       if (result.error) { setError(result.error); return }
       const name = allStudents.find((s) => s.id === tempStudentId)?.name ?? '生徒'
-      setMessage(`${name}さんを${date}の臨時参加として追加しました（この日だけ）`)
-      setTempStudentId('')
+      setMessage(`${name}さんを${date}の臨時参加として追加しました${tempSubject ? `（${tempSubject}）` : ''}`)
+      setTempStudentId(''); setTempSubject('')
       router.refresh()
     })
   }
@@ -246,18 +248,30 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
       {/* 臨時で追加（この日だけ・通常メンバー以外を1回だけ参加） */}
       <div className="mb-3 pt-3 border-t border-gray-100 dark:border-gray-700">
         <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">臨時で追加（この日だけ）</label>
-        <div className="flex gap-2">
+        <div className="space-y-2">
           <select
             value={tempStudentId}
             onChange={(e) => setTempStudentId(e.target.value)}
-            className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
           >
             <option value="">— 生徒を選択 —</option>
             {allStudents.map((s) => (
               <option key={s.id} value={s.id}>{s.grade ? `${s.name}（${getDisplayGrade(s.grade)}）` : s.name}</option>
             ))}
           </select>
-          <Button type="button" variant="secondary" onClick={handleAddTemporary} loading={isPending} disabled={!tempStudentId}>{date} に追加</Button>
+          <div className="flex gap-2">
+            <select
+              value={tempSubject}
+              onChange={(e) => setTempSubject(e.target.value)}
+              className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            >
+              <option value="">科目（任意）</option>
+              {SUBJECTS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <Button type="button" variant="secondary" onClick={handleAddTemporary} loading={isPending} disabled={!tempStudentId}>{date} に追加</Button>
+          </div>
         </div>
         <p className="text-[11px] text-gray-400 mt-1">通常メンバーは変えずに、<b>{date}</b> だけこのコマに参加させます（他の週に影響しません）</p>
         {existingTemporary.length > 0 && (
@@ -265,7 +279,7 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
             {existingTemporary.map((t) => (
               <div key={t.id} className="text-xs text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
-                <span>{t.studentName}</span>
+                <span>{t.studentName}{t.subject ? `（${t.subject}）` : ''}</span>
                 <span className="text-[10px] text-gray-400">{t.date}</span>
                 <button type="button" onClick={() => handleRemoveTemporary(t.id)} disabled={isPending}
                   className="ml-auto text-[10px] text-red-500 hover:underline disabled:opacity-50">削除</button>

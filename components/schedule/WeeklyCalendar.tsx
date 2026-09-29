@@ -34,6 +34,7 @@ interface MakeupAssignment {
   assigned_date: string
   student: { id: string; name: string } | null
   kind?: 'makeup' | 'temporary'
+  subject?: string
 }
 
 interface WeeklyCalendarProps {
@@ -585,7 +586,7 @@ function CellLessons({ lessons, dateStr, makeups = [], absences = [], density = 
               compact={compact}
               makeupStudents={makeups
                 .filter((m) => ids.includes(m.lesson_id) && m.assigned_date === dateStr && m.student)
-                .map((m) => ({ ...m.student!, kind: m.kind ?? 'makeup' }))}
+                .map((m) => ({ ...m.student!, kind: m.kind ?? 'makeup', subject: m.subject }))}
               absentStudentIds={absences
                 .filter((a) => ids.includes(a.lesson_id) && a.date === dateStr)
                 .map((a) => a.student_id)}
