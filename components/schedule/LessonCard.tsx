@@ -74,7 +74,7 @@ export function LessonCard({ lesson, compact = false, makeupStudents = [], absen
         )}
         {makeupStudents.filter((m) => m.kind === 'temporary').length > 0 && (
           <span className="flex-shrink-0 truncate text-[10px] font-bold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/60 px-1 rounded">
-            臨時 {makeupStudents.filter((m) => m.kind === 'temporary').map((m) => m.name).join('・')}
+            臨時 {makeupStudents.filter((m) => m.kind === 'temporary').map((m) => m.subject ? `${m.name}(${m.subject})` : m.name).join('・')}
           </span>
         )}
         <span className={[
