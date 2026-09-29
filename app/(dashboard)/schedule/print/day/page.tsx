@@ -6,7 +6,7 @@ import { PrintButton } from '@/components/print/PrintButton'
 import { AutoPrint } from '@/components/print/AutoPrint'
 
 interface PageProps {
-  searchParams: Promise<{ date?: string; waiting?: string }>
+  searchParams: Promise<{ date?: string; waiting?: string; hideAbsent?: string }>
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
@@ -35,8 +35,9 @@ function getDefaultSlots(dow: number, termType: 'regular' | 'intensive'): SlotIn
 }
 
 export default async function DayPrintPage({ searchParams }: PageProps) {
-  const { date, waiting } = await searchParams
+  const { date, waiting, hideAbsent } = await searchParams
   const showWaiting = waiting === '1'
+  const hideAbsentStudents = hideAbsent === '1'
   const refDate = date ? new Date(date) : new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -50,7 +51,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   const nextDay = new Date(refDate); nextDay.setDate(refDate.getDate() + 1)
 
   const supabase = await createClient()
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }, { data: makeupData }, { data: tempData }, { data: overrideData }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: dailyNote }, { data: makeupData }, { data: tempData }, { data: overrideData }, { data: absenceData }] = await Promise.all([
     supabase
       .from('lessons')
       .select(`
@@ -68,6 +69,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
     supabase.from('makeup_assignments').select('lesson_id, student:students(id, name)').eq('assigned_date', dateStr),
     supabase.from('temporary_students').select('lesson_id, subject, student:students(id, name)').eq('date', dateStr),
     supabase.from('lesson_teacher_overrides').select('lesson_id, teacher:teachers(name)').eq('date', dateStr),
+    supabase.from('attendances').select('lesson_id, student_id').eq('date', dateStr).eq('status', 'absent'),
   ])
 
   // lesson_id -> 振替/臨時生徒リスト
@@ -86,6 +88,12 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   const overrideByLesson = new Map<string, string>()
   for (const o of (overrideData ?? []) as unknown as { lesson_id: string; teacher: { name: string } | null }[]) {
     overrideByLesson.set(o.lesson_id, o.teacher?.name ?? '担当未定')
+  }
+  // lesson_id -> その日欠席（休）の student_id 集合
+  const absentByLesson = new Map<string, Set<string>>()
+  for (const a of (absenceData ?? []) as unknown as { lesson_id: string; student_id: string }[]) {
+    if (!absentByLesson.has(a.lesson_id)) absentByLesson.set(a.lesson_id, new Set())
+    absentByLesson.get(a.lesson_id)!.add(a.student_id)
   }
 
   const activeTerm = (termPeriods as TermPeriod[] ?? []).find(
@@ -156,10 +164,16 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
           @page { size: A4 portrait; margin: 6mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-          /* ページ全体: 高さ固定せず内容なり。FitToPageで1枚に自動縮小する */
+          /* ページ全体: A4縦の印刷領域いっぱいに広げる（通常期間3コマでも余白が大きくならないように）。
+             講習7コマ等で内容が超える場合は FitToPage で1枚に自動縮小される */
           .dpp-page {
             display: flex !important;
             flex-direction: column !important;
+            min-height: 275mm !important;
+          }
+          /* コマ一覧が縦の余白を埋めるように伸びる */
+          .dpp-slots {
+            flex: 1 1 auto !important;
           }
 
           /* ヘッダー */
@@ -271,7 +285,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             </span>
           )}
           <Link
-            href={`/schedule/print/day?date=${dateStr}&waiting=${showWaiting ? '0' : '1'}`}
+            href={`/schedule/print/day?date=${dateStr}&hideAbsent=${hideAbsentStudents ? '1' : '0'}&waiting=${showWaiting ? '0' : '1'}`}
             className={[
               'px-3 py-1.5 text-sm rounded-lg border transition-colors',
               showWaiting
@@ -280,6 +294,17 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             ].join(' ')}
           >
             待機中の先生を{showWaiting ? '非表示' : '表示'}
+          </Link>
+          <Link
+            href={`/schedule/print/day?date=${dateStr}&waiting=${showWaiting ? '1' : '0'}&hideAbsent=${hideAbsentStudents ? '0' : '1'}`}
+            className={[
+              'px-3 py-1.5 text-sm rounded-lg border transition-colors',
+              hideAbsentStudents
+                ? 'bg-amber-50 border-amber-300 text-amber-700'
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50',
+            ].join(' ')}
+          >
+            休みの生徒を{hideAbsentStudents ? '載せる' : '載せない'}
           </Link>
           <PrintButton label="印刷（縦A4）" />
         </div>
@@ -325,7 +350,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
                         return ba.localeCompare(bb, 'ja')
                       })
                       .map((lesson) => (
-                        <LessonPosterCard key={lesson.id} lesson={lesson} makeupStudents={makeupByLesson.get(lesson.id) ?? []} overrideTeacherName={overrideByLesson.has(lesson.id) ? overrideByLesson.get(lesson.id)! : undefined} />
+                        <LessonPosterCard key={lesson.id} lesson={lesson} makeupStudents={makeupByLesson.get(lesson.id) ?? []} overrideTeacherName={overrideByLesson.has(lesson.id) ? overrideByLesson.get(lesson.id)! : undefined} absentStudentIds={absentByLesson.get(lesson.id) ?? new Set()} hideAbsent={hideAbsentStudents} />
                       ))
                   ) : (
                     <div className="dpp-empty flex-1 flex items-center justify-center text-gray-300 text-sm print:text-xs">
@@ -362,7 +387,7 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   )
 }
 
-function LessonPosterCard({ lesson, makeupStudents = [], overrideTeacherName }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary'; subject?: string }[]; overrideTeacherName?: string }) {
+function LessonPosterCard({ lesson, makeupStudents = [], overrideTeacherName, absentStudentIds = new Set(), hideAbsent = false }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary'; subject?: string }[]; overrideTeacherName?: string; absentStudentIds?: Set<string>; hideAbsent?: boolean }) {
   const isGroup = lesson.type === 'group'
   const isPS1 = Boolean((lesson as { is_ps1?: boolean }).is_ps1)
   const isPurple = isGroup || isPS1
@@ -373,6 +398,8 @@ function LessonPosterCard({ lesson, makeupStudents = [], overrideTeacherName }: 
   const students = (lesson.enrollments ?? [])
     .map((e) => e.student)
     .filter((s): s is NonNullable<typeof s> => s != null)
+    .map((s) => ({ ...s, isAbsent: absentStudentIds.has(s.id) }))
+    .filter((s) => !(hideAbsent && s.isAbsent))
 
   return (
     <div className={[
@@ -411,9 +438,12 @@ function LessonPosterCard({ lesson, makeupStudents = [], overrideTeacherName }: 
         <div className="space-y-0.5">
           {students.length > 0 ? (
             students.map((s, i) => (
-              <p key={i} className="text-sm print:text-[10px] leading-snug text-gray-800">
+              <p key={i} className={s.isAbsent
+                ? 'text-sm print:text-[10px] leading-snug text-gray-400 line-through'
+                : 'text-sm print:text-[10px] leading-snug text-gray-800'}>
                 {s.name}
                 <span className="text-gray-500 ml-1 text-xs print:text-[8px]">（{lesson.subject}）</span>
+                {s.isAbsent && <span className="ml-1 text-[10px] print:text-[8px] no-underline text-gray-400">休</span>}
               </p>
             ))
           ) : makeupStudents.length === 0 ? (
