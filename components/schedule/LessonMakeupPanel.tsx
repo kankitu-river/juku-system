@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { assignMakeupFromLedger, markAbsentToLedger } from '@/app/(dashboard)/attendance/makeup/ledger/actions'
-import { addTemporaryStudent, removeTemporaryStudent, skipStudentForDate, unskipStudentForDate } from '@/app/(dashboard)/schedule/actions'
+import { addTemporaryStudent, removeTemporaryStudent, skipStudentForDate, unskipStudentForDate, moveStudentForDate } from '@/app/(dashboard)/schedule/actions'
 import { getDisplayGrade } from '@/lib/utils/grade'
 
 interface EnrolledOpt { id: string; name: string; grade?: string; subject?: string }
@@ -14,6 +14,7 @@ interface ExistingMakeup { id: string; studentName: string; date: string }
 interface StudentOpt { id: string; name: string; grade: string }
 interface TemporaryEntry { id: string; studentName: string; date: string }
 interface AbsenceEntry { studentId: string; studentName: string; date: string }
+interface MoveTarget { id: string; label: string }
 
 interface Props {
   lessonId: string
@@ -26,6 +27,7 @@ interface Props {
   allStudents: StudentOpt[] // 臨時追加用（全生徒）
   existingTemporary: TemporaryEntry[] // このコマの臨時参加
   existingAbsences: AbsenceEntry[] // このコマで「その日だけ外した」記録
+  moveTargets: MoveTarget[] // 別のコマへ移動の候補（同曜日・同期間の他コマ）
 }
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -42,7 +44,7 @@ function nextDateForDow(dow: number): string {
   return toDateStr(d)
 }
 
-export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel, enrolled, ledgerItems, existingMakeups, allStudents, existingTemporary, existingAbsences }: Props) {
+export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel, enrolled, ledgerItems, existingMakeups, allStudents, existingTemporary, existingAbsences, moveTargets }: Props) {
   const router = useRouter()
   const [date, setDate] = useState<string>(fixedDate ?? nextDateForDow(dayOfWeek))
   const [ledgerItemId, setLedgerItemId] = useState('')
@@ -50,6 +52,22 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
   const [absentConfirm, setAbsentConfirm] = useState<EnrolledOpt | null>(null)
   const [tempStudentId, setTempStudentId] = useState('')
   const [skipStudentId, setSkipStudentId] = useState('')
+  const [moveStudentId, setMoveStudentId] = useState('')
+  const [moveTargetId, setMoveTargetId] = useState('')
+
+  function handleMove() {
+    if (!moveStudentId || !moveTargetId || !date) return
+    setError(undefined); setMessage(undefined)
+    startTransition(async () => {
+      const result = await moveStudentForDate(moveStudentId, lessonId, moveTargetId, date)
+      if (result.error) { setError(result.error); return }
+      const name = enrolled.find((s) => s.id === moveStudentId)?.name ?? '生徒'
+      const target = moveTargets.find((t) => t.id === moveTargetId)?.label ?? '別のコマ'
+      setMessage(`${name}さんを${date}だけ「${target}」へ移動しました`)
+      setMoveStudentId(''); setMoveTargetId('')
+      router.refresh()
+    })
+  }
 
   function handleSkip() {
     if (!skipStudentId || !date) return
@@ -283,6 +301,39 @@ export function LessonMakeupPanel({ lessonId, fixedDate, dayOfWeek, lessonLabel,
           </div>
         )}
       </div>
+
+      {/* 別のコマへ移動（この日だけ・元コマから外して他コマへ臨時追加） */}
+      {moveTargets.length > 0 && (
+        <div className="mb-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">別の先生のコマへ移動（この日だけ）</label>
+          <div className="space-y-2">
+            <select
+              value={moveStudentId}
+              onChange={(e) => setMoveStudentId(e.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            >
+              <option value="">— 生徒を選択 —</option>
+              {enrolled.map((s) => (
+                <option key={s.id} value={s.id}>{s.grade ? `${s.name}（${getDisplayGrade(s.grade)}）` : s.name}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <select
+                value={moveTargetId}
+                onChange={(e) => setMoveTargetId(e.target.value)}
+                className="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+              >
+                <option value="">— 移動先のコマを選択 —</option>
+                {moveTargets.map((t) => (
+                  <option key={t.id} value={t.id}>{t.label}</option>
+                ))}
+              </select>
+              <Button type="button" onClick={handleMove} loading={isPending} disabled={!moveStudentId || !moveTargetId}>移動</Button>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-1">選んだ日だけ、このコマから外して移動先コマに臨時で入れます（他の週はそのまま）</p>
+        </div>
+      )}
 
       {/* このコマへの振替予定 */}
       {existingMakeups.length > 0 && (

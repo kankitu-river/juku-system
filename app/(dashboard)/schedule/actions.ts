@@ -407,3 +407,31 @@ export async function unskipStudentForDate(
   revalidatePath(`/schedule/${lessonId}`)
   return {}
 }
+
+// その日だけ、生徒を別のコマへ移動（元コマから外す＋先コマへ臨時追加を1操作で）
+export async function moveStudentForDate(
+  studentId: string,
+  fromLessonId: string,
+  toLessonId: string,
+  date: string
+): Promise<{ error?: string }> {
+  if (!studentId || !toLessonId || !date) return { error: '生徒・移動先・日付を選んでください' }
+  if (fromLessonId === toLessonId) return { error: '同じコマには移動できません' }
+  const supabase = await createClient()
+  // 元コマから外す（その日だけ欠席）
+  const r1 = await supabase.from('attendances').upsert(
+    { student_id: studentId, lesson_id: fromLessonId, date, status: 'absent', makeup_credited: false },
+    { onConflict: 'student_id,lesson_id,date' }
+  )
+  if (r1.error) return { error: r1.error.message }
+  // 先コマへ臨時追加
+  const r2 = await supabase.from('temporary_students').upsert(
+    { student_id: studentId, lesson_id: toLessonId, date },
+    { onConflict: 'lesson_id,student_id,date' }
+  )
+  if (r2.error) return { error: r2.error.message }
+  revalidatePath('/schedule')
+  revalidatePath(`/schedule/${fromLessonId}`)
+  revalidatePath(`/schedule/${toLessonId}`)
+  return {}
+}

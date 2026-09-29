@@ -76,6 +76,16 @@ export default async function LessonDetailPage({ params }: PageProps) {
   if (!lesson) notFound()
 
   const typedLesson = lesson as Lesson
+
+  // 「別のコマへ移動」候補：同じ曜日・同じ期間区分の通常コマ（自分以外）
+  const { data: moveTargetLessons } = await supabase
+    .from('lessons')
+    .select('id, slot_index, subject, type, teacher:teachers(name)')
+    .eq('day_of_week', typedLesson.day_of_week)
+    .eq('term_type', typedLesson.term_type)
+    .eq('lesson_kind', 'regular')
+    .neq('id', id)
+    .order('slot_index')
   const typedEnrollments = (enrollments as LessonEnrollment[]) ?? []
   type AuditLogRow = { id: string; action: string; summary: string | null; created_at: string }
   const typedAuditLogs = (auditLogs ?? []) as AuditLogRow[]
@@ -124,6 +134,11 @@ export default async function LessonDetailPage({ params }: PageProps) {
     studentId: a.student_id,
     studentName: a.student?.name ?? '—',
     date: a.date,
+  }))
+  type MoveTargetRow = { id: string; slot_index: number; subject: string | null; type: string; teacher: { name: string } | null }
+  const moveTargets = ((moveTargetLessons ?? []) as unknown as MoveTargetRow[]).map((l) => ({
+    id: l.id,
+    label: `第${l.slot_index}コマ ${l.teacher?.name ?? '担当未定'}${l.subject ? `・${l.subject}` : ''}`,
   }))
   const panelFixedDate = typedLesson.lesson_kind === 'temporary' ? typedLesson.specific_date : null
   const panelLessonLabel = getSlotLabel(typedLesson.slot_index, typedLesson.day_of_week, typedLesson.term_type, typedLesson.type)
@@ -274,6 +289,7 @@ export default async function LessonDetailPage({ params }: PageProps) {
           allStudents={allStudentsForPanel}
           existingTemporary={existingTemporary}
           existingAbsences={existingAbsences}
+          moveTargets={moveTargets}
         />
 
         {/* キャンセル待ち */}
