@@ -35,7 +35,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     const d = new Date(start); d.setDate(start.getDate() + i); return toLocalDate(d)
   })
 
-  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: makeupData }, { data: tempData }, { data: overrideData }] = await Promise.all([
+  const [{ data: lessons }, { data: termPeriods }, { data: teachersData }, { data: shiftsData }, { data: makeupData }, { data: tempData }, { data: overrideData }, { data: closureData }] = await Promise.all([
     supabase
       .from('lessons')
       .select('*, teacher:teachers(id, name), booth:booths(id, name), enrollments:lesson_enrollments(id, subject, student:students(id, name))')
@@ -47,7 +47,9 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     supabase.from('makeup_assignments').select('lesson_id, assigned_date, student:students(id, name)').in('assigned_date', weekDateStrs),
     supabase.from('temporary_students').select('lesson_id, date, subject, student:students(id, name)').in('date', weekDateStrs),
     supabase.from('lesson_teacher_overrides').select('lesson_id, date, teacher:teachers(name)').in('date', weekDateStrs),
+    supabase.from('school_closures').select('date').in('date', weekDateStrs),
   ])
+  const closedSet = new Set(((closureData ?? []) as { date: string }[]).map((c) => c.date))
 
   // `${lesson_id}__${date}` -> 振替/臨時生徒リスト
   const makeupByLessonDate = new Map<string, { id: string; name: string; kind: 'makeup' | 'temporary'; subject?: string }[]>()
@@ -237,9 +239,10 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                     const dow = i + 1
                     const day = d.getDate()
                     const month = d.getMonth() + 1
+                    const closed = closedSet.has(weekDateStrs[i])
                     return (
-                      <th key={dow} className="border border-gray-300 bg-navy text-white px-2 py-1.5 text-center">
-                        {DAY_NAMES[dow]}（{month}/{day}）
+                      <th key={dow} className={`border border-gray-300 text-white px-2 py-1.5 text-center ${closed ? 'bg-red-500' : 'bg-navy'}`}>
+                        {DAY_NAMES[dow]}（{month}/{day}）{closed && ' 休校'}
                       </th>
                     )
                   })}
@@ -262,8 +265,13 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         !busySet.has(t.id) &&
                         dayShifts.some(s => s.teacher_id === t.id && shiftCoversSlot(s, slot.start, slot.end))
                       )
+                      const closed = closedSet.has(dateStr2)
                       return (
-                        <td key={dow} className="border border-gray-300 px-1 py-1 align-top">
+                        <td key={dow} className={`border border-gray-300 px-1 py-1 align-top ${closed ? 'bg-red-50' : ''}`}>
+                          {closed ? (
+                            <div className="text-center text-red-400 text-[10px] font-bold py-1">休校</div>
+                          ) : (
+                          <>
                           {cellLessons.map((lesson) => (
                             <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${dateStr2}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${dateStr2}`) ? overrideByLessonDate.get(`${lesson.id}__${dateStr2}`)! : undefined} />
                           ))}
@@ -275,6 +283,8 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                                 </span>
                               ))}
                             </div>
+                          )}
+                          </>
                           )}
                         </td>
                       )
