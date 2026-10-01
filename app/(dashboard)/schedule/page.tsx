@@ -204,7 +204,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
         {view === 'day' && (
           <>
             <DailyNoteEditor date={dateStr} />
-            <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={cellStudents} absences={absences} teacherOverrides={teacherOverrides} />
+            <DailyViewPlaceholder date={referenceDate} lessons={(lessons as Lesson[]) ?? []} currentTermType={currentTermType} makeupAssignments={cellStudents} absences={absences} teacherOverrides={teacherOverrides} closureDates={closureDates} />
           </>
         )}
       </div>
@@ -322,11 +322,12 @@ function MonthlyViewPlaceholder({ date, lessons, termPeriods, closureDates }: {
   )
 }
 
-function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments, absences = [], teacherOverrides = [] }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind?: 'makeup' | 'temporary'; subject?: string }[]; absences?: { lesson_id: string; student_id: string; date: string }[]; teacherOverrides?: { lesson_id: string; date: string; teacher_name: string | null }[] }) {
+function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignments, absences = [], teacherOverrides = [], closureDates = [] }: { date: Date; lessons: Lesson[]; currentTermType: 'regular' | 'intensive'; makeupAssignments: { id: string; lesson_id: string; assigned_date: string; student: { id: string; name: string } | null; kind?: 'makeup' | 'temporary'; subject?: string }[]; absences?: { lesson_id: string; student_id: string; date: string }[]; teacherOverrides?: { lesson_id: string; date: string; teacher_name: string | null }[]; closureDates?: string[] }) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   const dayOfWeek = date.getDay()
   const localDateStr = toLocalDate(date)
+  const isClosed = closureDates.includes(localDateStr)
   // 臨時コマ(講習)はその日付だけ。通常コマは曜日＋期間区分で表示（別日の講習コマの重複を防ぐ）
   const dayLessons = lessons.filter((l) => {
     if (l.lesson_kind === 'temporary') return l.specific_date === localDateStr
@@ -414,10 +415,17 @@ function DailyViewPlaceholder({ date, lessons, currentTermType, makeupAssignment
           翌日 ›
         </Link>
       </div>
-      <div className="mb-3 flex justify-end">
-        <DayBoothAssignButton dateStr={toLocalDate(date)} dow={dayOfWeek} termType={currentTermType} />
-      </div>
-      {mergedGroups.length === 0 ? (
+      {!isClosed && (
+        <div className="mb-3 flex justify-end">
+          <DayBoothAssignButton dateStr={toLocalDate(date)} dow={dayOfWeek} termType={currentTermType} />
+        </div>
+      )}
+      {isClosed ? (
+        <div className="py-12 text-center rounded-xl border-2 border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30">
+          <p className="text-2xl font-bold text-red-500">休校日</p>
+          <p className="text-sm text-red-400 mt-1">本日は休校です</p>
+        </div>
+      ) : mergedGroups.length === 0 ? (
         <p className="text-center text-gray-400 py-10 text-sm">この日のコマはありません</p>
       ) : (
         <div className="space-y-2">
