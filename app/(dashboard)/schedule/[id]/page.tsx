@@ -173,9 +173,17 @@ export default async function LessonDetailPage({ params }: PageProps) {
             <Badge variant={typedLesson.term_type === 'intensive' ? 'intensive' : 'regular'}>
               {typedLesson.term_type === 'intensive' ? '講習期間' : '通常期間'}
             </Badge>
+            {typedLesson.lesson_kind !== 'temporary' && (
+              <Link
+                href={`/schedule/slot?dow=${typedLesson.day_of_week}&slot=${typedLesson.slot_index}&term=${typedLesson.term_type}&type=${typedLesson.type}`}
+                className="ml-2 px-3 py-1.5 text-sm font-medium text-white bg-navy rounded-lg hover:bg-navy-light transition-colors"
+              >
+                この時間枠をまとめて編集
+              </Link>
+            )}
             <Link
               href={`/schedule/new?copy=${id}`}
-              className="ml-2 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors"
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors"
             >
               コピーして新規作成
             </Link>

@@ -520,3 +520,65 @@ export async function addStandbyShift(
   revalidatePath(`/schedule/${lessonId}`)
   return {}
 }
+
+// ── 時間枠（曜日×コマ）の全授業をまとめて編集 ──────────────────
+
+export interface SlotLessonInput {
+  id: string | null // 既存はid、新規はnull
+  teacher_id: string | null
+  booth_id: string | null
+  subject: string
+  capacity: number
+  is_ps1: boolean
+  students: { id: string; subject: string }[]
+}
+
+export async function saveSlot(
+  ctx: { dow: number; slot: number; term: 'regular' | 'intensive'; type: 'group' | 'individual' },
+  lessons: SlotLessonInput[],
+  deletedLessonIds: string[]
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  for (const id of deletedLessonIds) {
+    const { error } = await supabase.from('lessons').delete().eq('id', id)
+    if (error) return { error: error.message }
+  }
+
+  for (const l of lessons) {
+    let lessonId = l.id
+    const common = {
+      teacher_id: l.teacher_id,
+      booth_id: l.booth_id,
+      subject: l.subject,
+      title: l.subject || '',
+      capacity: l.capacity,
+      is_ps1: l.is_ps1,
+    }
+    if (lessonId) {
+      const { error } = await supabase.from('lessons').update(common).eq('id', lessonId)
+      if (error) return { error: error.message }
+    } else {
+      const { data, error } = await supabase.from('lessons').insert({
+        ...common,
+        type: ctx.type,
+        lesson_kind: 'regular',
+        day_of_week: ctx.dow,
+        slot_index: ctx.slot,
+        term_type: ctx.term,
+      }).select('id').single()
+      if (error) return { error: error.message }
+      lessonId = data.id
+    }
+    // 受講生徒を同期（全削除→再登録）
+    await supabase.from('lesson_enrollments').delete().eq('lesson_id', lessonId)
+    if (l.students.length > 0) {
+      const rows = l.students.map((s) => ({ lesson_id: lessonId, student_id: s.id, subject: s.subject || l.subject || null }))
+      const { error } = await supabase.from('lesson_enrollments').insert(rows)
+      if (error) return { error: error.message }
+    }
+  }
+
+  revalidatePath('/schedule')
+  return {}
+}
