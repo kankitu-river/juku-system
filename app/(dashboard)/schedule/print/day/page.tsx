@@ -126,33 +126,31 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
   )
 
   // コマごとに lessons をグループ化（時間帯ごとの枠を構築）
-  // key: "start-end" でユニーク化
   type SlotGroup = SlotInfo & { lessons: Lesson[] }
-  const slotGroupMap = new Map<string, SlotGroup>()
-
-  for (const lesson of typedLessons) {
-    const slotDef = getSlotDef(lesson.slot_index, lesson.type as 'group' | 'individual', dow, currentTermType)
-    if (!slotDef) continue
-    const key = `${slotDef.start}-${slotDef.end}`
-    if (!slotGroupMap.has(key)) {
-      slotGroupMap.set(key, { ...slotDef, lessons: [] })
+  function buildGroups(subset: Lesson[], defaults: SlotInfo[]): SlotGroup[] {
+    const map = new Map<string, SlotGroup>()
+    for (const lesson of subset) {
+      const slotDef = getSlotDef(lesson.slot_index, lesson.type as 'group' | 'individual', dow, currentTermType)
+      if (!slotDef) continue
+      const key = `${slotDef.start}-${slotDef.end}`
+      if (!map.has(key)) map.set(key, { ...slotDef, lessons: [] })
+      map.get(key)!.lessons.push(lesson)
     }
-    slotGroupMap.get(key)!.lessons.push(lesson)
+    for (const slot of defaults) {
+      const key = `${slot.start}-${slot.end}`
+      if (!map.has(key)) map.set(key, { ...slot, lessons: [] })
+    }
+    return Array.from(map.values()).sort((a, b) => a.start.localeCompare(b.start))
   }
 
-  // その日のデフォルトスロットも空枠として追加（授業がないコマも表示）
-  for (const slot of getDefaultSlots(dow, currentTermType)) {
-    const key = `${slot.start}-${slot.end}`
-    if (!slotGroupMap.has(key)) {
-      slotGroupMap.set(key, { ...slot, lessons: [] })
-    }
-  }
-
-  // 時間順にソート
-  const slotGroups = Array.from(slotGroupMap.values())
-    .sort((a, b) => a.start.localeCompare(b.start))
-
-  const slotCount = slotGroups.length
+  // 土曜は「個別」「集団」を別セクションに分ける（混在だと見にくいため）。それ以外は1セクション。
+  const isSaturday = dow === 6
+  const sections: { heading?: string; groups: SlotGroup[] }[] = isSaturday
+    ? [
+        { heading: '個別指導', groups: buildGroups(typedLessons.filter((l) => l.type === 'individual'), SATURDAY_INDIVIDUAL_SLOTS) },
+        { heading: '集団授業', groups: buildGroups(typedLessons.filter((l) => l.type === 'group'), GROUP_SATURDAY_SLOTS) },
+      ]
+    : [{ groups: buildGroups(typedLessons, getDefaultSlots(dow, currentTermType)) }]
 
   // 待機中の先生計算
   const allTeachers = (teachersData ?? []) as { id: string; name: string }[]
@@ -189,6 +187,9 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
         @media print {
           @page { size: A4 portrait; margin: 6mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+          /* 書き込み用にマス（授業カード）の背景は白にする。枠線・文字は残す */
+          .dpp-card, .dpp-card-booth { background: #fff !important; }
 
           /* ページ全体: A4縦の印刷領域いっぱいに広げる（通常期間3コマでも余白が大きくならないように）。
              講習7コマ等で内容が超える場合は FitToPage で1枚に自動縮小される */
@@ -365,57 +366,62 @@ export default async function DayPrintPage({ searchParams }: PageProps) {
             </div>
           )}
 
-          {/* コマ一覧 */}
-          {!isClosed && (
-          <div className="dpp-slots flex flex-col gap-3 print:gap-0">
-            {slotGroups.map((slot) => (
-              <div key={`${slot.start}-${slot.end}`}
-                className="dpp-slot flex flex-col border border-gray-300 rounded-lg print:rounded-none overflow-hidden"
-                style={{ flexGrow: Math.max(slot.lessons.length, 1) }}>
-                {/* コマヘッダー */}
-                <div className="dpp-slot-hdr bg-navy text-white flex items-center gap-6 px-4 py-2.5 print:px-3 print:py-1.5">
-                  <span className="slot-num font-bold text-base print:text-sm">
-                    第{slot.index}コマ
-                  </span>
-                  <span className="slot-time font-bold text-xl print:text-base font-mono tracking-wide">
-                    {slot.start}　〜　{slot.end}
-                  </span>
-                </div>
-
-                {/* 授業カード */}
-                <div className="dpp-slot-body flex flex-wrap gap-3 p-3 print:gap-1.5 print:p-2 flex-1">
-                  {slot.lessons.length > 0 ? (
-                    slot.lessons
-                      .sort((a, b) => {
-                        const ba = (a as { booth?: { name: string } }).booth?.name ?? ''
-                        const bb = (b as { booth?: { name: string } }).booth?.name ?? ''
-                        return ba.localeCompare(bb, 'ja')
-                      })
-                      .map((lesson) => (
-                        <LessonPosterCard key={lesson.id} lesson={lesson} makeupStudents={makeupByLesson.get(lesson.id) ?? []} overrideTeacherName={overrideByLesson.has(lesson.id) ? overrideByLesson.get(lesson.id)! : undefined} absentStudentIds={absentByLesson.get(lesson.id) ?? new Set()} hideAbsent={hideAbsentStudents} understaffedReason={getUnderstaffedReason(lesson, slot.start, slot.end)} />
-                      ))
-                  ) : (
-                    <div className="dpp-empty flex-1 flex items-center justify-center text-gray-300 text-sm print:text-xs">
-                      授業なし
+          {/* コマ一覧（土曜は個別/集団を分割） */}
+          {!isClosed && sections.map((section, si) => (
+            <div key={si} className={si > 0 ? 'mt-3 print:mt-2' : ''}>
+              {section.heading && (
+                <p className="text-sm print:text-xs font-bold text-navy mb-1 pb-0.5 border-b border-navy/30">{section.heading}</p>
+              )}
+              <div className="dpp-slots flex flex-col gap-3 print:gap-0">
+                {section.groups.map((slot) => (
+                  <div key={`${slot.start}-${slot.end}`}
+                    className="dpp-slot flex flex-col border border-gray-300 rounded-lg print:rounded-none overflow-hidden"
+                    style={{ flexGrow: Math.max(slot.lessons.length, 1) }}>
+                    {/* コマヘッダー */}
+                    <div className="dpp-slot-hdr bg-navy text-white flex items-center gap-6 px-4 py-2.5 print:px-3 print:py-1.5">
+                      <span className="slot-num font-bold text-base print:text-sm">
+                        第{slot.index}コマ
+                      </span>
+                      <span className="slot-time font-bold text-xl print:text-base font-mono tracking-wide">
+                        {slot.start}　〜　{slot.end}
+                      </span>
                     </div>
-                  )}
-                  {showWaiting && (() => {
-                    const waiting = getWaitingTeachers(slot.start, slot.end, slot.lessons)
-                    return waiting.length > 0 ? (
-                      <div className="w-full flex flex-wrap gap-1.5 pt-2 mt-1 border-t border-dashed border-blue-200">
-                        {waiting.map(t => (
-                          <span key={t.id} className="text-xs bg-blue-50 text-blue-600 border border-dashed border-blue-300 px-2 py-0.5 rounded-full print:text-[8px]">
-                            {t.name}（待機中）
-                          </span>
-                        ))}
-                      </div>
-                    ) : null
-                  })()}
-                </div>
+
+                    {/* 授業カード */}
+                    <div className="dpp-slot-body flex flex-wrap gap-3 p-3 print:gap-1.5 print:p-2 flex-1">
+                      {slot.lessons.length > 0 ? (
+                        slot.lessons
+                          .sort((a, b) => {
+                            const ba = (a as { booth?: { name: string } }).booth?.name ?? ''
+                            const bb = (b as { booth?: { name: string } }).booth?.name ?? ''
+                            return ba.localeCompare(bb, 'ja')
+                          })
+                          .map((lesson) => (
+                            <LessonPosterCard key={lesson.id} lesson={lesson} makeupStudents={makeupByLesson.get(lesson.id) ?? []} overrideTeacherName={overrideByLesson.has(lesson.id) ? overrideByLesson.get(lesson.id)! : undefined} absentStudentIds={absentByLesson.get(lesson.id) ?? new Set()} hideAbsent={hideAbsentStudents} understaffedReason={getUnderstaffedReason(lesson, slot.start, slot.end)} />
+                          ))
+                      ) : (
+                        <div className="dpp-empty flex-1 flex items-center justify-center text-gray-300 text-sm print:text-xs">
+                          授業なし
+                        </div>
+                      )}
+                      {showWaiting && (() => {
+                        const waiting = getWaitingTeachers(slot.start, slot.end, slot.lessons)
+                        return waiting.length > 0 ? (
+                          <div className="w-full flex flex-wrap gap-1.5 pt-2 mt-1 border-t border-dashed border-blue-200">
+                            {waiting.map(t => (
+                              <span key={t.id} className="text-xs bg-blue-50 text-blue-600 border border-dashed border-blue-300 px-2 py-0.5 rounded-full print:text-[8px]">
+                                {t.name}（待機中）
+                              </span>
+                            ))}
+                          </div>
+                        ) : null
+                      })()}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          )}
+            </div>
+          ))}
 
           {/* 連絡事項メモ（コマ一覧の後） */}
           {dailyNote?.content && (

@@ -157,6 +157,8 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
         @media print {
           @page { size: A3 landscape; margin: 6mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* 書き込み用にマス（授業セル）の背景は白にする。枠線・文字は残す */
+          .wpl-cell { background: #fff !important; }
           .wpl-printbody { zoom: 1.0; }
           .wpl-wrap { display: flex; align-items: flex-start; gap: 5mm; }
           .wpl-days { flex: 13; min-width: 0; }
