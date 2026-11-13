@@ -5,7 +5,7 @@ import type { Lesson, TermPeriod } from '@/types'
 import { WeekPrintClient } from './WeekPrintClient'
 
 interface PageProps {
-  searchParams: Promise<{ date?: string; waiting?: string }>
+  searchParams: Promise<{ date?: string; waiting?: string; hideWarn?: string }>
 }
 
 function getWeekRange(date: Date): { start: Date; end: Date } {
@@ -23,8 +23,9 @@ function getWeekRange(date: Date): { start: Date; end: Date } {
 const DAY_NAMES = ['', '月', '火', '水', '木', '金', '土']
 
 export default async function WeekPrintPage({ searchParams }: PageProps) {
-  const { date, waiting } = await searchParams
+  const { date, waiting, hideWarn } = await searchParams
   const showWaiting = waiting !== '0'
+  const hideWarnings = hideWarn === '1'
   const refDate = date ? new Date(date) : new Date()
   const { start, end } = getWeekRange(refDate)
 
@@ -104,6 +105,18 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
     // 開始が一致する場合に "16:30:00" > "16:30" となり漏れるため HH:MM に揃えて比較する
     const hm = (t: string) => t.slice(0, 5)
     return hm(shift.start_time) <= slotStart && hm(shift.end_time) >= slotEnd
+  }
+
+  // 担当がその日シフトに入っていない/未設定の警告（その日のシフトが0件ならスキップ、代講済みは解決）
+  function getUnderstaffedReason(lesson: Lesson, dateStr: string, slotStart: string, slotEnd: string): '未設定' | '不在' | null {
+    if (hideWarnings) return null
+    if (lesson.lesson_kind === 'temporary') return null
+    if (overrideByLessonDate.has(`${lesson.id}__${dateStr}`)) return null
+    const dayShifts = shiftByDate.get(dateStr) ?? []
+    if (dayShifts.length === 0) return null
+    if (!lesson.teacher_id) return '未設定'
+    const covered = dayShifts.some((s) => s.teacher_id === lesson.teacher_id && shiftCoversSlot(s, slotStart, slotEnd))
+    return covered ? null : '不在'
   }
 
   // Group lessons by day and slot key
@@ -201,7 +214,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
           ].join(' ')}>
             {activeTerm ? activeTerm.name : '通常期間'}
           </span>
-          <WeekPrintClient showWaiting={showWaiting} weekDateStr={toLocalDate(start)} />
+          <WeekPrintClient showWaiting={showWaiting} showWarnings={!hideWarnings} weekDateStr={toLocalDate(start)} />
         </div>
       </div>
 
@@ -275,7 +288,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                           ) : (
                           <>
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${dateStr2}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${dateStr2}`) ? overrideByLessonDate.get(`${lesson.id}__${dateStr2}`)! : undefined} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${dateStr2}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${dateStr2}`) ? overrideByLessonDate.get(`${lesson.id}__${dateStr2}`)! : undefined} understaffedReason={getUnderstaffedReason(lesson, dateStr2, slot.start, slot.end)} />
                           ))}
                           {showWaiting && waitingTeachers.length > 0 && (
                             <div className="flex flex-wrap gap-0.5 mt-0.5">
@@ -327,7 +340,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         </td>
                         <td className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} understaffedReason={getUnderstaffedReason(lesson, weekDateStrs[5], slot.start, slot.end)} />
                           ))}
                         </td>
                       </tr>
@@ -359,7 +372,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         </td>
                         <td className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} understaffedReason={getUnderstaffedReason(lesson, weekDateStrs[5], slot.start, slot.end)} />
                           ))}
                         </td>
                       </tr>
@@ -391,7 +404,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
                         </td>
                         <td className="border border-gray-300 px-1 py-1 align-top">
                           {cellLessons.map((lesson) => (
-                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} />
+                            <LessonCell key={lesson.id} lesson={lesson} makeupStudents={makeupByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`) ?? []} overrideTeacherName={overrideByLessonDate.has(`${lesson.id}__${weekDateStrs[5]}`) ? overrideByLessonDate.get(`${lesson.id}__${weekDateStrs[5]}`)! : undefined} understaffedReason={getUnderstaffedReason(lesson, weekDateStrs[5], slot.start, slot.end)} />
                           ))}
                         </td>
                       </tr>
@@ -417,7 +430,7 @@ export default async function WeekPrintPage({ searchParams }: PageProps) {
   )
 }
 
-function LessonCell({ lesson, makeupStudents = [], overrideTeacherName }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary'; subject?: string }[]; overrideTeacherName?: string }) {
+function LessonCell({ lesson, makeupStudents = [], overrideTeacherName, understaffedReason = null }: { lesson: Lesson; makeupStudents?: { id: string; name: string; kind?: 'makeup' | 'temporary'; subject?: string }[]; overrideTeacherName?: string; understaffedReason?: '未設定' | '不在' | null }) {
   const isGroup = lesson.type === 'group'
   const hasOverride = overrideTeacherName !== undefined
   const teacher = hasOverride ? { name: overrideTeacherName } : (lesson as { teacher?: { name: string } }).teacher
@@ -431,10 +444,17 @@ function LessonCell({ lesson, makeupStudents = [], overrideTeacherName }: { less
   return (
     <div className={[
       'rounded-md px-2 py-1.5 mb-1 leading-snug border-l-4 wpl-cell',
-      isGroup
-        ? 'bg-purple-50 border-l-purple-500 border border-purple-200'
-        : 'bg-teal-50 border-l-teal-500 border border-teal-200',
+      understaffedReason
+        ? 'bg-red-50 border-l-red-500 border border-red-300'
+        : isGroup
+          ? 'bg-purple-50 border-l-purple-500 border border-purple-200'
+          : 'bg-teal-50 border-l-teal-500 border border-teal-200',
     ].join(' ')}>
+      {understaffedReason && (
+        <p className="text-[9px] font-bold text-red-600 flex items-center gap-0.5 wpl-pill">
+          <span>⚠</span>{understaffedReason === '不在' ? '担当不在' : '担当未設定'}
+        </p>
+      )}
       {/* 先生名 + バッジ + 定員 */}
       <div className="flex items-center gap-1 mb-0.5">
         {lesson.is_ps1 && (

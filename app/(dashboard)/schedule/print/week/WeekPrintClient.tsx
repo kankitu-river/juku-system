@@ -21,10 +21,11 @@ function printWithPageSize(size: string) {
 
 interface Props {
   showWaiting: boolean
+  showWarnings: boolean
   weekDateStr: string
 }
 
-export function WeekPrintClient({ showWaiting, weekDateStr }: Props) {
+export function WeekPrintClient({ showWaiting, showWarnings, weekDateStr }: Props) {
   const [paperSize, setPaperSize] = useState<string>('A3 landscape')
   const router = useRouter()
 
@@ -48,6 +49,16 @@ export function WeekPrintClient({ showWaiting, weekDateStr }: Props) {
     router.push(`/schedule/print/week?${params.toString()}`)
   }
 
+  function toggleWarnings() {
+    const params = new URLSearchParams(window.location.search)
+    if (showWarnings) {
+      params.set('hideWarn', '1')
+    } else {
+      params.delete('hideWarn')
+    }
+    router.push(`/schedule/print/week?${params.toString()}`)
+  }
+
   return (
     <div className="flex items-center gap-2">
       <button
@@ -60,6 +71,17 @@ export function WeekPrintClient({ showWaiting, weekDateStr }: Props) {
         ].join(' ')}
       >
         待機先生を{showWaiting ? '非表示' : '表示'}
+      </button>
+      <button
+        onClick={toggleWarnings}
+        className={[
+          'px-3 py-2 text-sm rounded-lg border transition-colors',
+          showWarnings
+            ? 'bg-red-50 border-red-300 text-red-700'
+            : 'bg-white border-gray-300 text-gray-500',
+        ].join(' ')}
+      >
+        担当不在の警告を{showWarnings ? '非表示' : '表示'}
       </button>
       <select
         value={paperSize}
